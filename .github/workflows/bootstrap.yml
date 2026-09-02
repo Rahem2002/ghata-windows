@@ -22,10 +22,7 @@ jobs:
       - name: Create Flutter project
         run: |
           rm -f pubspec.yaml
-          flutter create . \
-            --project-name ghata \
-            --org com.rahemsadaf \
-            --platforms=android,ios
+          flutter create . --project-name ghata --org com.rahemsadaf --platforms=android,ios
 
       - name: Commit generated project
         run: |
