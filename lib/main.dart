@@ -232,12 +232,18 @@ class _SignupScreenState extends State<SignupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Account created. Please check your email for verification.',
+              'Account created successfully.',
             ),
           ),
         );
 
-        Navigator.pop(context);
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const HomeScreen(),
+          ),
+          (route) => false,
+        );
       }
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -426,6 +432,50 @@ class ForgotPasswordScreen extends StatelessWidget {
                 child: FilledButton(
                   onPressed: () {},
                   child: const Text('Send Reset Link'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('ګهته – Ghata'),
+      ),
+      body: const SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.account_balance_wallet_rounded,
+                size: 80,
+                color: Colors.blue,
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Welcome to Ghata',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Business Ledger & Accounting',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
                 ),
               ),
             ],
