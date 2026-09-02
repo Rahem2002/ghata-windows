@@ -1,7 +1,6 @@
 name: Bootstrap Ghata Flutter App
 
-on:
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 permissions:
   contents: write
@@ -9,21 +8,17 @@ permissions:
 jobs:
   create-project:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-
       - name: Create Flutter project
         run: |
           rm -f pubspec.yaml
           flutter create . --project-name ghata --org com.rahemsadaf --platforms=android,ios
-
       - name: Commit generated project
         run: |
           git config user.name "github-actions[bot]"
