@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+  );
+
   runApp(const GhataApp());
 }
 
@@ -200,7 +211,7 @@ class _SignupScreenState extends State<SignupScreen> {
               TextField(
                 controller: nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Full Name / Username',
+                  labelText: 'Full Name',
                   prefixIcon: Icon(Icons.person_outline),
                   border: OutlineInputBorder(),
                 ),
