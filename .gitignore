@@ -11,3 +11,7 @@ build/
 *.keystore
 key.properties
 .env
+
+lib/main.dart.backup
+lib/main.dart.backup2
+pubspec.yaml.backup2

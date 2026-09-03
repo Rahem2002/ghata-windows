@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
@@ -25,6 +26,14 @@ class GhataApp extends StatefulWidget {
 class _GhataAppState extends State<GhataApp> {
   final navigatorKey = GlobalKey<NavigatorState>();
 
+  Locale _locale = const Locale('en');
+
+  void changeLanguage(String languageCode) {
+    setState(() {
+      _locale = Locale(languageCode);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +58,24 @@ class _GhataAppState extends State<GhataApp> {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Ghata',
+
+      // Default language: English
+      locale: _locale,
+
+      supportedLocales: const [
+        Locale('en'), // English
+        Locale('ps'), // پښتو
+        Locale('fa'), // دری
+        Locale('ur'), // اردو
+        Locale('ar'), // العربية
+      ],
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.blue,
@@ -596,6 +623,26 @@ class HomeScreen extends StatelessWidget {
         title: const Text('ګهته – Ghata'),
         actions: [
           IconButton(
+            tooltip: 'Language',
+            icon: const Icon(Icons.language),
+            onPressed: () {
+              final appState =
+                  context.findAncestorStateOfType<_GhataAppState>();
+
+              if (appState == null) return;
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LanguageScreen(
+                    currentLanguage: appState._locale.languageCode,
+                    onLanguageChanged: appState.changeLanguage,
+                  ),
+                ),
+              );
+            },
+          ),
+          IconButton(
             tooltip: 'Profile',
             icon: const Icon(Icons.person_outline),
             onPressed: () {
@@ -626,7 +673,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: const SafeArea(
+      body: SafeArea(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -645,11 +692,113 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 8),
-              Text(
+              const Text(
                 'Business Ledger & Accounting',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: 240,
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DailyJournalScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: const Text('Daily Journal'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 240,
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CustomersScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.people_outline),
+                  label: const Text('Customers'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 240,
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LoansScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.account_balance_wallet_outlined),
+                  label: const Text('Loans & Debts'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 240,
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CashboxScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.account_balance_outlined),
+                  label: const Text('Cashbox'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 240,
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ExchangeScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.currency_exchange_outlined),
+                  label: const Text('Exchange'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 240,
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ReportsScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.bar_chart_outlined),
+                  label: const Text('Reports'),
                 ),
               ),
             ],
@@ -1092,6 +1241,2002 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class LanguageScreen extends StatelessWidget {
+  final void Function(String) onLanguageChanged;
+  final String currentLanguage;
+
+  const LanguageScreen({
+    super.key,
+    required this.onLanguageChanged,
+    required this.currentLanguage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final languages = [
+      ('en', 'English', '🇬🇧'),
+      ('ps', 'پښتو', '🇦🇫'),
+      ('fa', 'دری', '🇦🇫'),
+      ('ur', 'اردو', '🇵🇰'),
+      ('ar', 'العربية', '🇸🇦'),
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Language'),
+      ),
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: languages.length,
+        separatorBuilder: (_, __) => const Divider(),
+        itemBuilder: (context, index) {
+          final language = languages[index];
+          final selected = currentLanguage == language.$1;
+
+          return ListTile(
+            leading: Text(
+              language.$3,
+              style: const TextStyle(fontSize: 30),
+            ),
+            title: Text(
+              language.$2,
+              style: const TextStyle(fontSize: 18),
+            ),
+            trailing: selected
+                ? const Icon(Icons.check_circle)
+                : null,
+            onTap: () {
+              onLanguageChanged(language.$1);
+              Navigator.pop(context);
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class DailyJournalScreen extends StatefulWidget {
+  const DailyJournalScreen({super.key});
+
+  @override
+  State<DailyJournalScreen> createState() =>
+      _DailyJournalScreenState();
+}
+
+class _DailyJournalScreenState extends State<DailyJournalScreen> {
+  final amountController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final referenceController = TextEditingController();
+
+  String transactionType = 'money_in';
+  String currency = 'AFN';
+  DateTime selectedDate = DateTime.now();
+  bool isSaving = false;
+
+  String? selectedCustomerId;
+  String? selectedCustomerName;
+
+  String flagForCurrency(String code) {
+    for (final item in currencies) {
+      if (item.$1 == code) return item.$2;
+    }
+    return '💰';
+  }
+
+  Future<List<Map<String, dynamic>>> loadCustomers() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final data = await Supabase.instance.client
+        .from('customers')
+        .select('id, full_name, phone')
+        .eq('user_id', user.id)
+        .order('full_name');
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  final currencies = const [
+    ('AFN', '🇦🇫', 'Afghan Afghani'),
+    ('PKR', '🇵🇰', 'Pakistani Rupee'),
+    ('USD', '🇺🇸', 'US Dollar'),
+    ('EUR', '🇪🇺', 'Euro'),
+    ('GBP', '🇬🇧', 'British Pound'),
+    ('AED', '🇦🇪', 'UAE Dirham'),
+    ('SAR', '🇸🇦', 'Saudi Riyal'),
+    ('KWD', '🇰🇼', 'Kuwaiti Dinar'),
+    ('QAR', '🇶🇦', 'Qatari Riyal'),
+    ('OMR', '🇴🇲', 'Omani Rial'),
+    ('TRY', '🇹🇷', 'Turkish Lira'),
+    ('CNY', '🇨🇳', 'Chinese Yuan'),
+    ('INR', '🇮🇳', 'Indian Rupee'),
+    ('IRR', '🇮🇷', 'Iranian Rial'),
+  ];
+
+  final transactionTypes = const [
+    ('money_in', 'Money In'),
+    ('money_out', 'Money Out'),
+    ('loan_given', 'Loan Given'),
+    ('loan_received', 'Loan Received'),
+    ('loan_repayment_received', 'Loan Repayment Received'),
+    ('loan_repayment_paid', 'Loan Repayment Paid'),
+    ('adjustment', 'Adjustment'),
+  ];
+
+  Future<List<Map<String, dynamic>>> loadTransactions() async {
+    const customerRequiredTypes = {
+      'loan_given',
+      'loan_received',
+      'loan_repayment_received',
+      'loan_repayment_paid',
+    };
+
+    if (customerRequiredTypes.contains(transactionType) &&
+        selectedCustomerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a customer for loan transactions.'),
+        ),
+      );
+      return;
+    }
+
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      return [];
+    }
+
+    final data = await Supabase.instance.client
+        .from('transactions')
+        .select()
+        .eq('user_id', user.id)
+        .order('transaction_date', ascending: false)
+        .order('created_at', ascending: false)
+        .limit(100);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Future<void> saveTransaction() async {
+    final amount = double.tryParse(amountController.text.trim());
+
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount.')),
+      );
+      return;
+    }
+
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You are not logged in.')),
+      );
+      return;
+    }
+
+    setState(() => isSaving = true);
+
+    try {
+      final dateText =
+          '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+
+      await Supabase.instance.client.from('transactions').insert({
+        'user_id': user.id,
+        'transaction_date': dateText,
+        'transaction_type': transactionType,
+        'amount': amount,
+        'currency': currency,
+        'customer_id': selectedCustomerId,
+        'customer_name': selectedCustomerName,
+        'description': descriptionController.text.trim().isEmpty
+            ? null
+            : descriptionController.text.trim(),
+        'reference_no': referenceController.text.trim().isEmpty
+            ? null
+            : referenceController.text.trim(),
+      });
+
+      if (!mounted) return;
+
+      amountController.clear();
+      selectedCustomerId = null;
+      selectedCustomerName = null;
+      descriptionController.clear();
+      referenceController.clear();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Transaction saved successfully.'),
+        ),
+      );
+
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to save transaction: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
+    }
+  }
+
+  Future<void> chooseDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (date != null) {
+      setState(() => selectedDate = date);
+    }
+  }
+
+  @override
+  void dispose() {
+    amountController.dispose();
+    descriptionController.dispose();
+    referenceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dateText =
+        '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Daily Journal'),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            OutlinedButton.icon(
+              onPressed: chooseDate,
+              icon: const Icon(Icons.calendar_month),
+              label: Text(dateText),
+            ),
+            const SizedBox(height: 16),
+
+            DropdownButtonFormField<String>(
+              initialValue: transactionType,
+              decoration: const InputDecoration(
+                labelText: 'Transaction Type',
+                border: OutlineInputBorder(),
+              ),
+              items: transactionTypes
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item.$1,
+                      child: Text(item.$2),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => transactionType = value);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: amountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Amount',
+                prefixIcon: Icon(Icons.payments_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            DropdownButtonFormField<String>(
+              initialValue: currency,
+              decoration: const InputDecoration(
+                labelText: 'Currency',
+                border: OutlineInputBorder(),
+              ),
+              items: currencies
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item.$1,
+                      child: Text(
+                        '${item.$2} ${item.$3} (${item.$1})',
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => currency = value);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: loadCustomers(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const LinearProgressIndicator();
+                }
+
+                if (snapshot.hasError) {
+                  return Text(
+                    'Unable to load customers: ${snapshot.error}',
+                  );
+                }
+
+                final customers = snapshot.data ?? [];
+
+                if (customers.isEmpty) {
+                  return const InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Customer / Person',
+                      prefixIcon: Icon(Icons.person_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                    child: Text(
+                      'No customers yet. Add a customer first.',
+                    ),
+                  );
+                }
+
+                return DropdownButtonFormField<String>(
+                  initialValue: selectedCustomerId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer / Person (Optional)',
+                    prefixIcon: Icon(Icons.person_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: customers.map((customer) {
+                    final id = customer['id'].toString();
+                    final name =
+                        customer['full_name']?.toString() ?? '';
+                    final phone =
+                        customer['phone']?.toString() ?? '';
+
+                    return DropdownMenuItem<String>(
+                      value: id,
+                      child: Text(
+                        phone.isEmpty ? name : '$name • $phone',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    final customer = customers
+                        .where(
+                          (item) => item['id'].toString() == value,
+                        )
+                        .firstOrNull;
+
+                    setState(() {
+                      selectedCustomerId = value;
+                      selectedCustomerName =
+                          customer?['full_name']?.toString();
+                    });
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: descriptionController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                prefixIcon: Icon(Icons.notes),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: referenceController,
+              decoration: const InputDecoration(
+                labelText: 'Reference No.',
+                prefixIcon: Icon(Icons.numbers),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            SizedBox(
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: isSaving ? null : saveTransaction,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(
+                  isSaving ? 'Saving...' : 'Save Transaction',
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+            const Divider(),
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                const Icon(Icons.history),
+                const SizedBox(width: 8),
+                const Text(
+                  'Transaction History',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: 'Refresh',
+                  onPressed: () => setState(() {}),
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: loadTransactions(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Unable to load transactions: ${snapshot.error}',
+                    ),
+                  );
+                }
+
+                final transactions = snapshot.data ?? [];
+
+                if (transactions.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(
+                      child: Text('No transactions yet.'),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: transactions.map((transaction) {
+                    final type =
+                        transaction['transaction_type']?.toString() ?? '';
+                    final amount =
+                        transaction['amount']?.toString() ?? '0';
+                    final currencyCode =
+                        transaction['currency']?.toString() ?? '';
+                    final date =
+                        transaction['transaction_date']?.toString() ?? '';
+                    final customer =
+                        transaction['customer_name']?.toString() ?? '';
+
+                    final typeLabel = transactionTypes
+                        .where((item) => item.$1 == type)
+                        .map((item) => item.$2)
+                        .firstOrNull;
+
+                    final currencyInfo = currencies
+                        .where((item) => item.$1 == currencyCode)
+                        .firstOrNull;
+
+                    final flag =
+                        currencyInfo == null ? '💰' : currencyInfo.$2;
+
+                    return Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          child: Text(flag),
+                        ),
+                        title: Text(
+                          '$amount $currencyCode',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          [
+                            typeLabel ?? type,
+                            date,
+                            if (customer.isNotEmpty) customer,
+                          ].join(' • '),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CustomersScreen extends StatefulWidget {
+  const CustomersScreen({super.key});
+
+  @override
+  State<CustomersScreen> createState() => _CustomersScreenState();
+}
+
+class _CustomersScreenState extends State<CustomersScreen> {
+  final nameController = TextEditingController();
+  final phoneController = TextEditingController();
+  final addressController = TextEditingController();
+  final notesController = TextEditingController();
+
+  bool isSaving = false;
+
+  Future<List<Map<String, dynamic>>> loadCustomers() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final data = await Supabase.instance.client
+        .from('customers')
+        .select()
+        .eq('user_id', user.id)
+        .order('full_name');
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Future<void> addCustomer() async {
+    final name = nameController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Customer name is required.')),
+      );
+      return;
+    }
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    setState(() => isSaving = true);
+
+    try {
+      await Supabase.instance.client.from('customers').insert({
+        'user_id': user.id,
+        'full_name': name,
+        'phone': phoneController.text.trim().isEmpty
+            ? null
+            : phoneController.text.trim(),
+        'address': addressController.text.trim().isEmpty
+            ? null
+            : addressController.text.trim(),
+        'notes': notesController.text.trim().isEmpty
+            ? null
+            : notesController.text.trim(),
+      });
+
+      nameController.clear();
+      phoneController.clear();
+      addressController.clear();
+      notesController.clear();
+
+      if (!mounted) return;
+
+      setState(() {});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Customer added successfully.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to add customer: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+    notesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Customers'),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Customer Name',
+                prefixIcon: Icon(Icons.person_outline),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone',
+                prefixIcon: Icon(Icons.phone_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: addressController,
+              decoration: const InputDecoration(
+                labelText: 'Address',
+                prefixIcon: Icon(Icons.location_on_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Notes',
+                prefixIcon: Icon(Icons.notes),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: isSaving ? null : addCustomer,
+                icon: const Icon(Icons.person_add_alt_1),
+                label: Text(
+                  isSaving ? 'Saving...' : 'Add Customer',
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+            const Divider(),
+            const SizedBox(height: 8),
+            const Text(
+              'Customer List',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: loadCustomers(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Text(
+                    'Unable to load customers: ${snapshot.error}',
+                  );
+                }
+
+                final customers = snapshot.data ?? [];
+
+                if (customers.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(
+                      child: Text('No customers yet.'),
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: customers.map((customer) {
+                    final name =
+                        customer['full_name']?.toString() ?? '';
+                    final phone =
+                        customer['phone']?.toString() ?? '';
+
+                    return Card(
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.person),
+                        ),
+                        title: Text(name),
+                        subtitle:
+                            phone.isEmpty ? null : Text(phone),
+                        trailing:
+                            const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CustomerLedgerScreen(
+                                customerId: customer['id'].toString(),
+                                customerName: name,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CustomerLedgerScreen extends StatelessWidget {
+  final String customerId;
+  final String customerName;
+
+  const CustomerLedgerScreen({
+    super.key,
+    required this.customerId,
+    required this.customerName,
+  });
+
+  Future<List<Map<String, dynamic>>> loadCustomerTransactions() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final data = await Supabase.instance.client
+        .from('transactions')
+        .select()
+        .eq('user_id', user.id)
+        .eq('customer_id', customerId)
+        .order('transaction_date', ascending: false)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Map<String, double> calculateBalances(
+    List<Map<String, dynamic>> transactions,
+  ) {
+    final balances = <String, double>{};
+
+    for (final transaction in transactions) {
+      final currency = transaction['currency']?.toString() ?? '';
+      final type = transaction['transaction_type']?.toString() ?? '';
+      final amount =
+          double.tryParse(transaction['amount']?.toString() ?? '0') ?? 0;
+
+      if (currency.isEmpty) continue;
+
+      balances.putIfAbsent(currency, () => 0);
+
+      switch (type) {
+        case 'money_out':
+        case 'loan_given':
+        case 'loan_repayment_paid':
+          balances[currency] = balances[currency]! + amount;
+          break;
+
+        case 'money_in':
+        case 'loan_received':
+        case 'loan_repayment_received':
+          balances[currency] = balances[currency]! - amount;
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    return balances;
+  }
+
+  String flagForCurrency(String code) {
+    const flags = {
+      'AFN': '🇦🇫',
+      'PKR': '🇵🇰',
+      'USD': '🇺🇸',
+      'EUR': '🇪🇺',
+      'GBP': '🇬🇧',
+      'AED': '🇦🇪',
+      'SAR': '🇸🇦',
+      'KWD': '🇰🇼',
+      'QAR': '🇶🇦',
+      'OMR': '🇴🇲',
+      'TRY': '🇹🇷',
+      'CNY': '🇨🇳',
+      'INR': '🇮🇳',
+      'IRR': '🇮🇷',
+    };
+
+    return flags[code] ?? '💰';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(customerName),
+      ),
+      body: SafeArea(
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: loadCustomerTransactions(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState ==
+                ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    'Unable to load ledger: ${snapshot.error}',
+                  ),
+                ),
+              );
+            }
+
+            final transactions = snapshot.data ?? [];
+            final allBalances = calculateBalances(transactions);
+
+            // Show only currencies with a remaining balance.
+            // Zero-balance currencies stay hidden.
+            final balances = Map<String, double>.fromEntries(
+              allBalances.entries.where(
+                (entry) => entry.value.abs() > 0.000001,
+              ),
+            );
+
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                const Text(
+                  'Currency Balances',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                if (balances.isEmpty)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(18),
+                      child: Text('No balance yet.'),
+                    ),
+                  )
+                else
+                  ...balances.entries.map((entry) {
+                    final amount = entry.value;
+                    final code = entry.key;
+
+                    final status = amount > 0
+                        ? 'You Receive'
+                        : amount < 0
+                            ? 'You Pay'
+                            : 'Settled';
+
+                    return Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          child: Text(flagForCurrency(code)),
+                        ),
+                        title: Text(
+                          '${amount.abs().toStringAsFixed(2)} $code',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(status),
+                      ),
+                    );
+                  }),
+
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 8),
+
+                const Text(
+                  'Transactions',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                if (transactions.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(
+                      child: Text('No transactions yet.'),
+                    ),
+                  )
+                else
+                  ...transactions.map((transaction) {
+                    final type =
+                        transaction['transaction_type']?.toString() ?? '';
+                    final amount =
+                        transaction['amount']?.toString() ?? '0';
+                    final currency =
+                        transaction['currency']?.toString() ?? '';
+                    final date =
+                        transaction['transaction_date']?.toString() ?? '';
+                    final description =
+                        transaction['description']?.toString() ?? '';
+
+                    return Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          child: Text(flagForCurrency(currency)),
+                        ),
+                        title: Text(
+                          '$amount $currency',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          [
+                            type,
+                            date,
+                            if (description.isNotEmpty) description,
+                          ].join(' • '),
+                        ),
+                      ),
+                    );
+                  }),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class LoansScreen extends StatelessWidget {
+  const LoansScreen({super.key});
+
+  Future<List<Map<String, dynamic>>> loadLoans() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final data = await Supabase.instance.client
+        .from('transactions')
+        .select('id, customer_id, customer_name, transaction_type, amount, currency, transaction_date, description')
+        .eq('user_id', user.id)
+        .inFilter(
+          'transaction_type',
+          [
+            'loan_given',
+            'loan_received',
+            'loan_repayment_received',
+            'loan_repayment_paid',
+          ],
+        )
+        .order('transaction_date', ascending: false)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Map<String, Map<String, dynamic>> calculateLoanBalances(
+    List<Map<String, dynamic>> transactions,
+  ) {
+    final balances = <String, Map<String, dynamic>>{};
+
+    for (final transaction in transactions) {
+      final customerId = transaction['customer_id']?.toString();
+      final currency = transaction['currency']?.toString() ?? '';
+
+      if (customerId == null ||
+          customerId.isEmpty ||
+          currency.isEmpty) {
+        continue;
+      }
+
+      final customerName =
+          transaction['customer_name']?.toString() ?? 'Unknown Customer';
+
+      final type =
+          transaction['transaction_type']?.toString() ?? '';
+
+      final amount = double.tryParse(
+            transaction['amount']?.toString() ?? '0',
+          ) ??
+          0;
+
+      final key = '$customerId|$currency';
+
+      balances.putIfAbsent(
+        key,
+        () => {
+          'customer_id': customerId,
+          'customer_name': customerName,
+          'currency': currency,
+          'balance': 0.0,
+        },
+      );
+
+      var balance = balances[key]!['balance'] as double;
+
+      if (type == 'loan_given') balance += amount;
+      if (type == 'loan_repayment_received') balance -= amount;
+      if (type == 'loan_received') balance -= amount;
+      if (type == 'loan_repayment_paid') balance += amount;
+
+      balances[key]!['balance'] = balance;
+    }
+
+    balances.removeWhere(
+      (_, item) => (item['balance'] as double).abs() <= 0.000001,
+    );
+
+    return balances;
+  }
+
+  String flagForCurrency(String code) {
+    const flags = {
+      'AFN': '🇦🇫',
+      'PKR': '🇵🇰',
+      'USD': '🇺🇸',
+      'EUR': '🇪🇺',
+      'GBP': '🇬🇧',
+      'AED': '🇦🇪',
+      'SAR': '🇸🇦',
+      'KWD': '🇰🇼',
+      'QAR': '🇶🇦',
+      'OMR': '🇴🇲',
+      'TRY': '🇹🇷',
+      'CNY': '🇨🇳',
+      'INR': '🇮🇳',
+      'IRR': '🇮🇷',
+    };
+
+    return flags[code] ?? '💰';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Loans & Debts'),
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: loadLoans(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState ==
+              ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'Unable to load loans: ${snapshot.error}',
+                ),
+              ),
+            );
+          }
+
+          final loans = snapshot.data ?? [];
+          final balances = calculateLoanBalances(loans);
+          final remaining = balances.values.toList();
+
+          if (remaining.isEmpty) {
+            return const Center(
+              child: Text('No outstanding loans or debts.'),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: remaining.length,
+            itemBuilder: (context, index) {
+              final item = remaining[index];
+
+              final customer =
+                  item['customer_name']?.toString() ??
+                      'Unknown Customer';
+
+              final currency =
+                  item['currency']?.toString() ?? '';
+
+              final balance =
+                  item['balance'] as double;
+
+              final youReceive = balance > 0;
+
+              return Card(
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Text(flagForCurrency(currency)),
+                  ),
+                  title: Text(
+                    customer,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    youReceive ? 'You Receive' : 'You Pay',
+                  ),
+                  trailing: Text(
+                    '${balance.abs().toStringAsFixed(2)} $currency',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CustomerLedgerScreen(
+                          customerId:
+                              item['customer_id'].toString(),
+                          customerName: customer,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class CashboxScreen extends StatelessWidget {
+  const CashboxScreen({super.key});
+
+  Future<List<Map<String, dynamic>>> loadTransactions() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final transactionData = await Supabase.instance.client
+        .from('transactions')
+        .select('transaction_type, amount, currency')
+        .eq('user_id', user.id);
+
+    final exchangeData = await Supabase.instance.client
+        .from('exchange_entries')
+        .select('entry_type, amount, currency')
+        .eq('user_id', user.id);
+
+    final all = <Map<String, dynamic>>[];
+
+    all.addAll(
+      List<Map<String, dynamic>>.from(transactionData),
+    );
+
+    for (final entry
+        in List<Map<String, dynamic>>.from(exchangeData)) {
+      all.add({
+        'transaction_type': entry['entry_type'],
+        'amount': entry['amount'],
+        'currency': entry['currency'],
+      });
+    }
+
+    return all;
+  }
+
+  Map<String, double> calculateCashbox(
+    List<Map<String, dynamic>> transactions,
+  ) {
+    final balances = <String, double>{};
+
+    for (final transaction in transactions) {
+      final currency =
+          transaction['currency']?.toString() ?? '';
+      final type =
+          transaction['transaction_type']?.toString() ?? '';
+      final amount = double.tryParse(
+            transaction['amount']?.toString() ?? '0',
+          ) ??
+          0;
+
+      if (currency.isEmpty) continue;
+
+      balances.putIfAbsent(currency, () => 0);
+
+      if (type == 'money_in') {
+        balances[currency] = balances[currency]! + amount;
+      } else if (type == 'money_out') {
+        balances[currency] = balances[currency]! - amount;
+      } else if (type == 'loan_given') {
+        balances[currency] = balances[currency]! - amount;
+      } else if (type == 'loan_received') {
+        balances[currency] = balances[currency]! + amount;
+      } else if (type == 'loan_repayment_received') {
+        balances[currency] = balances[currency]! + amount;
+      } else if (type == 'loan_repayment_paid') {
+        balances[currency] = balances[currency]! - amount;
+      }
+    }
+
+    balances.removeWhere(
+      (_, balance) => balance.abs() <= 0.000001,
+    );
+
+    return balances;
+  }
+
+  String flagForCurrency(String code) {
+    const flags = {
+      'AFN': '🇦🇫',
+      'PKR': '🇵🇰',
+      'USD': '🇺🇸',
+      'EUR': '🇪🇺',
+      'GBP': '🇬🇧',
+      'AED': '🇦🇪',
+      'SAR': '🇸🇦',
+      'KWD': '🇰🇼',
+      'QAR': '🇶🇦',
+      'OMR': '🇴🇲',
+      'TRY': '🇹🇷',
+      'CNY': '🇨🇳',
+      'INR': '🇮🇳',
+      'IRR': '🇮🇷',
+    };
+
+    return flags[code] ?? '💰';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Cashbox'),
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: loadTransactions(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState ==
+              ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Unable to load cashbox: ${snapshot.error}',
+              ),
+            );
+          }
+
+          final balances =
+              calculateCashbox(snapshot.data ?? []);
+
+          if (balances.isEmpty) {
+            return const Center(
+              child: Text('Cashbox is empty.'),
+            );
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: balances.entries.map((entry) {
+              return Card(
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Text(flagForCurrency(entry.key)),
+                  ),
+                  title: Text(entry.key),
+                  subtitle: Text(
+                    entry.value >= 0
+                        ? 'Available Balance'
+                        : 'Negative Balance',
+                  ),
+                  trailing: Text(
+                    '${entry.value.toStringAsFixed(2)} ${entry.key}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    );
+  }
+
+}
+
+class ExchangeScreen extends StatefulWidget {
+  const ExchangeScreen({super.key});
+
+  @override
+  State<ExchangeScreen> createState() => _ExchangeScreenState();
+}
+
+class _ExchangeScreenState extends State<ExchangeScreen> {
+  final fromAmountController = TextEditingController();
+  final toAmountController = TextEditingController();
+  final rateController = TextEditingController();
+  final notesController = TextEditingController();
+
+  String fromCurrency = 'AFN';
+  String toCurrency = 'USD';
+  String? selectedCustomerId;
+  String? selectedCustomerName;
+  bool isSaving = false;
+
+  final currencies = const [
+    ('AFN', '🇦🇫', 'Afghan Afghani'),
+    ('PKR', '🇵🇰', 'Pakistani Rupee'),
+    ('USD', '🇺🇸', 'US Dollar'),
+    ('EUR', '🇪🇺', 'Euro'),
+    ('GBP', '🇬🇧', 'British Pound'),
+    ('AED', '🇦🇪', 'UAE Dirham'),
+    ('SAR', '🇸🇦', 'Saudi Riyal'),
+    ('KWD', '🇰🇼', 'Kuwaiti Dinar'),
+    ('QAR', '🇶🇦', 'Qatari Riyal'),
+    ('OMR', '🇴🇲', 'Omani Rial'),
+    ('TRY', '🇹🇷', 'Turkish Lira'),
+    ('CNY', '🇨🇳', 'Chinese Yuan'),
+    ('INR', '🇮🇳', 'Indian Rupee'),
+    ('IRR', '🇮🇷', 'Iranian Rial'),
+  ];
+
+  Future<List<Map<String, dynamic>>> loadCustomers() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final data = await Supabase.instance.client
+        .from('customers')
+        .select('id, full_name, phone')
+        .eq('user_id', user.id)
+        .order('full_name');
+
+    return List<Map<String, dynamic>>.from(data);
+  }
+
+  Future<List<Map<String, dynamic>>> loadExchangeHistory() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final exchanges = await Supabase.instance.client
+        .from('exchanges')
+        .select(
+          'id, exchange_date, customer_name, notes, created_at',
+        )
+        .eq('user_id', user.id)
+        .order('exchange_date', ascending: false)
+        .order('created_at', ascending: false);
+
+    final result = <Map<String, dynamic>>[];
+
+    for (final exchange
+        in List<Map<String, dynamic>>.from(exchanges)) {
+      final entries = await Supabase.instance.client
+          .from('exchange_entries')
+          .select('entry_type, amount, currency, rate')
+          .eq('exchange_id', exchange['id']);
+
+      result.add({
+        ...exchange,
+        'entries': List<Map<String, dynamic>>.from(entries),
+      });
+    }
+
+    return result;
+  }
+
+  Future<void> saveExchange() async {
+    final fromAmount =
+        double.tryParse(fromAmountController.text.trim());
+    final toAmount =
+        double.tryParse(toAmountController.text.trim());
+    final rate =
+        double.tryParse(rateController.text.trim());
+
+    if (fromAmount == null || fromAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid From amount.'),
+        ),
+      );
+      return;
+    }
+
+    if (toAmount == null || toAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid To amount.'),
+        ),
+      );
+      return;
+    }
+
+    if (fromCurrency == toCurrency) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select two different currencies.'),
+        ),
+      );
+      return;
+    }
+
+    if (rate != null && rate <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Rate must be greater than zero.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => isSaving = true);
+
+    try {
+      await Supabase.instance.client.rpc(
+        'create_exchange',
+        params: {
+          'p_exchange_date':
+              DateTime.now().toIso8601String().split('T').first,
+          'p_customer_id': selectedCustomerId,
+          'p_customer_name': selectedCustomerName,
+          'p_notes': notesController.text.trim(),
+          'p_from_currency': fromCurrency,
+          'p_from_amount': fromAmount,
+          'p_to_currency': toCurrency,
+          'p_to_amount': toAmount,
+          'p_rate': rate,
+        },
+      );
+
+      if (!mounted) return;
+
+      fromAmountController.clear();
+      toAmountController.clear();
+      rateController.clear();
+      notesController.clear();
+
+      setState(() {
+        selectedCustomerId = null;
+        selectedCustomerName = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Exchange saved successfully.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to save exchange: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Exchange'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          DropdownButtonFormField<String>(
+            value: fromCurrency,
+            decoration: const InputDecoration(
+              labelText: 'From Currency',
+              border: OutlineInputBorder(),
+            ),
+            items: currencies.map((item) {
+              return DropdownMenuItem<String>(
+                value: item.$1,
+                child: Text('${item.$2} ${item.$1} - ${item.$3}'),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => fromCurrency = value);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+
+          TextField(
+            controller: fromAmountController,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+            decoration: const InputDecoration(
+              labelText: 'From Amount',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          DropdownButtonFormField<String>(
+            value: toCurrency,
+            decoration: const InputDecoration(
+              labelText: 'To Currency',
+              border: OutlineInputBorder(),
+            ),
+            items: currencies.map((item) {
+              return DropdownMenuItem<String>(
+                value: item.$1,
+                child: Text('${item.$2} ${item.$1} - ${item.$3}'),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => toCurrency = value);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+
+          TextField(
+            controller: toAmountController,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+            decoration: const InputDecoration(
+              labelText: 'To Amount',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          TextField(
+            controller: rateController,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+            decoration: const InputDecoration(
+              labelText: 'Rate (optional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: loadCustomers(),
+            builder: (context, snapshot) {
+              final customers = snapshot.data ?? [];
+
+              return DropdownButtonFormField<String?>(
+                value: selectedCustomerId,
+                decoration: const InputDecoration(
+                  labelText: 'Customer (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('No Customer'),
+                  ),
+                  ...customers.map((customer) {
+                    final id = customer['id'].toString();
+                    final name =
+                        customer['full_name']?.toString() ?? '';
+                    final phone =
+                        customer['phone']?.toString() ?? '';
+
+                    return DropdownMenuItem<String?>(
+                      value: id,
+                      child: Text(
+                        phone.isEmpty ? name : '$name - $phone',
+                      ),
+                    );
+                  }),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    selectedCustomerId = value;
+
+                    if (value == null) {
+                      selectedCustomerName = null;
+                    } else {
+                      final match = customers.firstWhere(
+                        (customer) =>
+                            customer['id'].toString() == value,
+                      );
+
+                      selectedCustomerName =
+                          match['full_name']?.toString();
+                    }
+                  });
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+
+          TextField(
+            controller: notesController,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Notes',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          FilledButton.icon(
+            onPressed: isSaving ? null : saveExchange,
+            icon: const Icon(Icons.save_outlined),
+            label: Text(
+              isSaving ? 'Saving...' : 'Save Exchange',
+            ),
+          ),
+
+          const SizedBox(height: 28),
+          const Divider(),
+          const SizedBox(height: 12),
+
+          const Text(
+            'Exchange History',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: loadExchangeHistory(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState ==
+                  ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              if (snapshot.hasError) {
+                return Text(
+                  'Unable to load exchange history: ${snapshot.error}',
+                );
+              }
+
+              final history = snapshot.data ?? [];
+
+              if (history.isEmpty) {
+                return const Text('No exchange history yet.');
+              }
+
+              return Column(
+                children: history.map((exchange) {
+                  final entries =
+                      List<Map<String, dynamic>>.from(
+                    exchange['entries'] ?? [],
+                  );
+
+                  Map<String, dynamic>? outEntry;
+                  Map<String, dynamic>? inEntry;
+
+                  for (final entry in entries) {
+                    if (entry['entry_type'] == 'money_out') {
+                      outEntry = entry;
+                    } else if (entry['entry_type'] == 'money_in') {
+                      inEntry = entry;
+                    }
+                  }
+
+                  final customer =
+                      exchange['customer_name']?.toString();
+
+                  final date =
+                      exchange['exchange_date']?.toString() ?? '';
+
+                  final outCurrency =
+                      outEntry?['currency']?.toString() ?? '';
+                  final inCurrency =
+                      inEntry?['currency']?.toString() ?? '';
+
+                  final outText = outEntry == null
+                      ? '-'
+                      : '${flagForCurrency(outCurrency)} ${outEntry['amount']} $outCurrency';
+
+                  final inText = inEntry == null
+                      ? '-'
+                      : '${flagForCurrency(inCurrency)} ${inEntry['amount']} $inCurrency';
+
+                  final rate =
+                      outEntry?['rate']?.toString() ??
+                      inEntry?['rate']?.toString();
+
+                  final notes =
+                      exchange['notes']?.toString() ?? '';
+
+                  final details = <String>[
+                    if (customer != null && customer.isNotEmpty)
+                      customer,
+                    date,
+                    if (rate != null && rate.isNotEmpty)
+                      'Rate: $rate',
+                    if (notes.isNotEmpty)
+                      notes,
+                  ];
+
+                  return Card(
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.currency_exchange_outlined,
+                      ),
+                      title: Text('$outText → $inText'),
+                      subtitle: Text(details.join(' • ')),
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    fromAmountController.dispose();
+    toAmountController.dispose();
+    rateController.dispose();
+    notesController.dispose();
+    super.dispose();
+  }
+}
+
+class ReportsScreen extends StatelessWidget {
+  const ReportsScreen({super.key});
+
+  Future<List<Map<String, dynamic>>> loadTransactions() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final transactionData = await Supabase.instance.client
+        .from('transactions')
+        .select('transaction_type, amount, currency')
+        .eq('user_id', user.id);
+
+    final exchangeData = await Supabase.instance.client
+        .from('exchange_entries')
+        .select('entry_type, amount, currency')
+        .eq('user_id', user.id);
+
+    final all = <Map<String, dynamic>>[];
+
+    all.addAll(
+      List<Map<String, dynamic>>.from(transactionData),
+    );
+
+    for (final entry
+        in List<Map<String, dynamic>>.from(exchangeData)) {
+      all.add({
+        'transaction_type': entry['entry_type'],
+        'amount': entry['amount'],
+        'currency': entry['currency'],
+      });
+    }
+
+    return all;
+  }
+
+  Map<String, Map<String, double>> calculateReport(
+    List<Map<String, dynamic>> transactions,
+  ) {
+    final report = <String, Map<String, double>>{};
+
+    for (final transaction in transactions) {
+      final currency = transaction['currency']?.toString() ?? '';
+      final type =
+          transaction['transaction_type']?.toString() ?? '';
+      final amount =
+          double.tryParse(transaction['amount']?.toString() ?? '0') ??
+              0;
+
+      if (currency.isEmpty || amount <= 0) continue;
+
+      report.putIfAbsent(
+        currency,
+        () => {
+          'money_in': 0,
+          'money_out': 0,
+          'loan_given': 0,
+          'loan_received': 0,
+          'loan_repayment_received': 0,
+          'loan_repayment_paid': 0,
+        },
+      );
+
+      final row = report[currency]!;
+
+      if (row.containsKey(type)) {
+        row[type] = row[type]! + amount;
+      }
+    }
+
+    return report;
+  }
+
+  String flagForCurrency(String code) {
+    const flags = {
+      'AFN': '🇦🇫',
+      'PKR': '🇵🇰',
+      'USD': '🇺🇸',
+      'EUR': '🇪🇺',
+      'GBP': '🇬🇧',
+      'AED': '🇦🇪',
+      'SAR': '🇸🇦',
+      'KWD': '🇰🇼',
+      'QAR': '🇶🇦',
+      'OMR': '🇴🇲',
+      'TRY': '🇹🇷',
+      'CNY': '🇨🇳',
+      'INR': '🇮🇳',
+      'IRR': '🇮🇷',
+    };
+
+    return flags[code] ?? '💰';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Reports'),
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: loadTransactions(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState ==
+              ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'Unable to load reports: ${snapshot.error}',
+                ),
+              ),
+            );
+          }
+
+          final transactions = snapshot.data ?? [];
+          final report = calculateReport(transactions);
+
+          if (report.isEmpty) {
+            return const Center(
+              child: Text('No report data yet.'),
+            );
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: report.entries.map((entry) {
+              final currency = entry.key;
+              final data = entry.value;
+
+              return Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${flagForCurrency(currency)} $currency',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Money In: ${data['money_in']!.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Money Out: ${data['money_out']!.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Loan Given: ${data['loan_given']!.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Loan Received: ${data['loan_received']!.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Loan Repayment Received: ${data['loan_repayment_received']!.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Loan Repayment Paid: ${data['loan_repayment_paid']!.toStringAsFixed(2)}',
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
       ),
     );
   }
