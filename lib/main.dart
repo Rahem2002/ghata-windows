@@ -1021,6 +1021,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
     try {
       await Supabase.instance.client.auth.updateUser(
         UserAttributes(email: newEmail),
+        emailRedirectTo: 'com.rahemsadaf.ghata://email-change',
       );
 
       if (!mounted) return;
