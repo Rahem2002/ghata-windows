@@ -1370,23 +1370,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   ];
 
   Future<List<Map<String, dynamic>>> loadTransactions() async {
-    const customerRequiredTypes = {
-      'loan_given',
-      'loan_received',
-      'loan_repayment_received',
-      'loan_repayment_paid',
-    };
-
-    if (customerRequiredTypes.contains(transactionType) &&
-        selectedCustomerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a customer for loan transactions.'),
-        ),
-      );
-      return;
-    }
-
     final user = Supabase.instance.client.auth.currentUser;
 
     if (user == null) {
@@ -1405,6 +1388,23 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   }
 
   Future<void> saveTransaction() async {
+    const customerRequiredTypes = {
+      'loan_given',
+      'loan_received',
+      'loan_repayment_received',
+      'loan_repayment_paid',
+    };
+
+    if (customerRequiredTypes.contains(transactionType) &&
+        selectedCustomerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a customer for loan transactions.'),
+        ),
+      );
+      return;
+    }
+
     final amount = double.tryParse(amountController.text.trim());
 
     if (amount == null || amount <= 0) {
@@ -2647,6 +2647,13 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     ('INR', '🇮🇳', 'Indian Rupee'),
     ('IRR', '🇮🇷', 'Iranian Rial'),
   ];
+
+  String flagForCurrency(String code) {
+    for (final item in currencies) {
+      if (item.$1 == code) return item.$2;
+    }
+    return '💰';
+  }
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
     final user = Supabase.instance.client.auth.currentUser;
