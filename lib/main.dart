@@ -2858,12 +2858,12 @@ class CashboxScreen extends StatelessWidget {
 
     final transactionData = await Supabase.instance.client
         .from('transactions')
-        .select('transaction_type, amount, currency')
+        .select('transaction_type, amount, currency, transaction_date')
         .eq('user_id', user.id);
 
     final exchangeData = await Supabase.instance.client
         .from('exchange_entries')
-        .select('entry_type, amount, currency')
+        .select('entry_type, amount, currency, created_at')
         .eq('user_id', user.id);
 
     final all = <Map<String, dynamic>>[];
@@ -2881,6 +2881,7 @@ class CashboxScreen extends StatelessWidget {
             entryType == 'money_out' ? 'exchange_out' : 'exchange_in',
         'amount': entry['amount'],
         'currency': entry['currency'],
+        'report_date': entry['created_at'],
       });
     }
 
@@ -3471,8 +3472,16 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   }
 }
 
-class ReportsScreen extends StatelessWidget {
+class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
+
+  @override
+  State<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _ReportsScreenState extends State<ReportsScreen> {
+  DateTime? fromDate;
+  DateTime? toDate;
 
   Future<List<Map<String, dynamic>>> loadTransactions() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -3496,8 +3505,11 @@ class ReportsScreen extends StatelessWidget {
 
     for (final entry
         in List<Map<String, dynamic>>.from(exchangeData)) {
+      final entryType = entry['entry_type']?.toString() ?? '';
+
       all.add({
-        'transaction_type': entry['entry_type'],
+        'transaction_type':
+            entryType == 'money_out' ? 'exchange_out' : 'exchange_in',
         'amount': entry['amount'],
         'currency': entry['currency'],
       });
