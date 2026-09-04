@@ -1423,6 +1423,83 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       return;
     }
 
+    if (transactionType == 'loan_repayment_received' ||
+        transactionType == 'loan_repayment_paid') {
+      final loanData = await Supabase.instance.client
+          .from('transactions')
+          .select('transaction_type, amount')
+          .eq('user_id', user.id)
+          .eq('customer_id', selectedCustomerId!)
+          .eq('currency', currency)
+          .inFilter('transaction_type', [
+            'loan_given',
+            'loan_received',
+            'loan_repayment_received',
+            'loan_repayment_paid',
+          ]);
+
+      double loanBalance = 0;
+
+      for (final item in List<Map<String, dynamic>>.from(loanData)) {
+        final type = item['transaction_type']?.toString() ?? '';
+        final value =
+            double.tryParse(item['amount']?.toString() ?? '0') ?? 0;
+
+        if (type == 'loan_given') loanBalance += value;
+        if (type == 'loan_repayment_received') loanBalance -= value;
+        if (type == 'loan_received') loanBalance -= value;
+        if (type == 'loan_repayment_paid') loanBalance += value;
+      }
+
+      if (transactionType == 'loan_repayment_received') {
+        if (loanBalance <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'This customer has no loan to repay in this currency.',
+              ),
+            ),
+          );
+          return;
+        }
+
+        if (amount > loanBalance) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Repayment cannot exceed ${loanBalance.toStringAsFixed(2)} $currency.',
+              ),
+            ),
+          );
+          return;
+        }
+      }
+
+      if (transactionType == 'loan_repayment_paid') {
+        if (loanBalance >= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'You do not owe this customer in this currency.',
+              ),
+            ),
+          );
+          return;
+        }
+
+        if (amount > loanBalance.abs()) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Repayment cannot exceed ${loanBalance.abs().toStringAsFixed(2)} $currency.',
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    }
+
     setState(() => isSaving = true);
 
     try {
@@ -1495,6 +1572,312 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     referenceController.dispose();
     super.dispose();
   }
+
+  Future<void> editTransaction(
+    Map<String, dynamic> transaction,
+  ) async {
+    final id = transaction['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final amountEditController = TextEditingController(
+      text: transaction['amount']?.toString() ?? '',
+    );
+    final descriptionEditController = TextEditingController(
+      text: transaction['description']?.toString() ?? '',
+    );
+    final referenceEditController = TextEditingController(
+      text: transaction['reference_no']?.toString() ?? '',
+    );
+
+    var editType =
+        transaction['transaction_type']?.toString() ?? 'money_in';
+    var editCurrency =
+        transaction['currency']?.toString() ?? 'AFN';
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit Transaction'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: amountEditController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Amount',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: editType,
+                  decoration: const InputDecoration(
+                    labelText: 'Transaction Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: transactionTypes
+                      .map(
+                        (item) => DropdownMenuItem<String>(
+                          value: item.$1,
+                          child: Text(item.$2),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => editType = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: editCurrency,
+                  decoration: const InputDecoration(
+                    labelText: 'Currency',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: currencies
+                      .map(
+                        (item) => DropdownMenuItem<String>(
+                          value: item.$1,
+                          child: Text('${item.$2} ${item.$1}'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => editCurrency = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descriptionEditController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: referenceEditController,
+                  decoration: const InputDecoration(
+                    labelText: 'Reference No.',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Save Changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) {
+      amountEditController.dispose();
+      descriptionEditController.dispose();
+      referenceEditController.dispose();
+      return;
+    }
+
+    final amount = double.tryParse(amountEditController.text.trim());
+
+    if (amount == null || amount <= 0) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter a valid amount greater than zero.'),
+        ),
+      );
+
+      amountEditController.dispose();
+      descriptionEditController.dispose();
+      referenceEditController.dispose();
+      return;
+    }
+
+    final customerId = transaction['customer_id']?.toString();
+
+    if ((editType == 'loan_repayment_received' ||
+            editType == 'loan_repayment_paid') &&
+        customerId != null &&
+        customerId.isNotEmpty) {
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user != null) {
+        final loanData = await Supabase.instance.client
+            .from('transactions')
+            .select('transaction_type, amount')
+            .eq('user_id', user.id)
+            .eq('customer_id', customerId)
+            .eq('currency', editCurrency)
+            .neq('id', id)
+            .inFilter('transaction_type', [
+          'loan_given',
+          'loan_received',
+          'loan_repayment_received',
+          'loan_repayment_paid',
+        ]);
+
+        double balance = 0;
+
+        for (final item in List<Map<String, dynamic>>.from(loanData)) {
+          final type = item['transaction_type']?.toString() ?? '';
+          final value =
+              double.tryParse(item['amount']?.toString() ?? '') ?? 0;
+
+          if (type == 'loan_given') balance += value;
+          if (type == 'loan_repayment_received') balance -= value;
+          if (type == 'loan_received') balance -= value;
+          if (type == 'loan_repayment_paid') balance += value;
+        }
+
+        if (editType == 'loan_repayment_received' &&
+            (balance <= 0 || amount > balance)) {
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                balance <= 0
+                    ? 'This customer has no loan to repay in this currency.'
+                    : 'Repayment cannot be greater than ${balance.toStringAsFixed(2)} $editCurrency.',
+              ),
+            ),
+          );
+          return;
+        }
+
+        if (editType == 'loan_repayment_paid' &&
+            (balance >= 0 || amount > balance.abs())) {
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                balance >= 0
+                    ? 'You do not owe this customer in this currency.'
+                    : 'Repayment cannot be greater than ${balance.abs().toStringAsFixed(2)} $editCurrency.',
+              ),
+            ),
+          );
+          return;
+        }
+      }
+    }
+
+    try {
+      await Supabase.instance.client.from('transactions').update({
+        'amount': amount,
+        'transaction_type': editType,
+        'currency': editCurrency,
+        'description': descriptionEditController.text.trim().isEmpty
+            ? null
+            : descriptionEditController.text.trim(),
+        'reference_no': referenceEditController.text.trim().isEmpty
+            ? null
+            : referenceEditController.text.trim(),
+      }).eq('id', id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Transaction updated successfully.'),
+        ),
+      );
+
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to update transaction: $e'),
+        ),
+      );
+    } finally {
+      amountEditController.dispose();
+      descriptionEditController.dispose();
+      referenceEditController.dispose();
+    }
+  }
+
+
+  Future<void> deleteTransaction(
+    Map<String, dynamic> transaction,
+  ) async {
+    final id = transaction['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final amount = transaction['amount']?.toString() ?? '';
+    final currencyCode = transaction['currency']?.toString() ?? '';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Transaction?'),
+        content: Text(
+          'Are you sure you want to delete $amount $currencyCode? '
+          'This will update related balances and reports.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await Supabase.instance.client
+          .from('transactions')
+          .delete()
+          .eq('id', id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Transaction deleted successfully.'),
+        ),
+      );
+
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to delete transaction: $e'),
+        ),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1778,6 +2161,21 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                             date,
                             if (customer.isNotEmpty) customer,
                           ].join(' • '),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Edit',
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: () => editTransaction(transaction),
+                            ),
+                            IconButton(
+                              tooltip: 'Delete',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => deleteTransaction(transaction),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -2476,8 +2874,11 @@ class CashboxScreen extends StatelessWidget {
 
     for (final entry
         in List<Map<String, dynamic>>.from(exchangeData)) {
+      final entryType = entry['entry_type']?.toString() ?? '';
+
       all.add({
-        'transaction_type': entry['entry_type'],
+        'transaction_type':
+            entryType == 'money_out' ? 'exchange_out' : 'exchange_in',
         'amount': entry['amount'],
         'currency': entry['currency'],
       });
@@ -3125,6 +3526,8 @@ class ReportsScreen extends StatelessWidget {
         () => {
           'money_in': 0,
           'money_out': 0,
+          'exchange_in': 0,
+          'exchange_out': 0,
           'loan_given': 0,
           'loan_received': 0,
           'loan_repayment_received': 0,
@@ -3224,6 +3627,12 @@ class ReportsScreen extends StatelessWidget {
                       ),
                       Text(
                         'Money Out: ${data['money_out']!.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Exchange In: ${data['exchange_in']!.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Exchange Out: ${data['exchange_out']!.toStringAsFixed(2)}',
                       ),
                       Text(
                         'Loan Given: ${data['loan_given']!.toStringAsFixed(2)}',
