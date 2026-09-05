@@ -3507,8 +3507,14 @@ class LoansScreen extends StatelessWidget {
   }
 }
 
-class CashboxScreen extends StatelessWidget {
+class CashboxScreen extends StatefulWidget {
   const CashboxScreen({super.key});
+
+  @override
+  State<CashboxScreen> createState() => _CashboxScreenState();
+}
+
+class _CashboxScreenState extends State<CashboxScreen> {
 
   Future<List<Map<String, dynamic>>> loadTransactions() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -3516,7 +3522,7 @@ class CashboxScreen extends StatelessWidget {
 
     final transactionData = await Supabase.instance.client
         .from('transactions')
-        .select('transaction_type, amount, currency, transaction_date, transaction_time')
+        .select('transaction_type, amount, currency, transaction_date, transaction_time, customer_name, description')
         .eq('user_id', user.id);
 
     final exchangeData = await Supabase.instance.client
@@ -3536,12 +3542,17 @@ class CashboxScreen extends StatelessWidget {
         in List<Map<String, dynamic>>.from(exchangeData)) {
       final entryType = entry['entry_type']?.toString() ?? '';
 
+      final exchange = entry['exchanges'] as Map<String, dynamic>?;
+
       all.add({
         'transaction_type':
             entryType == 'money_out' ? 'exchange_out' : 'exchange_in',
         'amount': entry['amount'],
         'currency': entry['currency'],
-        'report_date': entry['created_at'],
+        'transaction_date': exchange?['exchange_date'],
+        'transaction_time': exchange?['exchange_time'],
+        'customer_id': exchange?['customer_id'],
+        'customer_name': exchange?['customer_name'],
       });
     }
 
@@ -3637,35 +3648,151 @@ class CashboxScreen extends StatelessWidget {
           final balances =
               calculateCashbox(snapshot.data ?? []);
 
-          if (balances.isEmpty) {
-            return const Center(
-              child: Text('Cashbox is empty.'),
+          final transactions =
+              List<Map<String, dynamic>>.from(snapshot.data ?? []);
+
+          transactions.sort((a, b) {
+            final aDate =
+                '${a['transaction_date'] ?? ''} ${a['transaction_time'] ?? ''}';
+            final bDate =
+                '${b['transaction_date'] ?? ''} ${b['transaction_time'] ?? ''}';
+            return bDate.compareTo(aDate);
+          });
+
+          final balanceCards = balances.entries.map((entry) {
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  child: Text(flagForCurrency(entry.key)),
+                ),
+                title: Text(entry.key),
+                subtitle: Text(
+                  entry.value >= 0
+                      ? 'Available Balance'
+                      : 'Negative Balance',
+                ),
+                trailing: Text(
+                  '${entry.value.toStringAsFixed(2)} ${entry.key}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             );
-          }
+          }).toList();
+
+          final historyCards = transactions.map((transaction) {
+            final type =
+                transaction['transaction_type']?.toString() ?? '';
+            final currency = transaction['currency']?.toString() ?? '';
+            final amount =
+                double.tryParse(transaction['amount']?.toString() ?? '0') ??
+                    0;
+
+            final date =
+                transaction['transaction_date']?.toString() ?? '';
+            final rawTime =
+                transaction['transaction_time']?.toString() ?? '';
+            final time = rawTime.length >= 5
+                ? rawTime.substring(0, 5)
+                : rawTime;
+
+            final customer =
+                transaction['customer_name']?.toString() ?? '';
+            final description =
+                transaction['description']?.toString() ?? '';
+
+            String label;
+            bool isIn;
+
+            switch (type) {
+              case 'money_in':
+                label = 'Money In';
+                isIn = true;
+                break;
+              case 'money_out':
+                label = 'Money Out';
+                isIn = false;
+                break;
+              case 'loan_given':
+                label = 'Loan Given';
+                isIn = false;
+                break;
+              case 'loan_received':
+                label = 'Loan Received';
+                isIn = true;
+                break;
+              case 'loan_repayment_received':
+                label = 'Loan Repayment Received';
+                isIn = true;
+                break;
+              case 'loan_repayment_paid':
+                label = 'Loan Repayment Paid';
+                isIn = false;
+                break;
+              case 'exchange_in':
+                label = 'Exchange In';
+                isIn = true;
+                break;
+              case 'exchange_out':
+                label = 'Exchange Out';
+                isIn = false;
+                break;
+              default:
+                label = type.replaceAll('_', ' ');
+                isIn = false;
+            }
+
+            final details = <String>[
+              if (date.isNotEmpty) date,
+              if (time.isNotEmpty) time,
+              if (customer.isNotEmpty) customer,
+              if (description.isNotEmpty) description,
+            ];
+
+            return Card(
+              child: ListTile(
+                leading: Icon(
+                  isIn
+                      ? Icons.arrow_downward_outlined
+                      : Icons.arrow_upward_outlined,
+                ),
+                title: Text(label),
+                subtitle: Text(details.join(' • ')),
+                trailing: Text(
+                  '${isIn ? '+' : '-'}${amount.toStringAsFixed(2)} $currency',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            );
+          }).toList();
 
           return ListView(
             padding: const EdgeInsets.all(16),
-            children: balances.entries.map((entry) {
-              return Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    child: Text(flagForCurrency(entry.key)),
-                  ),
-                  title: Text(entry.key),
-                  subtitle: Text(
-                    entry.value >= 0
-                        ? 'Available Balance'
-                        : 'Negative Balance',
-                  ),
-                  trailing: Text(
-                    '${entry.value.toStringAsFixed(2)} ${entry.key}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            children: [
+              if (balanceCards.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text('Cashbox balance is zero.'),
+                )
+              else
+                ...balanceCards,
+              const SizedBox(height: 12),
+              const Text(
+                'History',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-              );
-            }).toList(),
+              ),
+              const SizedBox(height: 8),
+              if (historyCards.isEmpty)
+                const Text('No cashbox history yet.')
+              else
+                ...historyCards,
+            ],
           );
         },
       ),
