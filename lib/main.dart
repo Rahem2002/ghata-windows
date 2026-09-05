@@ -1444,6 +1444,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   String transactionType = 'money_in';
   String currency = 'AFN';
   DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedTime = TimeOfDay.now();
   bool isSaving = false;
   double? calculatorResult;
 
@@ -1518,6 +1519,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         .select()
         .eq('user_id', user.id)
         .order('transaction_date', ascending: false)
+        .order('transaction_time', ascending: false)
         .order('created_at', ascending: false)
         .limit(100);
 
@@ -1646,6 +1648,8 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       await Supabase.instance.client.from('transactions').insert({
         'user_id': user.id,
         'transaction_date': dateText,
+        'transaction_time':
+            '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00',
         'transaction_type': transactionType,
         'amount': amount,
         'currency': currency,
@@ -1706,6 +1710,17 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     }
   }
 
+  Future<void> chooseTime() async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: selectedTime,
+    );
+
+    if (time != null) {
+      setState(() => selectedTime = time);
+    }
+  }
+
   @override
   void dispose() {
     amountController.dispose();
@@ -1743,6 +1758,15 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
           transaction['transaction_date']?.toString() ?? '',
         ) ??
         DateTime.now();
+
+    final rawEditTime = transaction['transaction_time']?.toString() ?? '';
+    final timeParts = rawEditTime.split(':');
+    var editTime = timeParts.length >= 2
+        ? TimeOfDay(
+            hour: int.tryParse(timeParts[0]) ?? TimeOfDay.now().hour,
+            minute: int.tryParse(timeParts[1]) ?? TimeOfDay.now().minute,
+          )
+        : TimeOfDay.now();
 
     double? editCalculatorResult =
         evaluateCalculatorExpression(amountEditController.text.trim());
@@ -1847,6 +1871,23 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
                     if (picked != null) {
                       setDialogState(() => editDate = picked);
+                    }
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.access_time),
+                  title: const Text('Time'),
+                  subtitle: Text(editTime.format(context)),
+                  trailing: const Icon(Icons.edit_outlined),
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: editTime,
+                    );
+
+                    if (picked != null) {
+                      setDialogState(() => editTime = picked);
                     }
                   },
                 ),
@@ -2044,6 +2085,8 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         'currency': editCurrency,
         'transaction_date':
             '${editDate.year}-${editDate.month.toString().padLeft(2, '0')}-${editDate.day.toString().padLeft(2, '0')}',
+        'transaction_time':
+            '${editTime.hour.toString().padLeft(2, '0')}:${editTime.minute.toString().padLeft(2, '0')}:00',
         'customer_id': editCustomerId,
         'customer_name': editCustomerName,
         'description': descriptionEditController.text.trim().isEmpty
@@ -2151,10 +2194,24 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            OutlinedButton.icon(
-              onPressed: chooseDate,
-              icon: const Icon(Icons.calendar_month),
-              label: Text(dateText),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: chooseDate,
+                    icon: const Icon(Icons.calendar_month),
+                    label: Text(dateText),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: chooseTime,
+                    icon: const Icon(Icons.access_time),
+                    label: Text(selectedTime.format(context)),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -2454,6 +2511,11 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                         transaction['currency']?.toString() ?? '';
                     final date =
                         transaction['transaction_date']?.toString() ?? '';
+                    final rawTime =
+                        transaction['transaction_time']?.toString() ?? '';
+                    final time = rawTime.length >= 5
+                        ? rawTime.substring(0, 5)
+                        : '';
                     final customer =
                         transaction['customer_name']?.toString() ?? '';
 
@@ -2483,7 +2545,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                         subtitle: Text(
                           [
                             typeLabel ?? type,
-                            date,
+                            if (time.isEmpty) date else '$date $time',
                             if (customer.isNotEmpty) customer,
                           ].join(' • '),
                         ),
@@ -3026,6 +3088,7 @@ class CustomerLedgerScreen extends StatelessWidget {
         .eq('user_id', user.id)
         .eq('customer_id', customerId)
         .order('transaction_date', ascending: false)
+        .order('transaction_time', ascending: false)
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(data);
@@ -3203,6 +3266,11 @@ class CustomerLedgerScreen extends StatelessWidget {
                         transaction['currency']?.toString() ?? '';
                     final date =
                         transaction['transaction_date']?.toString() ?? '';
+                    final rawTime =
+                        transaction['transaction_time']?.toString() ?? '';
+                    final time = rawTime.length >= 5
+                        ? rawTime.substring(0, 5)
+                        : '';
                     final description =
                         transaction['description']?.toString() ?? '';
 
@@ -3220,7 +3288,7 @@ class CustomerLedgerScreen extends StatelessWidget {
                         subtitle: Text(
                           [
                             type,
-                            date,
+                            if (time.isEmpty) date else '$date $time',
                             if (description.isNotEmpty) description,
                           ].join(' • '),
                         ),
@@ -3245,7 +3313,7 @@ class LoansScreen extends StatelessWidget {
 
     final data = await Supabase.instance.client
         .from('transactions')
-        .select('id, customer_id, customer_name, transaction_type, amount, currency, transaction_date, description')
+        .select('id, customer_id, customer_name, transaction_type, amount, currency, transaction_date, transaction_time, description')
         .eq('user_id', user.id)
         .inFilter(
           'transaction_type',
@@ -3257,6 +3325,7 @@ class LoansScreen extends StatelessWidget {
           ],
         )
         .order('transaction_date', ascending: false)
+        .order('transaction_time', ascending: false)
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(data);
@@ -3447,12 +3516,14 @@ class CashboxScreen extends StatelessWidget {
 
     final transactionData = await Supabase.instance.client
         .from('transactions')
-        .select('transaction_type, amount, currency, transaction_date')
+        .select('transaction_type, amount, currency, transaction_date, transaction_time')
         .eq('user_id', user.id);
 
     final exchangeData = await Supabase.instance.client
         .from('exchange_entries')
-        .select('entry_type, amount, currency, created_at')
+        .select(
+          'entry_type, amount, currency, exchanges!inner(exchange_date, exchange_time, customer_id, customer_name)',
+        )
         .eq('user_id', user.id);
 
     final all = <Map<String, dynamic>>[];
@@ -3621,6 +3692,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   String? selectedCustomerId;
   String? selectedCustomerName;
   DateTime selectedExchangeDate = DateTime.now();
+  TimeOfDay selectedExchangeTime = TimeOfDay.now();
   bool isSaving = false;
 
   double? fromCalculatorResult;
@@ -3685,10 +3757,11 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     final exchanges = await Supabase.instance.client
         .from('exchanges')
         .select(
-          'id, exchange_date, customer_name, notes, created_at',
+          'id, exchange_date, exchange_time, customer_name, notes, created_at',
         )
         .eq('user_id', user.id)
         .order('exchange_date', ascending: false)
+        .order('exchange_time', ascending: false)
         .order('created_at', ascending: false);
 
     final result = <Map<String, dynamic>>[];
@@ -3815,6 +3888,8 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         params: {
           'p_exchange_date':
               '${selectedExchangeDate.year}-${selectedExchangeDate.month.toString().padLeft(2, '0')}-${selectedExchangeDate.day.toString().padLeft(2, '0')}',
+          'p_exchange_time':
+              '${selectedExchangeTime.hour.toString().padLeft(2, '0')}:${selectedExchangeTime.minute.toString().padLeft(2, '0')}:00',
           'p_customer_id': selectedCustomerId,
           'p_customer_name': selectedCustomerName,
           'p_notes': notesController.text.trim(),
@@ -3837,6 +3912,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         selectedCustomerId = null;
         selectedCustomerName = null;
         selectedExchangeDate = DateTime.now();
+        selectedExchangeTime = TimeOfDay.now();
         fromCalculatorResult = null;
         toCalculatorResult = null;
         rateCalculatorResult = null;
@@ -4027,23 +4103,46 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           ),
           const SizedBox(height: 12),
 
-          OutlinedButton.icon(
-            icon: const Icon(Icons.calendar_month),
-            label: Text(
-              'Date: ${selectedExchangeDate.year}-${selectedExchangeDate.month.toString().padLeft(2, '0')}-${selectedExchangeDate.day.toString().padLeft(2, '0')}',
-            ),
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: selectedExchangeDate,
-                firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
-              );
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.calendar_month),
+                  label: Text(
+                    '${selectedExchangeDate.year}-${selectedExchangeDate.month.toString().padLeft(2, '0')}-${selectedExchangeDate.day.toString().padLeft(2, '0')}',
+                  ),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedExchangeDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
 
-              if (picked != null) {
-                setState(() => selectedExchangeDate = picked);
-              }
-            },
+                    if (picked != null) {
+                      setState(() => selectedExchangeDate = picked);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.access_time),
+                  label: Text(selectedExchangeTime.format(context)),
+                  onPressed: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: selectedExchangeTime,
+                    );
+
+                    if (picked != null) {
+                      setState(() => selectedExchangeTime = picked);
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 12),
@@ -4127,6 +4226,11 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
                   final date =
                       exchange['exchange_date']?.toString() ?? '';
+                  final rawTime =
+                      exchange['exchange_time']?.toString() ?? '';
+                  final time = rawTime.length >= 5
+                      ? rawTime.substring(0, 5)
+                      : '';
 
                   final outCurrency =
                       outEntry?['currency']?.toString() ?? '';
@@ -4151,7 +4255,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                   final details = <String>[
                     if (customer != null && customer.isNotEmpty)
                       customer,
-                    date,
+                    if (time.isEmpty) date else '$date $time',
                     if (rate != null && rate.isNotEmpty)
                       'Rate: $rate',
                     if (notes.isNotEmpty)
@@ -4240,7 +4344,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     final transactionData = await Supabase.instance.client
         .from('transactions')
-        .select('transaction_type, amount, currency, transaction_date, customer_id, customer_name')
+        .select('transaction_type, amount, currency, transaction_date, transaction_time, customer_id, customer_name')
         .eq('user_id', user.id);
 
     final exchangeData = await Supabase.instance.client
@@ -4258,12 +4362,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
         in List<Map<String, dynamic>>.from(exchangeData)) {
       final entryType = entry['entry_type']?.toString() ?? '';
 
+      final exchange = entry['exchanges'] as Map<String, dynamic>?;
+
       all.add({
         'transaction_type':
             entryType == 'money_out' ? 'exchange_out' : 'exchange_in',
         'amount': entry['amount'],
         'currency': entry['currency'],
-        'transaction_date': entry['created_at'],
+        'transaction_date': exchange?['exchange_date'],
+        'transaction_time': exchange?['exchange_time'],
+        'customer_id': exchange?['customer_id'],
+        'customer_name': exchange?['customer_name'],
       });
     }
 
