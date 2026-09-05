@@ -3438,65 +3438,154 @@ class LoansScreen extends StatelessWidget {
           final balances = calculateLoanBalances(loans);
           final remaining = balances.values.toList();
 
-          if (remaining.isEmpty) {
-            return const Center(
-              child: Text('No outstanding loans or debts.'),
-            );
-          }
+          final balanceCards = remaining.map((item) {
+            final customer =
+                item['customer_name']?.toString() ??
+                    'Unknown Customer';
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: remaining.length,
-            itemBuilder: (context, index) {
-              final item = remaining[index];
+            final currency =
+                item['currency']?.toString() ?? '';
 
-              final customer =
-                  item['customer_name']?.toString() ??
-                      'Unknown Customer';
+            final balance =
+                item['balance'] as double;
 
-              final currency =
-                  item['currency']?.toString() ?? '';
+            final youReceive = balance > 0;
 
-              final balance =
-                  item['balance'] as double;
-
-              final youReceive = balance > 0;
-
-              return Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    child: Text(flagForCurrency(currency)),
-                  ),
-                  title: Text(
-                    customer,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Text(
-                    youReceive ? 'You Receive' : 'You Pay',
-                  ),
-                  trailing: Text(
-                    '${balance.abs().toStringAsFixed(2)} $currency',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CustomerLedgerScreen(
-                          customerId:
-                              item['customer_id'].toString(),
-                          customerName: customer,
-                        ),
-                      ),
-                    );
-                  },
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  child: Text(flagForCurrency(currency)),
                 ),
-              );
-            },
+                title: Text(
+                  customer,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  youReceive ? 'You Receive' : 'You Pay',
+                ),
+                trailing: Text(
+                  '${balance.abs().toStringAsFixed(2)} $currency',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CustomerLedgerScreen(
+                        customerId:
+                            item['customer_id'].toString(),
+                        customerName: customer,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }).toList();
+
+          final historyCards = loans.map((loan) {
+            final type =
+                loan['transaction_type']?.toString() ?? '';
+            final customer =
+                loan['customer_name']?.toString() ??
+                    'Unknown Customer';
+            final currency =
+                loan['currency']?.toString() ?? '';
+            final amount =
+                double.tryParse(loan['amount']?.toString() ?? '0') ??
+                    0;
+            final date =
+                loan['transaction_date']?.toString() ?? '';
+            final rawTime =
+                loan['transaction_time']?.toString() ?? '';
+            final time =
+                rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
+            final description =
+                loan['description']?.toString() ?? '';
+
+            String label;
+            switch (type) {
+              case 'loan_given':
+                label = 'Loan Given';
+                break;
+              case 'loan_received':
+                label = 'Loan Received';
+                break;
+              case 'loan_repayment_received':
+                label = 'Repayment Received';
+                break;
+              case 'loan_repayment_paid':
+                label = 'Repayment Paid';
+                break;
+              default:
+                label = type.replaceAll('_', ' ');
+            }
+
+            final details = <String>[
+              if (date.isNotEmpty) date,
+              if (time.isNotEmpty) time,
+              if (description.isNotEmpty) description,
+            ];
+
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  child: Text(flagForCurrency(currency)),
+                ),
+                title: Text('$label • $customer'),
+                subtitle: Text(details.join(' • ')),
+                trailing: Text(
+                  '${amount.toStringAsFixed(2)} $currency',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onTap: () {
+                  final customerId = loan['customer_id']?.toString();
+                  if (customerId == null || customerId.isEmpty) return;
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CustomerLedgerScreen(
+                        customerId: customerId,
+                        customerName: customer,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }).toList();
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (balanceCards.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text('No outstanding loans or debts.'),
+                )
+              else
+                ...balanceCards,
+              const SizedBox(height: 12),
+              const Text(
+                'History',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (historyCards.isEmpty)
+                const Text('No loan history yet.')
+              else
+                ...historyCards,
+            ],
           );
         },
       ),
