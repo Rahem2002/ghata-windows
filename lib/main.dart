@@ -1313,6 +1313,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
   final referenceController = TextEditingController();
+  final journalSearchController = TextEditingController();
 
   String transactionType = 'money_in';
   String currency = 'AFN';
@@ -1570,6 +1571,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     amountController.dispose();
     descriptionController.dispose();
     referenceController.dispose();
+    journalSearchController.dispose();
     super.dispose();
   }
 
@@ -1593,6 +1595,16 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         transaction['transaction_type']?.toString() ?? 'money_in';
     var editCurrency =
         transaction['currency']?.toString() ?? 'AFN';
+
+    var editCustomerId = transaction['customer_id']?.toString();
+    var editCustomerName = transaction['customer_name']?.toString();
+
+    var editDate = DateTime.tryParse(
+          transaction['transaction_date']?.toString() ?? '',
+        ) ??
+        DateTime.now();
+
+    final editCustomers = await loadCustomers();
 
     final saved = await showDialog<bool>(
       context: context,
@@ -1656,6 +1668,65 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today_outlined),
+                  title: const Text('Date'),
+                  subtitle: Text(
+                    '${editDate.year}-${editDate.month.toString().padLeft(2, '0')}-${editDate.day.toString().padLeft(2, '0')}',
+                  ),
+                  trailing: const Icon(Icons.edit_calendar_outlined),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: editDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+
+                    if (picked != null) {
+                      setDialogState(() => editDate = picked);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: editCustomerId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer / Person (Optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('No Customer'),
+                    ),
+                    ...editCustomers.map(
+                      (customer) => DropdownMenuItem<String>(
+                        value: customer['id'].toString(),
+                        child: Text(
+                          customer['full_name']?.toString() ?? '',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    final customer = editCustomers
+                        .where(
+                          (item) => item['id'].toString() == value,
+                        )
+                        .firstOrNull;
+
+                    setDialogState(() {
+                      editCustomerId = value;
+                      editCustomerName =
+                          customer?['full_name']?.toString();
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: descriptionEditController,
                   decoration: const InputDecoration(
@@ -1712,7 +1783,30 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       return;
     }
 
-    final customerId = transaction['customer_id']?.toString();
+    final customerId = editCustomerId;
+
+    final requiresCustomer = editType == 'loan_given' ||
+        editType == 'loan_received' ||
+        editType == 'loan_repayment_received' ||
+        editType == 'loan_repayment_paid';
+
+    if (requiresCustomer &&
+        (customerId == null || customerId.isEmpty)) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Select a customer for loan and repayment transactions.',
+          ),
+        ),
+      );
+
+      amountEditController.dispose();
+      descriptionEditController.dispose();
+      referenceEditController.dispose();
+      return;
+    }
 
     if ((editType == 'loan_repayment_received' ||
             editType == 'loan_repayment_paid') &&
@@ -1787,6 +1881,10 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         'amount': amount,
         'transaction_type': editType,
         'currency': editCurrency,
+        'transaction_date':
+            '${editDate.year}-${editDate.month.toString().padLeft(2, '0')}-${editDate.day.toString().padLeft(2, '0')}',
+        'customer_id': editCustomerId,
+        'customer_name': editCustomerName,
         'description': descriptionEditController.text.trim().isEmpty
             ? null
             : descriptionEditController.text.trim(),
@@ -1973,8 +2071,20 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                 }
 
                 final customers = snapshot.data ?? [];
+                final query = searchController.text.trim().toLowerCase();
 
-                if (customers.isEmpty) {
+                final filteredCustomers = customers.where((customer) {
+                  if (query.isEmpty) return true;
+
+                  final name =
+                      customer['full_name']?.toString().toLowerCase() ?? '';
+                  final phone =
+                      customer['phone']?.toString().toLowerCase() ?? '';
+
+                  return name.contains(query) || phone.contains(query);
+                }).toList();
+
+                if (filteredCustomers.isEmpty) {
                   return const InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Customer / Person',
@@ -2085,6 +2195,16 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
             ),
 
             const SizedBox(height: 8),
+            TextField(
+              controller: journalSearchController,
+              decoration: const InputDecoration(
+                labelText: 'Search transactions',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
 
             FutureBuilder<List<Map<String, dynamic>>>(
               future: loadTransactions(),
@@ -2109,8 +2229,38 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                 }
 
                 final transactions = snapshot.data ?? [];
+                final query =
+                    journalSearchController.text.trim().toLowerCase();
 
-                if (transactions.isEmpty) {
+                final filteredTransactions =
+                    transactions.where((transaction) {
+                  if (query.isEmpty) return true;
+
+                  final type = transaction['transaction_type']
+                          ?.toString()
+                          .toLowerCase() ??
+                      '';
+                  final currencyCode =
+                      transaction['currency']?.toString().toLowerCase() ??
+                          '';
+                  final customer =
+                      transaction['customer_name']?.toString().toLowerCase() ??
+                          '';
+                  final description =
+                      transaction['description']?.toString().toLowerCase() ??
+                          '';
+                  final reference =
+                      transaction['reference_no']?.toString().toLowerCase() ??
+                          '';
+
+                  return type.contains(query) ||
+                      currencyCode.contains(query) ||
+                      customer.contains(query) ||
+                      description.contains(query) ||
+                      reference.contains(query);
+                }).toList();
+
+                if (filteredTransactions.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.all(24),
                     child: Center(
@@ -2120,7 +2270,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                 }
 
                 return Column(
-                  children: transactions.map((transaction) {
+                  children: filteredTransactions.map((transaction) {
                     final type =
                         transaction['transaction_type']?.toString() ?? '';
                     final amount =
@@ -2202,6 +2352,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
   final phoneController = TextEditingController();
   final addressController = TextEditingController();
   final notesController = TextEditingController();
+  final searchController = TextEditingController();
 
   bool isSaving = false;
 
@@ -2273,12 +2424,248 @@ class _CustomersScreenState extends State<CustomersScreen> {
     }
   }
 
+  Future<void> editCustomer(Map<String, dynamic> customer) async {
+    final id = customer['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final nameEditController = TextEditingController(
+      text: customer['full_name']?.toString() ?? '',
+    );
+    final phoneEditController = TextEditingController(
+      text: customer['phone']?.toString() ?? '',
+    );
+    final addressEditController = TextEditingController(
+      text: customer['address']?.toString() ?? '',
+    );
+    final notesEditController = TextEditingController(
+      text: customer['notes']?.toString() ?? '',
+    );
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Customer'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameEditController,
+                decoration: const InputDecoration(
+                  labelText: 'Customer Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneEditController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressEditController,
+                decoration: const InputDecoration(
+                  labelText: 'Address',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: notesEditController,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Notes',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save Changes'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved != true) {
+      nameEditController.dispose();
+      phoneEditController.dispose();
+      addressEditController.dispose();
+      notesEditController.dispose();
+      return;
+    }
+
+    final name = nameEditController.text.trim();
+
+    if (name.isEmpty) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Customer name is required.'),
+        ),
+      );
+
+      nameEditController.dispose();
+      phoneEditController.dispose();
+      addressEditController.dispose();
+      notesEditController.dispose();
+      return;
+    }
+
+    try {
+      await Supabase.instance.client.from('customers').update({
+        'full_name': name,
+        'phone': phoneEditController.text.trim().isEmpty
+            ? null
+            : phoneEditController.text.trim(),
+        'address': addressEditController.text.trim().isEmpty
+            ? null
+            : addressEditController.text.trim(),
+        'notes': notesEditController.text.trim().isEmpty
+            ? null
+            : notesEditController.text.trim(),
+      }).eq('id', id);
+
+      await Supabase.instance.client
+          .from('transactions')
+          .update({'customer_name': name})
+          .eq('customer_id', id);
+
+      await Supabase.instance.client
+          .from('exchanges')
+          .update({'customer_name': name})
+          .eq('customer_id', id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Customer updated successfully.'),
+        ),
+      );
+
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to update customer: $e'),
+        ),
+      );
+    } finally {
+      nameEditController.dispose();
+      phoneEditController.dispose();
+      addressEditController.dispose();
+      notesEditController.dispose();
+    }
+  }
+
+  Future<void> deleteCustomer(Map<String, dynamic> customer) async {
+    final id = customer['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final name = customer['full_name']?.toString() ?? 'Customer';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Customer?'),
+        content: Text(
+          'Are you sure you want to delete $name? '
+          'Existing transactions will remain, but they will no longer be linked to this customer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final transactionLinks = await Supabase.instance.client
+          .from('transactions')
+          .select('id')
+          .eq('customer_id', id)
+          .limit(1);
+
+      final exchangeLinks = await Supabase.instance.client
+          .from('exchanges')
+          .select('id')
+          .eq('customer_id', id)
+          .limit(1);
+
+      final hasTransactions =
+          List<Map<String, dynamic>>.from(transactionLinks).isNotEmpty;
+      final hasExchanges =
+          List<Map<String, dynamic>>.from(exchangeLinks).isNotEmpty;
+
+      if (hasTransactions || hasExchanges) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'This customer has accounting history and cannot be deleted.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      await Supabase.instance.client
+          .from('customers')
+          .delete()
+          .eq('id', id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Customer deleted successfully.'),
+        ),
+      );
+
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to delete customer: $e'),
+        ),
+      );
+    }
+  }
+
+
   @override
   void dispose() {
     nameController.dispose();
     phoneController.dispose();
     addressController.dispose();
     notesController.dispose();
+    searchController.dispose();
     super.dispose();
   }
 
@@ -2351,6 +2738,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
               ),
             ),
             const SizedBox(height: 8),
+            TextField(
+              controller: searchController,
+              decoration: const InputDecoration(
+                labelText: 'Search customers',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
             FutureBuilder<List<Map<String, dynamic>>>(
               future: loadCustomers(),
               builder: (context, snapshot) {
@@ -2380,7 +2777,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 }
 
                 return Column(
-                  children: customers.map((customer) {
+                  children: filteredCustomers.map((customer) {
                     final name =
                         customer['full_name']?.toString() ?? '';
                     final phone =
@@ -2394,8 +2791,22 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         title: Text(name),
                         subtitle:
                             phone.isEmpty ? null : Text(phone),
-                        trailing:
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: 'Edit',
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: () => editCustomer(customer),
+                            ),
+                            IconButton(
+                              tooltip: 'Delete',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => deleteCustomer(customer),
+                            ),
                             const Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onTap: () {
                           Navigator.push(
                             context,
@@ -2844,6 +3255,9 @@ class LoansScreen extends StatelessWidget {
             },
           );
         },
+      ),
+          ),
+        ],
       ),
     );
   }
@@ -3482,6 +3896,38 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> {
   DateTime? fromDate;
   DateTime? toDate;
+  String? selectedCurrency;
+  String? selectedCustomerId;
+
+  final reportCurrencies = const [
+    'AFN',
+    'PKR',
+    'USD',
+    'EUR',
+    'GBP',
+    'AED',
+    'SAR',
+    'KWD',
+    'QAR',
+    'OMR',
+    'TRY',
+    'CNY',
+    'INR',
+    'IRR',
+  ];
+
+  Future<List<Map<String, dynamic>>> loadCustomers() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [];
+
+    final data = await Supabase.instance.client
+        .from('customers')
+        .select('id, full_name, phone')
+        .eq('user_id', user.id)
+        .order('full_name');
+
+    return List<Map<String, dynamic>>.from(data);
+  }
 
   Future<List<Map<String, dynamic>>> loadTransactions() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -3489,12 +3935,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     final transactionData = await Supabase.instance.client
         .from('transactions')
-        .select('transaction_type, amount, currency')
+        .select('transaction_type, amount, currency, transaction_date, customer_id, customer_name')
         .eq('user_id', user.id);
 
     final exchangeData = await Supabase.instance.client
         .from('exchange_entries')
-        .select('entry_type, amount, currency')
+        .select('entry_type, amount, currency, created_at')
         .eq('user_id', user.id);
 
     final all = <Map<String, dynamic>>[];
@@ -3512,10 +3958,50 @@ class _ReportsScreenState extends State<ReportsScreen> {
             entryType == 'money_out' ? 'exchange_out' : 'exchange_in',
         'amount': entry['amount'],
         'currency': entry['currency'],
+        'transaction_date': entry['created_at'],
       });
     }
 
-    return all;
+    return all.where((transaction) {
+      final transactionCurrency =
+          transaction['currency']?.toString() ?? '';
+
+      if (selectedCurrency != null &&
+          transactionCurrency != selectedCurrency) {
+        return false;
+      }
+
+      final transactionCustomerId =
+          transaction['customer_id']?.toString();
+
+      if (selectedCustomerId != null &&
+          transactionCustomerId != selectedCustomerId) {
+        return false;
+      }
+
+      final rawDate = transaction['transaction_date']?.toString();
+      if (rawDate == null || rawDate.isEmpty) return true;
+
+      final date = DateTime.tryParse(rawDate);
+      if (date == null) return true;
+
+      final normalized =
+          DateTime(date.year, date.month, date.day);
+
+      if (fromDate != null) {
+        final from =
+            DateTime(fromDate!.year, fromDate!.month, fromDate!.day);
+        if (normalized.isBefore(from)) return false;
+      }
+
+      if (toDate != null) {
+        final to =
+            DateTime(toDate!.year, toDate!.month, toDate!.day);
+        if (normalized.isAfter(to)) return false;
+      }
+
+      return true;
+    }).toList();
   }
 
   Map<String, Map<String, double>> calculateReport(
@@ -3584,8 +4070,131 @@ class _ReportsScreenState extends State<ReportsScreen> {
       appBar: AppBar(
         title: const Text('Reports'),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: loadTransactions(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.date_range),
+                    label: Text(
+                      fromDate == null
+                          ? 'From date'
+                          : '${fromDate!.year}-${fromDate!.month.toString().padLeft(2, '0')}-${fromDate!.day.toString().padLeft(2, '0')}',
+                    ),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: fromDate ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() => fromDate = picked);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.event),
+                    label: Text(
+                      toDate == null
+                          ? 'To date'
+                          : '${toDate!.year}-${toDate!.month.toString().padLeft(2, '0')}-${toDate!.day.toString().padLeft(2, '0')}',
+                    ),
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: toDate ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() => toDate = picked);
+                      }
+                    },
+                  ),
+                ),
+                if (fromDate != null || toDate != null)
+                  IconButton(
+                    tooltip: 'Clear dates',
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      setState(() {
+                        fromDate = null;
+                        toDate = null;
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: DropdownButtonFormField<String?>(
+              value: selectedCurrency,
+              decoration: const InputDecoration(
+                labelText: 'Currency',
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('All currencies'),
+                ),
+                ...reportCurrencies.map(
+                  (code) => DropdownMenuItem<String?>(
+                    value: code,
+                    child: Text('${flagForCurrency(code)} $code'),
+                  ),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() => selectedCurrency = value);
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: loadCustomers(),
+              builder: (context, snapshot) {
+                final customers = snapshot.data ?? [];
+
+                return DropdownButtonFormField<String?>(
+                  value: selectedCustomerId,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('All customers'),
+                    ),
+                    ...customers.map(
+                      (customer) => DropdownMenuItem<String?>(
+                        value: customer['id']?.toString(),
+                        child: Text(
+                          customer['full_name']?.toString() ?? 'Unnamed',
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() => selectedCustomerId = value);
+                  },
+                );
+              },
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: loadTransactions(),
         builder: (context, snapshot) {
           if (snapshot.connectionState ==
               ConnectionState.waiting) {
@@ -3665,6 +4274,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             }).toList(),
           );
         },
+      ),
+          ),
+        ],
       ),
     );
   }
