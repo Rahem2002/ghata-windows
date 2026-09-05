@@ -2303,7 +2303,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                 }
 
                 final customers = snapshot.data ?? [];
-                final query = searchController.text.trim().toLowerCase();
+                final query = journalSearchController.text.trim().toLowerCase();
 
                 final filteredCustomers = customers.where((customer) {
                   if (query.isEmpty) return true;
@@ -3003,6 +3003,19 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 }
 
                 final customers = snapshot.data ?? [];
+                final query =
+                    searchController.text.trim().toLowerCase();
+
+                final filteredCustomers = customers.where((customer) {
+                  if (query.isEmpty) return true;
+
+                  final name =
+                      customer['full_name']?.toString().toLowerCase() ?? '';
+                  final phone =
+                      customer['phone']?.toString().toLowerCase() ?? '';
+
+                  return name.contains(query) || phone.contains(query);
+                }).toList();
 
                 if (customers.isEmpty) {
                   return const Padding(
@@ -3588,9 +3601,6 @@ class LoansScreen extends StatelessWidget {
             ],
           );
         },
-      ),
-          ),
-        ],
       ),
     );
   }
