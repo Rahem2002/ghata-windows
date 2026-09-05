@@ -2,6 +2,132 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+
+double? evaluateCalculatorExpression(String input) {
+  final expression = input
+      .replaceAll('×', '*')
+      .replaceAll('÷', '/')
+      .replaceAll(',', '')
+      .replaceAll(' ', '');
+
+  if (expression.isEmpty) return null;
+
+  var index = 0;
+
+  double? parseExpression() {
+    double? parseNumber() {
+      var sign = 1.0;
+
+      if (index < expression.length &&
+          (expression[index] == '+' || expression[index] == '-')) {
+        if (expression[index] == '-') sign = -1;
+        index++;
+      }
+
+      double? value;
+
+      if (index < expression.length && expression[index] == '(') {
+        index++;
+        value = parseExpression();
+
+        if (value == null ||
+            index >= expression.length ||
+            expression[index] != ')') {
+          return null;
+        }
+
+        index++;
+      } else {
+        final startNumber = index;
+        var dotCount = 0;
+
+        while (index < expression.length &&
+            ((expression.codeUnitAt(index) >= 48 &&
+                    expression.codeUnitAt(index) <= 57) ||
+                expression[index] == '.')) {
+          if (expression[index] == '.') dotCount++;
+          if (dotCount > 1) return null;
+          index++;
+        }
+
+        if (startNumber == index) return null;
+
+        value = double.tryParse(
+          expression.substring(startNumber, index),
+        );
+
+        if (value == null) return null;
+      }
+
+      value *= sign;
+
+      if (index < expression.length && expression[index] == '%') {
+        value /= 100;
+        index++;
+      }
+
+      return value;
+    }
+
+    double? parseTerm() {
+      var value = parseNumber();
+      if (value == null) return null;
+
+      while (index < expression.length &&
+          (expression[index] == '*' || expression[index] == '/')) {
+        final op = expression[index];
+        index++;
+
+        final right = parseNumber();
+        if (right == null) return null;
+
+        if (op == '*') {
+          value = value! * right;
+        } else {
+          if (right == 0) return null;
+          value = value! / right;
+        }
+      }
+
+      return value;
+    }
+
+    var value = parseTerm();
+    if (value == null) return null;
+
+    while (index < expression.length &&
+        (expression[index] == '+' || expression[index] == '-')) {
+      final op = expression[index];
+      index++;
+
+      final percentStart = index;
+      final right = parseTerm();
+      if (right == null) return null;
+
+      final rawRight =
+          expression.substring(percentStart, index).endsWith('%');
+
+      final amount = rawRight ? value! * right : right;
+
+      if (op == '+') {
+        value = value! + amount;
+      } else {
+        value = value! - amount;
+      }
+    }
+
+    return value;
+  }
+
+  final result = parseExpression();
+
+  if (result == null || index != expression.length) {
+    return null;
+  }
+
+  return result;
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -1319,9 +1445,19 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   String currency = 'AFN';
   DateTime selectedDate = DateTime.now();
   bool isSaving = false;
+  double? calculatorResult;
 
   String? selectedCustomerId;
   String? selectedCustomerName;
+
+  void updateCalculatorResult() {
+    final result =
+        evaluateCalculatorExpression(amountController.text.trim());
+
+    if (calculatorResult != result) {
+      setState(() => calculatorResult = result);
+    }
+  }
 
   String flagForCurrency(String code) {
     for (final item in currencies) {
@@ -1406,7 +1542,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       return;
     }
 
-    final amount = double.tryParse(amountController.text.trim());
+    final amount = evaluateCalculatorExpression(amountController.text.trim());
 
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1531,6 +1667,10 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       descriptionController.clear();
       referenceController.clear();
 
+      setState(() {
+        calculatorResult = null;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Transaction saved successfully.'),
@@ -1604,6 +1744,9 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         ) ??
         DateTime.now();
 
+    double? editCalculatorResult =
+        evaluateCalculatorExpression(amountEditController.text.trim());
+
     final editCustomers = await loadCustomers();
 
     final saved = await showDialog<bool>(
@@ -1617,14 +1760,32 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
               children: [
                 TextField(
                   controller: amountEditController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: TextInputType.text,
+                  onChanged: (_) {
+                    setDialogState(() {
+                      editCalculatorResult =
+                          evaluateCalculatorExpression(
+                        amountEditController.text.trim(),
+                      );
+                    });
+                  },
                   decoration: const InputDecoration(
                     labelText: 'Amount',
                     border: OutlineInputBorder(),
                   ),
                 ),
+                if (editCalculatorResult != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Result / بقایه: ${editCalculatorResult!.toStringAsFixed(editCalculatorResult! % 1 == 0 ? 0 : 2)} $editCurrency',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: editType,
@@ -1766,7 +1927,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       return;
     }
 
-    final amount = double.tryParse(amountEditController.text.trim());
+    final amount = evaluateCalculatorExpression(amountEditController.text.trim());
 
     if (amount == null || amount <= 0) {
       if (!mounted) return;
@@ -2021,15 +2182,29 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
             TextField(
               controller: amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType: TextInputType.text,
+              onChanged: (_) => updateCalculatorResult(),
               decoration: const InputDecoration(
                 labelText: 'Amount',
                 prefixIcon: Icon(Icons.payments_outlined),
                 border: OutlineInputBorder(),
               ),
             ),
+
+            if (calculatorResult != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Result / بقایه: ${calculatorResult!.toStringAsFixed(calculatorResult! % 1 == 0 ? 0 : 2)} $currency',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 16),
 
             DropdownButtonFormField<String>(
@@ -3445,7 +3620,26 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   String toCurrency = 'USD';
   String? selectedCustomerId;
   String? selectedCustomerName;
+  DateTime selectedExchangeDate = DateTime.now();
   bool isSaving = false;
+
+  double? fromCalculatorResult;
+  double? toCalculatorResult;
+  double? rateCalculatorResult;
+
+  void updateExchangeCalculatorResults() {
+    setState(() {
+      fromCalculatorResult = evaluateCalculatorExpression(
+        fromAmountController.text.trim(),
+      );
+      toCalculatorResult = evaluateCalculatorExpression(
+        toAmountController.text.trim(),
+      );
+      rateCalculatorResult = evaluateCalculatorExpression(
+        rateController.text.trim(),
+      );
+    });
+  }
 
   final currencies = const [
     ('AFN', '🇦🇫', 'Afghan Afghani'),
@@ -3515,13 +3709,67 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     return result;
   }
 
+  Future<void> deleteExchange(Map<String, dynamic> exchange) async {
+    final id = exchange['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Exchange?'),
+        content: const Text(
+          'This will remove the exchange and its related entries from reports and cashbox.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await Supabase.instance.client.rpc(
+        'delete_exchange',
+        params: {
+          'p_exchange_id': id,
+        },
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Exchange deleted successfully.'),
+        ),
+      );
+
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to delete exchange: $e'),
+        ),
+      );
+    }
+  }
+
   Future<void> saveExchange() async {
     final fromAmount =
-        double.tryParse(fromAmountController.text.trim());
+        evaluateCalculatorExpression(fromAmountController.text.trim());
     final toAmount =
-        double.tryParse(toAmountController.text.trim());
+        evaluateCalculatorExpression(toAmountController.text.trim());
     final rate =
-        double.tryParse(rateController.text.trim());
+        evaluateCalculatorExpression(rateController.text.trim());
 
     if (fromAmount == null || fromAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -3566,7 +3814,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         'create_exchange',
         params: {
           'p_exchange_date':
-              DateTime.now().toIso8601String().split('T').first,
+              '${selectedExchangeDate.year}-${selectedExchangeDate.month.toString().padLeft(2, '0')}-${selectedExchangeDate.day.toString().padLeft(2, '0')}',
           'p_customer_id': selectedCustomerId,
           'p_customer_name': selectedCustomerName,
           'p_notes': notesController.text.trim(),
@@ -3588,6 +3836,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       setState(() {
         selectedCustomerId = null;
         selectedCustomerName = null;
+        selectedExchangeDate = DateTime.now();
+        fromCalculatorResult = null;
+        toCalculatorResult = null;
+        rateCalculatorResult = null;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -3641,14 +3893,23 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
           TextField(
             controller: fromAmountController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: TextInputType.text,
+            onChanged: (_) => updateExchangeCalculatorResults(),
             decoration: const InputDecoration(
               labelText: 'From Amount',
               border: OutlineInputBorder(),
             ),
           ),
+          if (fromCalculatorResult != null) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Result: ${fromCalculatorResult!.toStringAsFixed(fromCalculatorResult! % 1 == 0 ? 0 : 2)} $fromCurrency',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
 
           DropdownButtonFormField<String>(
@@ -3673,26 +3934,44 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
           TextField(
             controller: toAmountController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: TextInputType.text,
+            onChanged: (_) => updateExchangeCalculatorResults(),
             decoration: const InputDecoration(
               labelText: 'To Amount',
               border: OutlineInputBorder(),
             ),
           ),
+          if (toCalculatorResult != null) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Result: ${toCalculatorResult!.toStringAsFixed(toCalculatorResult! % 1 == 0 ? 0 : 2)} $toCurrency',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
 
           TextField(
             controller: rateController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: TextInputType.text,
+            onChanged: (_) => updateExchangeCalculatorResults(),
             decoration: const InputDecoration(
               labelText: 'Rate (optional)',
               border: OutlineInputBorder(),
             ),
           ),
+          if (rateCalculatorResult != null) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Result: ${rateCalculatorResult!.toStringAsFixed(rateCalculatorResult! % 1 == 0 ? 0 : 4)}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
 
           FutureBuilder<List<Map<String, dynamic>>>(
@@ -3746,6 +4025,27 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               );
             },
           ),
+          const SizedBox(height: 12),
+
+          OutlinedButton.icon(
+            icon: const Icon(Icons.calendar_month),
+            label: Text(
+              'Date: ${selectedExchangeDate.year}-${selectedExchangeDate.month.toString().padLeft(2, '0')}-${selectedExchangeDate.day.toString().padLeft(2, '0')}',
+            ),
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: selectedExchangeDate,
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+
+              if (picked != null) {
+                setState(() => selectedExchangeDate = picked);
+              }
+            },
+          ),
+
           const SizedBox(height: 12),
 
           TextField(
@@ -3865,6 +4165,11 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                       ),
                       title: Text('$outText → $inText'),
                       subtitle: Text(details.join(' • ')),
+                      trailing: IconButton(
+                        tooltip: 'Delete Exchange',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => deleteExchange(exchange),
+                      ),
                     ),
                   );
                 }).toList(),
