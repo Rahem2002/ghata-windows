@@ -3757,7 +3757,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     final exchanges = await Supabase.instance.client
         .from('exchanges')
         .select(
-          'id, exchange_date, exchange_time, customer_name, notes, created_at',
+          'id, exchange_date, exchange_time, customer_id, customer_name, notes, created_at',
         )
         .eq('user_id', user.id)
         .order('exchange_date', ascending: false)
@@ -3833,6 +3833,325 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           content: Text('Unable to delete exchange: $e'),
         ),
       );
+    }
+  }
+
+
+  Future<void> editExchange(Map<String, dynamic> exchange) async {
+    final id = exchange['id']?.toString();
+    if (id == null || id.isEmpty) return;
+
+    final entries = List<Map<String, dynamic>>.from(
+      exchange['entries'] ?? [],
+    );
+
+    Map<String, dynamic>? outEntry;
+    Map<String, dynamic>? inEntry;
+
+    for (final entry in entries) {
+      if (entry['entry_type'] == 'money_out') {
+        outEntry = entry;
+      } else if (entry['entry_type'] == 'money_in') {
+        inEntry = entry;
+      }
+    }
+
+    final fromController = TextEditingController(
+      text: outEntry?['amount']?.toString() ?? '',
+    );
+    final toController = TextEditingController(
+      text: inEntry?['amount']?.toString() ?? '',
+    );
+    final editRateController = TextEditingController(
+      text: outEntry?['rate']?.toString() ??
+          inEntry?['rate']?.toString() ??
+          '',
+    );
+    final editNotesController = TextEditingController(
+      text: exchange['notes']?.toString() ?? '',
+    );
+
+    var editFromCurrency = outEntry?['currency']?.toString() ?? 'AFN';
+    var editToCurrency = inEntry?['currency']?.toString() ?? 'USD';
+    var editCustomerId = exchange['customer_id']?.toString();
+    var editCustomerName = exchange['customer_name']?.toString();
+
+    var editDate = DateTime.tryParse(
+          exchange['exchange_date']?.toString() ?? '',
+        ) ??
+        DateTime.now();
+
+    final rawTime = exchange['exchange_time']?.toString() ?? '';
+    final timeParts = rawTime.split(':');
+    var editTime = timeParts.length >= 2
+        ? TimeOfDay(
+            hour: int.tryParse(timeParts[0]) ?? TimeOfDay.now().hour,
+            minute: int.tryParse(timeParts[1]) ?? TimeOfDay.now().minute,
+          )
+        : TimeOfDay.now();
+
+    final customers = await loadCustomers();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit Exchange'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: editFromCurrency,
+                  decoration: const InputDecoration(
+                    labelText: 'From Currency',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: currencies
+                      .map(
+                        (item) => DropdownMenuItem<String>(
+                          value: item.$1,
+                          child: Text('${item.$2} ${item.$1}'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => editFromCurrency = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: fromController,
+                  keyboardType: TextInputType.text,
+                  decoration: const InputDecoration(
+                    labelText: 'From Amount',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: editToCurrency,
+                  decoration: const InputDecoration(
+                    labelText: 'To Currency',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: currencies
+                      .map(
+                        (item) => DropdownMenuItem<String>(
+                          value: item.$1,
+                          child: Text('${item.$2} ${item.$1}'),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => editToCurrency = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: toController,
+                  keyboardType: TextInputType.text,
+                  decoration: const InputDecoration(
+                    labelText: 'To Amount',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: editRateController,
+                  keyboardType: TextInputType.text,
+                  decoration: const InputDecoration(
+                    labelText: 'Rate (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  value: editCustomerId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Customer (optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('No Customer'),
+                    ),
+                    ...customers.map((customer) {
+                      final customerId = customer['id'].toString();
+                      final name = customer['full_name']?.toString() ?? '';
+                      final phone = customer['phone']?.toString() ?? '';
+
+                      return DropdownMenuItem<String?>(
+                        value: customerId,
+                        child: Text(
+                          phone.isEmpty ? name : '$name - $phone',
+                        ),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() {
+                      editCustomerId = value;
+
+                      if (value == null) {
+                        editCustomerName = null;
+                      } else {
+                        final match = customers.firstWhere(
+                          (customer) => customer['id'].toString() == value,
+                        );
+                        editCustomerName =
+                            match['full_name']?.toString();
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.calendar_today_outlined),
+                  title: const Text('Date'),
+                  subtitle: Text(
+                    '${editDate.year}-${editDate.month.toString().padLeft(2, '0')}-${editDate.day.toString().padLeft(2, '0')}',
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: editDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+
+                    if (picked != null) {
+                      setDialogState(() => editDate = picked);
+                    }
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.access_time),
+                  title: const Text('Time'),
+                  subtitle: Text(editTime.format(context)),
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: editTime,
+                    );
+
+                    if (picked != null) {
+                      setDialogState(() => editTime = picked);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: editNotesController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true) {
+      fromController.dispose();
+      toController.dispose();
+      editRateController.dispose();
+      editNotesController.dispose();
+      return;
+    }
+
+    final fromAmount =
+        evaluateCalculatorExpression(fromController.text.trim());
+    final toAmount =
+        evaluateCalculatorExpression(toController.text.trim());
+    final rate =
+        evaluateCalculatorExpression(editRateController.text.trim());
+
+    if (fromAmount == null ||
+        fromAmount <= 0 ||
+        toAmount == null ||
+        toAmount <= 0 ||
+        editFromCurrency == editToCurrency ||
+        (rate != null && rate <= 0)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please check exchange values.'),
+          ),
+        );
+      }
+
+      fromController.dispose();
+      toController.dispose();
+      editRateController.dispose();
+      editNotesController.dispose();
+      return;
+    }
+
+    try {
+      await Supabase.instance.client.rpc(
+        'update_exchange',
+        params: {
+          'p_exchange_id': id,
+          'p_exchange_date':
+              '${editDate.year}-${editDate.month.toString().padLeft(2, '0')}-${editDate.day.toString().padLeft(2, '0')}',
+          'p_exchange_time':
+              '${editTime.hour.toString().padLeft(2, '0')}:${editTime.minute.toString().padLeft(2, '0')}:00',
+          'p_customer_id': editCustomerId,
+          'p_customer_name': editCustomerName,
+          'p_notes': editNotesController.text.trim(),
+          'p_from_currency': editFromCurrency,
+          'p_from_amount': fromAmount,
+          'p_to_currency': editToCurrency,
+          'p_to_amount': toAmount,
+          'p_rate': rate,
+        },
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Exchange updated successfully.'),
+        ),
+      );
+
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to update exchange: $e'),
+        ),
+      );
+    } finally {
+      fromController.dispose();
+      toController.dispose();
+      editRateController.dispose();
+      editNotesController.dispose();
     }
   }
 
@@ -4269,10 +4588,20 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                       ),
                       title: Text('$outText → $inText'),
                       subtitle: Text(details.join(' • ')),
-                      trailing: IconButton(
-                        tooltip: 'Delete Exchange',
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () => deleteExchange(exchange),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Edit Exchange',
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => editExchange(exchange),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete Exchange',
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => deleteExchange(exchange),
+                          ),
+                        ],
                       ),
                     ),
                   );
