@@ -5962,7 +5962,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         context: context,
                         initialDate: fromDate ?? DateTime.now(),
                         firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
+                        lastDate: toDate ?? DateTime(2100),
                       );
                       if (picked != null) {
                         setState(() => fromDate = picked);
@@ -5982,8 +5982,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     onPressed: () async {
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: toDate ?? DateTime.now(),
-                        firstDate: DateTime(2000),
+                        initialDate: toDate ??
+                            (fromDate != null &&
+                                    DateTime.now().isBefore(fromDate!)
+                                ? fromDate!
+                                : DateTime.now()),
+                        firstDate: fromDate ?? DateTime(2000),
                         lastDate: DateTime(2100),
                       );
                       if (picked != null) {
