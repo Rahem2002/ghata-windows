@@ -2152,7 +2152,13 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     );
 
                     if (picked != null) {
-                      setDialogState(() => editDate = picked);
+                      setDialogState(() {
+                        editDate = picked;
+                        if (editDueDate != null &&
+                            editDueDate!.isBefore(editDate)) {
+                          editDueDate = editDate;
+                        }
+                      });
                     }
                   },
                 ),
