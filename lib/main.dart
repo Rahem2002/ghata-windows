@@ -3821,32 +3821,51 @@ class _LoansScreenState extends State<LoansScreen> {
         (sum, lot) => sum + (lot['remaining'] as double),
       );
 
-      final balance = receivable - payable;
-
-      if (balance.abs() <= 0.000001) continue;
-
-      final activeLots = balance > 0 ? receivableLots : payableLots;
-
-      String? oldestDueDate;
-      for (final lot in activeLots) {
+      String? oldestReceivableDueDate;
+      for (final lot in receivableLots) {
         final remaining = lot['remaining'] as double;
         final dueDate = lot['due_date']?.toString() ?? '';
 
         if (remaining <= 0 || dueDate.isEmpty) continue;
-
-        if (oldestDueDate == null ||
-            dueDate.compareTo(oldestDueDate) < 0) {
-          oldestDueDate = dueDate;
+        if (oldestReceivableDueDate == null ||
+            dueDate.compareTo(oldestReceivableDueDate) < 0) {
+          oldestReceivableDueDate = dueDate;
         }
       }
 
-      balances[entry.key] = {
-        'customer_id': customerId,
-        'customer_name': customerName,
-        'currency': currency,
-        'balance': balance,
-        'due_date': oldestDueDate,
-      };
+      String? oldestPayableDueDate;
+      for (final lot in payableLots) {
+        final remaining = lot['remaining'] as double;
+        final dueDate = lot['due_date']?.toString() ?? '';
+
+        if (remaining <= 0 || dueDate.isEmpty) continue;
+        if (oldestPayableDueDate == null ||
+            dueDate.compareTo(oldestPayableDueDate) < 0) {
+          oldestPayableDueDate = dueDate;
+        }
+      }
+
+      if (receivable > 0.000001) {
+        balances['${entry.key}|receive'] = {
+          'customer_id': customerId,
+          'customer_name': customerName,
+          'currency': currency,
+          'balance': receivable,
+          'direction': 'receive',
+          'due_date': oldestReceivableDueDate,
+        };
+      }
+
+      if (payable > 0.000001) {
+        balances['${entry.key}|pay'] = {
+          'customer_id': customerId,
+          'customer_name': customerName,
+          'currency': currency,
+          'balance': payable,
+          'direction': 'pay',
+          'due_date': oldestPayableDueDate,
+        };
+      }
     }
 
     return balances;
@@ -3961,9 +3980,9 @@ class _LoansScreenState extends State<LoansScreen> {
 
             switch (loanFilter) {
               case 'receive':
-                return balance > 0;
+                return item['direction'] == 'receive';
               case 'pay':
-                return balance < 0;
+                return item['direction'] == 'pay';
               case 'overdue':
                 return isOverdue;
               case 'due_soon':
@@ -3984,7 +4003,7 @@ class _LoansScreenState extends State<LoansScreen> {
             final balance =
                 item['balance'] as double;
 
-            final youReceive = balance > 0;
+            final youReceive = item['direction'] == 'receive';
 
             final dueDate = item['due_date']?.toString() ?? '';
             final due = dueDate.isNotEmpty
