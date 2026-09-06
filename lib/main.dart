@@ -1679,6 +1679,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   String transactionType = 'money_in';
   String currency = 'AFN';
   DateTime selectedDate = DateTime.now();
+  DateTime? selectedDueDate;
   TimeOfDay selectedTime = TimeOfDay.now();
   bool isSaving = false;
   double? calculatorResult;
@@ -1887,6 +1888,11 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         'transaction_time':
             '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00',
         'transaction_type': transactionType,
+        'due_date': (transactionType == 'loan_given' ||
+                transactionType == 'loan_received') &&
+            selectedDueDate != null
+            ? '${selectedDueDate!.year}-${selectedDueDate!.month.toString().padLeft(2, '0')}-${selectedDueDate!.day.toString().padLeft(2, '0')}'
+            : null,
         'amount': amount,
         'currency': currency,
         'customer_id': selectedCustomerId,
@@ -1902,6 +1908,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       if (!mounted) return;
 
       amountController.clear();
+      selectedDueDate = null;
       selectedCustomerId = null;
       selectedCustomerName = null;
       descriptionController.clear();
@@ -1943,6 +1950,28 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
     if (date != null) {
       setState(() => selectedDate = date);
+    }
+  }
+
+  Future<void> chooseDueDate() async {
+    final firstDueDate = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+    );
+
+    final date = await showDatePicker(
+      context: context,
+      initialDate: selectedDueDate != null &&
+              !selectedDueDate!.isBefore(firstDueDate)
+          ? selectedDueDate!
+          : firstDueDate,
+      firstDate: firstDueDate,
+      lastDate: DateTime(2100),
+    );
+
+    if (date != null) {
+      setState(() => selectedDueDate = date);
     }
   }
 
@@ -1994,6 +2023,10 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
           transaction['transaction_date']?.toString() ?? '',
         ) ??
         DateTime.now();
+
+    DateTime? editDueDate = DateTime.tryParse(
+      transaction['due_date']?.toString() ?? '',
+    );
 
     final rawEditTime = transaction['transaction_time']?.toString() ?? '';
     final timeParts = rawEditTime.split(':');
@@ -2106,6 +2139,40 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     }
                   },
                 ),
+                if (editType == 'loan_given' ||
+                    editType == 'loan_received')
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.event_available),
+                    title: const Text('Due Date'),
+                    subtitle: Text(
+                      editDueDate == null
+                          ? 'Not set'
+                          : '${editDueDate!.year}-${editDueDate!.month.toString().padLeft(2, '0')}-${editDueDate!.day.toString().padLeft(2, '0')}',
+                    ),
+                    trailing: const Icon(Icons.edit_calendar_outlined),
+                    onTap: () async {
+                      final firstDueDate = DateTime(
+                        editDate.year,
+                        editDate.month,
+                        editDate.day,
+                      );
+
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: editDueDate != null &&
+                                !editDueDate!.isBefore(firstDueDate)
+                            ? editDueDate!
+                            : firstDueDate,
+                        firstDate: firstDueDate,
+                        lastDate: DateTime(2100),
+                      );
+
+                      if (picked != null) {
+                        setDialogState(() => editDueDate = picked);
+                      }
+                    },
+                  ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.access_time),
@@ -2319,6 +2386,11 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
             '${editDate.year}-${editDate.month.toString().padLeft(2, '0')}-${editDate.day.toString().padLeft(2, '0')}',
         'transaction_time':
             '${editTime.hour.toString().padLeft(2, '0')}:${editTime.minute.toString().padLeft(2, '0')}:00',
+        'due_date': (editType == 'loan_given' ||
+                editType == 'loan_received') &&
+            editDueDate != null
+            ? '${editDueDate!.year}-${editDueDate!.month.toString().padLeft(2, '0')}-${editDueDate!.day.toString().padLeft(2, '0')}'
+            : null,
         'customer_id': editCustomerId,
         'customer_name': editCustomerName,
         'description': descriptionEditController.text.trim().isEmpty
@@ -2468,6 +2540,20 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
               },
             ),
             const SizedBox(height: 16),
+
+            if (transactionType == 'loan_given' ||
+                transactionType == 'loan_received') ...[
+              OutlinedButton.icon(
+                onPressed: chooseDueDate,
+                icon: const Icon(Icons.event_available),
+                label: Text(
+                  selectedDueDate == null
+                      ? 'Set Due Date'
+                      : 'Due Date: ${selectedDueDate!.year}-${selectedDueDate!.month.toString().padLeft(2, '0')}-${selectedDueDate!.day.toString().padLeft(2, '0')}',
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             GhataCalculatorField(
               controller: amountController,
@@ -3553,7 +3639,7 @@ class LoansScreen extends StatelessWidget {
 
     final data = await Supabase.instance.client
         .from('transactions')
-        .select('id, customer_id, customer_name, transaction_type, amount, currency, transaction_date, transaction_time, description')
+        .select('id, customer_id, customer_name, transaction_type, amount, currency, transaction_date, transaction_time, due_date, description')
         .eq('user_id', user.id)
         .inFilter(
           'transaction_type',
@@ -3574,7 +3660,7 @@ class LoansScreen extends StatelessWidget {
   Map<String, Map<String, dynamic>> calculateLoanBalances(
     List<Map<String, dynamic>> transactions,
   ) {
-    final balances = <String, Map<String, dynamic>>{};
+    final grouped = <String, List<Map<String, dynamic>>>{};
 
     for (final transaction in transactions) {
       final customerId = transaction['customer_id']?.toString();
@@ -3586,42 +3672,117 @@ class LoansScreen extends StatelessWidget {
         continue;
       }
 
-      final customerName =
-          transaction['customer_name']?.toString() ?? 'Unknown Customer';
-
-      final type =
-          transaction['transaction_type']?.toString() ?? '';
-
-      final amount = double.tryParse(
-            transaction['amount']?.toString() ?? '0',
-          ) ??
-          0;
-
       final key = '$customerId|$currency';
-
-      balances.putIfAbsent(
-        key,
-        () => {
-          'customer_id': customerId,
-          'customer_name': customerName,
-          'currency': currency,
-          'balance': 0.0,
-        },
-      );
-
-      var balance = balances[key]!['balance'] as double;
-
-      if (type == 'loan_given') balance += amount;
-      if (type == 'loan_repayment_received') balance -= amount;
-      if (type == 'loan_received') balance -= amount;
-      if (type == 'loan_repayment_paid') balance += amount;
-
-      balances[key]!['balance'] = balance;
+      grouped.putIfAbsent(key, () => []).add(transaction);
     }
 
-    balances.removeWhere(
-      (_, item) => (item['balance'] as double).abs() <= 0.000001,
-    );
+    final balances = <String, Map<String, dynamic>>{};
+
+    for (final entry in grouped.entries) {
+      final items = [...entry.value];
+
+      items.sort((a, b) {
+        final aKey =
+            '${a['transaction_date'] ?? ''} ${a['transaction_time'] ?? ''}';
+        final bKey =
+            '${b['transaction_date'] ?? ''} ${b['transaction_time'] ?? ''}';
+        return aKey.compareTo(bKey);
+      });
+
+      final customerId = items.first['customer_id'].toString();
+      final customerName =
+          items.last['customer_name']?.toString() ?? 'Unknown Customer';
+      final currency = items.first['currency']?.toString() ?? '';
+
+      final receivableLots = <Map<String, dynamic>>[];
+      final payableLots = <Map<String, dynamic>>[];
+
+      for (final transaction in items) {
+        final type =
+            transaction['transaction_type']?.toString() ?? '';
+        final amount = double.tryParse(
+              transaction['amount']?.toString() ?? '0',
+            ) ??
+            0;
+
+        if (amount <= 0) continue;
+
+        if (type == 'loan_given') {
+          receivableLots.add({
+            'remaining': amount,
+            'due_date': transaction['due_date']?.toString() ?? '',
+          });
+        } else if (type == 'loan_repayment_received') {
+          var payment = amount;
+
+          for (final lot in receivableLots) {
+            if (payment <= 0) break;
+
+            final remaining = lot['remaining'] as double;
+            if (remaining <= 0) continue;
+
+            final used = payment > remaining ? remaining : payment;
+            lot['remaining'] = remaining - used;
+            payment -= used;
+          }
+        } else if (type == 'loan_received') {
+          payableLots.add({
+            'remaining': amount,
+            'due_date': transaction['due_date']?.toString() ?? '',
+          });
+        } else if (type == 'loan_repayment_paid') {
+          var payment = amount;
+
+          for (final lot in payableLots) {
+            if (payment <= 0) break;
+
+            final remaining = lot['remaining'] as double;
+            if (remaining <= 0) continue;
+
+            final used = payment > remaining ? remaining : payment;
+            lot['remaining'] = remaining - used;
+            payment -= used;
+          }
+        }
+      }
+
+      final receivable = receivableLots.fold<double>(
+        0,
+        (sum, lot) => sum + (lot['remaining'] as double),
+      );
+
+      final payable = payableLots.fold<double>(
+        0,
+        (sum, lot) => sum + (lot['remaining'] as double),
+      );
+
+      final balance = receivable - payable;
+
+      if (balance.abs() <= 0.000001) continue;
+
+      final activeLots = balance > 0 ? receivableLots : payableLots;
+
+      String? oldestDueDate;
+      for (final lot in activeLots) {
+        final remaining = lot['remaining'] as double;
+        final dueDate = lot['due_date']?.toString() ?? '';
+
+        if (remaining <= 0 || dueDate.isEmpty) continue;
+
+        if (oldestDueDate == null ||
+            dueDate.compareTo(oldestDueDate) < 0) {
+          oldestDueDate = dueDate;
+        }
+      }
+
+      balances[entry.key] = {
+        'customer_id': customerId,
+        'customer_name': customerName,
+        'currency': currency,
+        'balance': balance,
+        'due_date': oldestDueDate,
+      };
+    }
 
     return balances;
   }
@@ -3691,6 +3852,17 @@ class LoansScreen extends StatelessWidget {
 
             final youReceive = balance > 0;
 
+            final dueDate = item['due_date']?.toString() ?? '';
+            final due = dueDate.isNotEmpty
+                ? DateTime.tryParse(dueDate)
+                : null;
+
+            final now = DateTime.now();
+            final today = DateTime(now.year, now.month, now.day);
+
+            final isOverdue =
+                due != null && due.isBefore(today);
+
             return Card(
               child: ListTile(
                 leading: CircleAvatar(
@@ -3703,7 +3875,11 @@ class LoansScreen extends StatelessWidget {
                   ),
                 ),
                 subtitle: Text(
-                  youReceive ? 'You Receive' : 'You Pay',
+                  [
+                    youReceive ? 'You Receive' : 'You Pay',
+                    if (dueDate.isNotEmpty) 'Due: $dueDate',
+                    if (isOverdue) 'Overdue',
+                  ].join(' • '),
                 ),
                 trailing: Text(
                   '${balance.abs().toStringAsFixed(2)} $currency',
@@ -3746,6 +3922,8 @@ class LoansScreen extends StatelessWidget {
                 rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
             final description =
                 loan['description']?.toString() ?? '';
+            final dueDate =
+                loan['due_date']?.toString() ?? '';
 
             String label;
             switch (type) {
@@ -3768,6 +3946,9 @@ class LoansScreen extends StatelessWidget {
             final details = <String>[
               if (date.isNotEmpty) date,
               if (time.isNotEmpty) time,
+              if ((type == 'loan_given' || type == 'loan_received') &&
+                  dueDate.isNotEmpty)
+                'Due: $dueDate',
               if (description.isNotEmpty) description,
             ];
 
