@@ -3630,8 +3630,21 @@ class CustomerLedgerScreen extends StatelessWidget {
   }
 }
 
-class LoansScreen extends StatelessWidget {
+class LoansScreen extends StatefulWidget {
   const LoansScreen({super.key});
+
+  @override
+  State<LoansScreen> createState() => _LoansScreenState();
+}
+
+class _LoansScreenState extends State<LoansScreen> {
+  final loanSearchController = TextEditingController();
+
+  @override
+  void dispose() {
+    loanSearchController.dispose();
+    super.dispose();
+  }
 
   Future<List<Map<String, dynamic>>> loadLoans() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -3836,7 +3849,31 @@ class LoansScreen extends StatelessWidget {
           }
 
           final loans = snapshot.data ?? [];
-          final balances = calculateLoanBalances(loans);
+
+          final query = loanSearchController.text.trim().toLowerCase();
+
+          final filteredLoans = query.isEmpty
+              ? loans
+              : loans.where((loan) {
+                  final customer =
+                      loan['customer_name']?.toString().toLowerCase() ?? '';
+                  final currency =
+                      loan['currency']?.toString().toLowerCase() ?? '';
+                  final type =
+                      loan['transaction_type']?.toString().toLowerCase() ?? '';
+                  final description =
+                      loan['description']?.toString().toLowerCase() ?? '';
+                  final dueDate =
+                      loan['due_date']?.toString().toLowerCase() ?? '';
+
+                  return customer.contains(query) ||
+                      currency.contains(query) ||
+                      type.contains(query) ||
+                      description.contains(query) ||
+                      dueDate.contains(query);
+                }).toList();
+
+          final balances = calculateLoanBalances(filteredLoans);
           final remaining = balances.values.toList();
 
           final balanceCards = remaining.map((item) {
@@ -3916,7 +3953,7 @@ class LoansScreen extends StatelessWidget {
             );
           }).toList();
 
-          final historyCards = loans.map((loan) {
+          final historyCards = filteredLoans.map((loan) {
             final type =
                 loan['transaction_type']?.toString() ?? '';
             final customer =
@@ -3999,6 +4036,26 @@ class LoansScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              TextField(
+                controller: loanSearchController,
+                decoration: InputDecoration(
+                  labelText: 'Search loans',
+                  hintText: 'Customer, currency, type, due date...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: loanSearchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            loanSearchController.clear();
+                            setState(() {});
+                          },
+                        )
+                      : null,
+                  border: const OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
               if (balanceCards.isEmpty)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 12),
