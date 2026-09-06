@@ -4724,12 +4724,14 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           'quantity': 0.0,
           'cost': 0.0,
           'profit': 0.0,
+          'unmatched_sell': 0.0,
         },
       );
 
       var quantity = book['quantity'] as double;
       var cost = book['cost'] as double;
       var profit = book['profit'] as double;
+      var unmatchedSell = book['unmatched_sell'] as double;
 
       if (type == 'buy') {
         quantity += assetAmount;
@@ -4737,6 +4739,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       } else if (quantity > 0) {
         final matchedQuantity =
             assetAmount > quantity ? quantity : assetAmount;
+        unmatchedSell += assetAmount - matchedQuantity;
         final averageCost = cost / quantity;
         final matchedProceeds =
             settlementAmount * (matchedQuantity / assetAmount);
@@ -4755,6 +4758,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       book['quantity'] = quantity;
       book['cost'] = cost;
       book['profit'] = profit;
+      book['unmatched_sell'] = unmatchedSell;
     }
 
     return books.values.toList();
@@ -5600,7 +5604,9 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
               final visible = profitLoss.where((item) {
                 final profit = item['profit'] as double;
-                return profit.abs() >= 0.0000001;
+                final unmatchedSell = item['unmatched_sell'] as double;
+                return profit.abs() >= 0.0000001 ||
+                    unmatchedSell > 0.0000001;
               }).toList();
 
               if (visible.isEmpty) {
@@ -5624,8 +5630,14 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     final settlement =
                         item['settlement_currency']?.toString() ?? '';
                     final profit = item['profit'] as double;
+                    final unmatchedSell = item['unmatched_sell'] as double;
 
-                    final text = profit >= 0 ? 'Profit' : 'Loss';
+                    final text = [
+                      if (profit.abs() >= 0.0000001)
+                        profit >= 0 ? 'Profit' : 'Loss',
+                      if (unmatchedSell > 0.0000001)
+                        'Unmatched Sell: ${unmatchedSell.toStringAsFixed(2)} $asset',
+                    ].join(' • ');
 
                     return Card(
                       child: ListTile(
