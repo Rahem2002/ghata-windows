@@ -128,6 +128,179 @@ double? evaluateCalculatorExpression(String input) {
   return result;
 }
 
+
+class GhataCalculatorField extends StatelessWidget {
+  const GhataCalculatorField({
+    super.key,
+    required this.controller,
+    required this.label,
+    this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final VoidCallback? onChanged;
+
+  void _notify() => onChanged?.call();
+
+  void _append(String value) {
+    controller.text += value;
+    controller.selection = TextSelection.collapsed(
+      offset: controller.text.length,
+    );
+    _notify();
+  }
+
+  void _backspace() {
+    if (controller.text.isEmpty) return;
+    controller.text =
+        controller.text.substring(0, controller.text.length - 1);
+    controller.selection = TextSelection.collapsed(
+      offset: controller.text.length,
+    );
+    _notify();
+  }
+
+  void _clear() {
+    controller.clear();
+    _notify();
+  }
+
+  void _equals() {
+    final result =
+        evaluateCalculatorExpression(controller.text.trim());
+    if (result == null) return;
+
+    final isWhole = result == result.roundToDouble();
+    controller.text =
+        isWhole ? result.toInt().toString() : result.toString();
+
+    controller.selection = TextSelection.collapsed(
+      offset: controller.text.length,
+    );
+    _notify();
+  }
+
+  Future<void> _openCalculator(BuildContext context) async {
+    const keys = <String>[
+      '7', '8', '9', '÷',
+      '4', '5', '6', '×',
+      '1', '2', '3', '-',
+      '0', '.', '%', '+',
+    ];
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            void refresh(VoidCallback action) {
+              action();
+              setSheetState(() {});
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        controller.text.isEmpty ? '0' : controller.text,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 4,
+                      childAspectRatio: 1.7,
+                      mainAxisSpacing: 6,
+                      crossAxisSpacing: 6,
+                      children: keys.map((key) {
+                        return OutlinedButton(
+                          onPressed: () =>
+                              refresh(() => _append(key)),
+                          child: Text(
+                            key,
+                            style: const TextStyle(fontSize: 18),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => refresh(_clear),
+                            child: const Text('C'),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => refresh(_backspace),
+                            child:
+                                const Icon(Icons.backspace_outlined),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton(
+                            onPressed: () {
+                              refresh(_equals);
+                              Navigator.pop(sheetContext);
+                            },
+                            child: const Text('='),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      readOnly: true,
+      showCursor: false,
+      onTap: () => _openCalculator(context),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixIcon: const Icon(Icons.calculate_outlined),
+        border: const OutlineInputBorder(),
+      ),
+    );
+  }
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -1782,10 +1955,10 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
+                GhataCalculatorField(
                   controller: amountEditController,
-                  keyboardType: TextInputType.text,
-                  onChanged: (_) {
+                  label: 'Amount',
+                  onChanged: () {
                     setDialogState(() {
                       editCalculatorResult =
                           evaluateCalculatorExpression(
@@ -1793,10 +1966,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       );
                     });
                   },
-                  decoration: const InputDecoration(
-                    labelText: 'Amount',
-                    border: OutlineInputBorder(),
-                  ),
                 ),
                 if (editCalculatorResult != null) ...[
                   const SizedBox(height: 8),
@@ -2237,15 +2406,10 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
             ),
             const SizedBox(height: 16),
 
-            TextField(
+            GhataCalculatorField(
               controller: amountController,
-              keyboardType: TextInputType.text,
-              onChanged: (_) => updateCalculatorResult(),
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                prefixIcon: Icon(Icons.payments_outlined),
-                border: OutlineInputBorder(),
-              ),
+              label: 'Amount',
+              onChanged: updateCalculatorResult,
             ),
 
             if (calculatorResult != null) ...[
@@ -4148,13 +4312,9 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                GhataCalculatorField(
                   controller: fromController,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    labelText: 'From Amount',
-                    border: OutlineInputBorder(),
-                  ),
+                  label: 'From Amount',
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -4178,22 +4338,14 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                GhataCalculatorField(
                   controller: toController,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    labelText: 'To Amount',
-                    border: OutlineInputBorder(),
-                  ),
+                  label: 'To Amount',
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                GhataCalculatorField(
                   controller: editRateController,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    labelText: 'Rate (optional)',
-                    border: OutlineInputBorder(),
-                  ),
+                  label: 'Rate (optional)',
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String?>(
@@ -4512,14 +4664,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           ),
           const SizedBox(height: 12),
 
-          TextField(
+          GhataCalculatorField(
             controller: fromAmountController,
-            keyboardType: TextInputType.text,
-            onChanged: (_) => updateExchangeCalculatorResults(),
-            decoration: const InputDecoration(
-              labelText: 'From Amount',
-              border: OutlineInputBorder(),
-            ),
+            label: 'From Amount',
+            onChanged: updateExchangeCalculatorResults,
           ),
           if (fromCalculatorResult != null) ...[
             const SizedBox(height: 6),
@@ -4553,14 +4701,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           ),
           const SizedBox(height: 12),
 
-          TextField(
+          GhataCalculatorField(
             controller: toAmountController,
-            keyboardType: TextInputType.text,
-            onChanged: (_) => updateExchangeCalculatorResults(),
-            decoration: const InputDecoration(
-              labelText: 'To Amount',
-              border: OutlineInputBorder(),
-            ),
+            label: 'To Amount',
+            onChanged: updateExchangeCalculatorResults,
           ),
           if (toCalculatorResult != null) ...[
             const SizedBox(height: 6),
@@ -4574,14 +4718,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           ],
           const SizedBox(height: 12),
 
-          TextField(
+          GhataCalculatorField(
             controller: rateController,
-            keyboardType: TextInputType.text,
-            onChanged: (_) => updateExchangeCalculatorResults(),
-            decoration: const InputDecoration(
-              labelText: 'Rate (optional)',
-              border: OutlineInputBorder(),
-            ),
+            label: 'Rate (optional)',
+            onChanged: updateExchangeCalculatorResults,
           ),
           if (rateCalculatorResult != null) ...[
             const SizedBox(height: 6),
