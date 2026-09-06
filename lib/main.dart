@@ -3862,6 +3862,14 @@ class LoansScreen extends StatelessWidget {
 
             final isOverdue =
                 due != null && due.isBefore(today);
+            final isDueToday =
+                due != null && due.isAtSameMomentAs(today);
+            final daysUntilDue =
+                due == null ? null : due.difference(today).inDays;
+            final isDueSoon =
+                daysUntilDue != null &&
+                daysUntilDue >= 1 &&
+                daysUntilDue <= 3;
 
             return Card(
               child: ListTile(
@@ -3878,7 +3886,12 @@ class LoansScreen extends StatelessWidget {
                   [
                     youReceive ? 'You Receive' : 'You Pay',
                     if (dueDate.isNotEmpty) 'Due: $dueDate',
-                    if (isOverdue) 'Overdue',
+                    if (isOverdue)
+                      'Overdue'
+                    else if (isDueToday)
+                      'Due Today'
+                    else if (isDueSoon)
+                      'Due Soon',
                   ].join(' • '),
                 ),
                 trailing: Text(
