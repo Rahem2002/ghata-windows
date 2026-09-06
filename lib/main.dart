@@ -1640,104 +1640,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     return '💰';
   }
 
-  List<Map<String, dynamic>> calculateExchangeProfitLoss(
-    List<Map<String, dynamic>> history,
-  ) {
-    final books = <String, Map<String, dynamic>>{};
-
-    final ordered = history.reversed.toList();
-
-    for (final exchange in ordered) {
-      final entries = List<Map<String, dynamic>>.from(
-        exchange['entries'] ?? [],
-      );
-
-      Map<String, dynamic>? outEntry;
-      Map<String, dynamic>? inEntry;
-
-      for (final entry in entries) {
-        if (entry['entry_type'] == 'money_out') {
-          outEntry = entry;
-        } else if (entry['entry_type'] == 'money_in') {
-          inEntry = entry;
-        }
-      }
-
-      if (outEntry == null || inEntry == null) continue;
-
-      final type = exchange['exchange_type']?.toString() ?? 'buy';
-
-      final outAmount =
-          double.tryParse(outEntry['amount']?.toString() ?? '') ?? 0;
-      final inAmount =
-          double.tryParse(inEntry['amount']?.toString() ?? '') ?? 0;
-
-      if (outAmount <= 0 || inAmount <= 0) continue;
-
-      late String assetCurrency;
-      late String settlementCurrency;
-      late double assetAmount;
-      late double settlementAmount;
-
-      if (type == 'sell') {
-        assetCurrency = outEntry['currency']?.toString() ?? '';
-        settlementCurrency = inEntry['currency']?.toString() ?? '';
-        assetAmount = outAmount;
-        settlementAmount = inAmount;
-      } else {
-        assetCurrency = inEntry['currency']?.toString() ?? '';
-        settlementCurrency = outEntry['currency']?.toString() ?? '';
-        assetAmount = inAmount;
-        settlementAmount = outAmount;
-      }
-
-      if (assetCurrency.isEmpty || settlementCurrency.isEmpty) continue;
-
-      final key = '$assetCurrency/$settlementCurrency';
-
-      final book = books.putIfAbsent(
-        key,
-        () => {
-          'asset_currency': assetCurrency,
-          'settlement_currency': settlementCurrency,
-          'quantity': 0.0,
-          'cost': 0.0,
-          'profit': 0.0,
-        },
-      );
-
-      var quantity = book['quantity'] as double;
-      var cost = book['cost'] as double;
-      var profit = book['profit'] as double;
-
-      if (type == 'buy') {
-        quantity += assetAmount;
-        cost += settlementAmount;
-      } else if (quantity > 0) {
-        final matchedQuantity =
-            assetAmount > quantity ? quantity : assetAmount;
-        final averageCost = cost / quantity;
-        final matchedProceeds =
-            settlementAmount * (matchedQuantity / assetAmount);
-        final matchedCost = averageCost * matchedQuantity;
-
-        profit += matchedProceeds - matchedCost;
-        quantity -= matchedQuantity;
-        cost -= matchedCost;
-
-        if (quantity.abs() < 0.0000001) {
-          quantity = 0;
-          cost = 0;
-        }
-      }
-
-      book['quantity'] = quantity;
-      book['cost'] = cost;
-      book['profit'] = profit;
-    }
-
-    return books.values.toList();
-  }
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
     final user = Supabase.instance.client.auth.currentUser;
@@ -4277,6 +4179,106 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
     return List<Map<String, dynamic>>.from(data);
   }
+
+  List<Map<String, dynamic>> calculateExchangeProfitLoss(
+    List<Map<String, dynamic>> history,
+  ) {
+    final books = <String, Map<String, dynamic>>{};
+
+    final ordered = history.reversed.toList();
+
+    for (final exchange in ordered) {
+      final entries = List<Map<String, dynamic>>.from(
+        exchange['entries'] ?? [],
+      );
+
+      Map<String, dynamic>? outEntry;
+      Map<String, dynamic>? inEntry;
+
+      for (final entry in entries) {
+        if (entry['entry_type'] == 'money_out') {
+          outEntry = entry;
+        } else if (entry['entry_type'] == 'money_in') {
+          inEntry = entry;
+        }
+      }
+
+      if (outEntry == null || inEntry == null) continue;
+
+      final type = exchange['exchange_type']?.toString() ?? 'buy';
+
+      final outAmount =
+          double.tryParse(outEntry['amount']?.toString() ?? '') ?? 0;
+      final inAmount =
+          double.tryParse(inEntry['amount']?.toString() ?? '') ?? 0;
+
+      if (outAmount <= 0 || inAmount <= 0) continue;
+
+      late String assetCurrency;
+      late String settlementCurrency;
+      late double assetAmount;
+      late double settlementAmount;
+
+      if (type == 'sell') {
+        assetCurrency = outEntry['currency']?.toString() ?? '';
+        settlementCurrency = inEntry['currency']?.toString() ?? '';
+        assetAmount = outAmount;
+        settlementAmount = inAmount;
+      } else {
+        assetCurrency = inEntry['currency']?.toString() ?? '';
+        settlementCurrency = outEntry['currency']?.toString() ?? '';
+        assetAmount = inAmount;
+        settlementAmount = outAmount;
+      }
+
+      if (assetCurrency.isEmpty || settlementCurrency.isEmpty) continue;
+
+      final key = '$assetCurrency/$settlementCurrency';
+
+      final book = books.putIfAbsent(
+        key,
+        () => {
+          'asset_currency': assetCurrency,
+          'settlement_currency': settlementCurrency,
+          'quantity': 0.0,
+          'cost': 0.0,
+          'profit': 0.0,
+        },
+      );
+
+      var quantity = book['quantity'] as double;
+      var cost = book['cost'] as double;
+      var profit = book['profit'] as double;
+
+      if (type == 'buy') {
+        quantity += assetAmount;
+        cost += settlementAmount;
+      } else if (quantity > 0) {
+        final matchedQuantity =
+            assetAmount > quantity ? quantity : assetAmount;
+        final averageCost = cost / quantity;
+        final matchedProceeds =
+            settlementAmount * (matchedQuantity / assetAmount);
+        final matchedCost = averageCost * matchedQuantity;
+
+        profit += matchedProceeds - matchedCost;
+        quantity -= matchedQuantity;
+        cost -= matchedCost;
+
+        if (quantity.abs() < 0.0000001) {
+          quantity = 0;
+          cost = 0;
+        }
+      }
+
+      book['quantity'] = quantity;
+      book['cost'] = cost;
+      book['profit'] = profit;
+    }
+
+    return books.values.toList();
+  }
+
 
   Future<List<Map<String, dynamic>>> loadExchangeHistory() async {
     final user = Supabase.instance.client.auth.currentUser;
