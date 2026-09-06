@@ -4089,17 +4089,55 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   double? toCalculatorResult;
   double? rateCalculatorResult;
 
-  void updateExchangeCalculatorResults() {
+  String? lastExchangeInput;
+  bool exchangeRateManuallySet = false;
+
+  void updateExchangeCalculatorResults({String? changed}) {
+    if (changed != null) {
+      lastExchangeInput = changed;
+    }
+
+    if (changed == 'rate') {
+      exchangeRateManuallySet = true;
+    } else if (changed == 'to') {
+      exchangeRateManuallySet = false;
+    }
+
+    final fromResult = evaluateCalculatorExpression(
+      fromAmountController.text.trim(),
+    );
+    var toResult = evaluateCalculatorExpression(
+      toAmountController.text.trim(),
+    );
+    var rateResult = evaluateCalculatorExpression(
+      rateController.text.trim(),
+    );
+
+    if (fromResult != null && fromResult > 0) {
+      if ((changed == 'rate' ||
+              (changed == 'from' && exchangeRateManuallySet)) &&
+          rateResult != null &&
+          rateResult > 0) {
+        toResult = fromResult * rateResult;
+        toAmountController.text = toResult
+            .toStringAsFixed(6)
+            .replaceFirst(RegExp(r'0+$'), '')
+            .replaceFirst(RegExp(r'\.$'), '');
+      } else if ((changed == 'from' || changed == 'to') &&
+          toResult != null &&
+          toResult > 0) {
+        rateResult = toResult / fromResult;
+        rateController.text = rateResult
+            .toStringAsFixed(6)
+            .replaceFirst(RegExp(r'0+$'), '')
+            .replaceFirst(RegExp(r'\.$'), '');
+      }
+    }
+
     setState(() {
-      fromCalculatorResult = evaluateCalculatorExpression(
-        fromAmountController.text.trim(),
-      );
-      toCalculatorResult = evaluateCalculatorExpression(
-        toAmountController.text.trim(),
-      );
-      rateCalculatorResult = evaluateCalculatorExpression(
-        rateController.text.trim(),
-      );
+      fromCalculatorResult = fromResult;
+      toCalculatorResult = toResult;
+      rateCalculatorResult = rateResult;
     });
   }
 
@@ -4315,6 +4353,25 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 GhataCalculatorField(
                   controller: fromController,
                   label: 'From Amount',
+                  onChanged: () {
+                    final fromValue = evaluateCalculatorExpression(
+                      fromController.text.trim(),
+                    );
+                    final toValue = evaluateCalculatorExpression(
+                      toController.text.trim(),
+                    );
+                    if (fromValue != null &&
+                        toValue != null &&
+                        fromValue > 0 &&
+                        toValue > 0) {
+                      final rate = toValue / fromValue;
+                      editRateController.text = rate
+                          .toStringAsFixed(6)
+                          .replaceFirst(RegExp(r'0+$'), '')
+                          .replaceFirst(RegExp(r'\.$'), '');
+                    }
+                    setDialogState(() {});
+                  },
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -4341,11 +4398,51 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 GhataCalculatorField(
                   controller: toController,
                   label: 'To Amount',
+                  onChanged: () {
+                    final fromValue = evaluateCalculatorExpression(
+                      fromController.text.trim(),
+                    );
+                    final toValue = evaluateCalculatorExpression(
+                      toController.text.trim(),
+                    );
+                    if (fromValue != null &&
+                        toValue != null &&
+                        fromValue > 0 &&
+                        toValue > 0) {
+                      final rate = toValue / fromValue;
+                      editRateController.text = rate
+                          .toStringAsFixed(6)
+                          .replaceFirst(RegExp(r'0+$'), '')
+                          .replaceFirst(RegExp(r'\.$'), '');
+                    }
+                    setDialogState(() {});
+                  },
                 ),
                 const SizedBox(height: 12),
                 GhataCalculatorField(
                   controller: editRateController,
                   label: 'Rate (optional)',
+                  onChanged: () {
+                    final fromValue = evaluateCalculatorExpression(
+                      fromController.text.trim(),
+                    );
+                    final rateValue = evaluateCalculatorExpression(
+                      editRateController.text.trim(),
+                    );
+
+                    if (fromValue != null &&
+                        rateValue != null &&
+                        fromValue > 0 &&
+                        rateValue > 0) {
+                      final toValue = fromValue * rateValue;
+                      toController.text = toValue
+                          .toStringAsFixed(6)
+                          .replaceFirst(RegExp(r'0+$'), '')
+                          .replaceFirst(RegExp(r'\.$'), '');
+                    }
+
+                    setDialogState(() {});
+                  },
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String?>(
@@ -4613,6 +4710,8 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         fromCalculatorResult = null;
         toCalculatorResult = null;
         rateCalculatorResult = null;
+        lastExchangeInput = null;
+        exchangeRateManuallySet = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -4667,7 +4766,8 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           GhataCalculatorField(
             controller: fromAmountController,
             label: 'From Amount',
-            onChanged: updateExchangeCalculatorResults,
+            onChanged: () =>
+                updateExchangeCalculatorResults(changed: 'from'),
           ),
           if (fromCalculatorResult != null) ...[
             const SizedBox(height: 6),
@@ -4704,7 +4804,8 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           GhataCalculatorField(
             controller: toAmountController,
             label: 'To Amount',
-            onChanged: updateExchangeCalculatorResults,
+            onChanged: () =>
+                updateExchangeCalculatorResults(changed: 'to'),
           ),
           if (toCalculatorResult != null) ...[
             const SizedBox(height: 6),
@@ -4721,7 +4822,8 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           GhataCalculatorField(
             controller: rateController,
             label: 'Rate (optional)',
-            onChanged: updateExchangeCalculatorResults,
+            onChanged: () =>
+                updateExchangeCalculatorResults(changed: 'rate'),
           ),
           if (rateCalculatorResult != null) ...[
             const SizedBox(height: 6),
