@@ -6025,6 +6025,28 @@ class _ReportsScreenState extends State<ReportsScreen> {
               },
             ),
           ),
+          if (fromDate != null ||
+              toDate != null ||
+              selectedCurrency != null ||
+              selectedCustomerId != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: const Text('Clear All Filters'),
+                  onPressed: () {
+                    setState(() {
+                      fromDate = null;
+                      toDate = null;
+                      selectedCurrency = null;
+                      selectedCustomerId = null;
+                    });
+                  },
+                ),
+              ),
+            ),
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: loadTransactions(),
