@@ -1832,21 +1832,22 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
             'loan_repayment_paid',
           ]);
 
-      double loanBalance = 0;
+      double receivableBalance = 0;
+      double payableBalance = 0;
 
       for (final item in List<Map<String, dynamic>>.from(loanData)) {
         final type = item['transaction_type']?.toString() ?? '';
         final value =
             double.tryParse(item['amount']?.toString() ?? '0') ?? 0;
 
-        if (type == 'loan_given') loanBalance += value;
-        if (type == 'loan_repayment_received') loanBalance -= value;
-        if (type == 'loan_received') loanBalance -= value;
-        if (type == 'loan_repayment_paid') loanBalance += value;
+        if (type == 'loan_given') receivableBalance += value;
+        if (type == 'loan_repayment_received') receivableBalance -= value;
+        if (type == 'loan_received') payableBalance += value;
+        if (type == 'loan_repayment_paid') payableBalance -= value;
       }
 
       if (transactionType == 'loan_repayment_received') {
-        if (loanBalance <= 0) {
+        if (receivableBalance <= 0) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
@@ -1857,11 +1858,11 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
           return;
         }
 
-        if (amount > loanBalance) {
+        if (amount > receivableBalance) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Repayment cannot exceed ${loanBalance.toStringAsFixed(2)} $currency.',
+                'Repayment cannot exceed ${receivableBalance.toStringAsFixed(2)} $currency.',
               ),
             ),
           );
@@ -1870,7 +1871,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       }
 
       if (transactionType == 'loan_repayment_paid') {
-        if (loanBalance >= 0) {
+        if (payableBalance <= 0) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
@@ -1881,11 +1882,11 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
           return;
         }
 
-        if (amount > loanBalance.abs()) {
+        if (amount > payableBalance) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Repayment cannot exceed ${loanBalance.abs().toStringAsFixed(2)} $currency.',
+                'Repayment cannot exceed ${payableBalance.toStringAsFixed(2)} $currency.',
               ),
             ),
           );
@@ -2361,29 +2362,30 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
           'loan_repayment_paid',
         ]);
 
-        double balance = 0;
+        double receivableBalance = 0;
+        double payableBalance = 0;
 
         for (final item in List<Map<String, dynamic>>.from(loanData)) {
           final type = item['transaction_type']?.toString() ?? '';
           final value =
               double.tryParse(item['amount']?.toString() ?? '') ?? 0;
 
-          if (type == 'loan_given') balance += value;
-          if (type == 'loan_repayment_received') balance -= value;
-          if (type == 'loan_received') balance -= value;
-          if (type == 'loan_repayment_paid') balance += value;
+          if (type == 'loan_given') receivableBalance += value;
+          if (type == 'loan_repayment_received') receivableBalance -= value;
+          if (type == 'loan_received') payableBalance += value;
+          if (type == 'loan_repayment_paid') payableBalance -= value;
         }
 
         if (editType == 'loan_repayment_received' &&
-            (balance <= 0 || amount > balance)) {
+            (receivableBalance <= 0 || amount > receivableBalance)) {
           if (!mounted) return;
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                balance <= 0
+                receivableBalance <= 0
                     ? 'This customer has no loan to repay in this currency.'
-                    : 'Repayment cannot be greater than ${balance.toStringAsFixed(2)} $editCurrency.',
+                    : 'Repayment cannot be greater than ${receivableBalance.toStringAsFixed(2)} $editCurrency.',
               ),
             ),
           );
@@ -2391,15 +2393,15 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         }
 
         if (editType == 'loan_repayment_paid' &&
-            (balance >= 0 || amount > balance.abs())) {
+            (payableBalance <= 0 || amount > payableBalance)) {
           if (!mounted) return;
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                balance >= 0
+                payableBalance <= 0
                     ? 'You do not owe this customer in this currency.'
-                    : 'Repayment cannot be greater than ${balance.abs().toStringAsFixed(2)} $editCurrency.',
+                    : 'Repayment cannot be greater than ${payableBalance.toStringAsFixed(2)} $editCurrency.',
               ),
             ),
           );
