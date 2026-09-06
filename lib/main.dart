@@ -182,16 +182,10 @@ class GhataCalculatorField extends StatelessWidget {
   }
 
   Future<void> _openCalculator(BuildContext context) async {
-    const keys = <String>[
-      '7', '8', '9', '÷',
-      '4', '5', '6', '×',
-      '1', '2', '3', '-',
-      '0', '.', '%', '+',
-    ];
-
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
@@ -200,79 +194,147 @@ class GhataCalculatorField extends StatelessWidget {
               setSheetState(() {});
             }
 
+            Widget calcKey({
+              required Widget child,
+              required VoidCallback onPressed,
+              bool primary = false,
+            }) {
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(5),
+                  child: SizedBox(
+                    height: 68,
+                    child: primary
+                        ? FilledButton(
+                            onPressed: onPressed,
+                            style: FilledButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: child,
+                          )
+                        : FilledButton.tonal(
+                            onPressed: onPressed,
+                            style: FilledButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: child,
+                          ),
+                  ),
+                ),
+              );
+            }
+
+            Widget textKey(String key, {bool primary = false}) {
+              return calcKey(
+                primary: primary,
+                onPressed: () {
+                  if (key == '=') {
+                    refresh(_equals);
+                    Navigator.pop(sheetContext);
+                  } else {
+                    refresh(() => _append(key));
+                  }
+                },
+                child: Text(
+                  key,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              );
+            }
+
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      label,
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        label,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).dividerColor,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                      constraints: const BoxConstraints(minHeight: 80),
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
                         controller.text.isEmpty ? '0' : controller.text,
                         textAlign: TextAlign.end,
-                        style: const TextStyle(fontSize: 24),
+                        style: const TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 4,
-                      childAspectRatio: 1.7,
-                      mainAxisSpacing: 6,
-                      crossAxisSpacing: 6,
-                      children: keys.map((key) {
-                        return OutlinedButton(
-                          onPressed: () =>
-                              refresh(() => _append(key)),
-                          child: Text(
-                            key,
-                            style: const TextStyle(fontSize: 18),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
+
                     Row(
                       children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => refresh(_clear),
-                            child: const Text('C'),
+                        calcKey(
+                          onPressed: () => refresh(_clear),
+                          child: const Text(
+                            'AC',
+                            style: TextStyle(fontSize: 22),
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => refresh(_backspace),
-                            child:
-                                const Icon(Icons.backspace_outlined),
+                        calcKey(
+                          onPressed: () => refresh(_backspace),
+                          child: const Icon(
+                            Icons.backspace_outlined,
+                            size: 26,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          flex: 2,
-                          child: FilledButton(
-                            onPressed: () {
-                              refresh(_equals);
-                              Navigator.pop(sheetContext);
-                            },
-                            child: const Text('='),
+                        textKey('%'),
+                        textKey('÷'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        textKey('7'),
+                        textKey('8'),
+                        textKey('9'),
+                        textKey('×'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        textKey('4'),
+                        textKey('5'),
+                        textKey('6'),
+                        textKey('-'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        textKey('1'),
+                        textKey('2'),
+                        textKey('3'),
+                        textKey('+'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        calcKey(
+                          onPressed: () => refresh(() => _append('-')),
+                          child: const Text(
+                            '+/−',
+                            style: TextStyle(fontSize: 20),
                           ),
                         ),
+                        textKey('0'),
+                        textKey('.'),
+                        textKey('=', primary: true),
                       ],
                     ),
                   ],
@@ -1973,7 +2035,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Result / بقایه: ${editCalculatorResult!.toStringAsFixed(editCalculatorResult! % 1 == 0 ? 0 : 2)} $editCurrency',
+                      'Result / Balance: ${editCalculatorResult!.toStringAsFixed(editCalculatorResult! % 1 == 0 ? 0 : 2)} $editCurrency',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
@@ -2418,7 +2480,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Result / بقایه: ${calculatorResult!.toStringAsFixed(calculatorResult! % 1 == 0 ? 0 : 2)} $currency',
+                  'Result / Balance: ${calculatorResult!.toStringAsFixed(calculatorResult! % 1 == 0 ? 0 : 2)} $currency',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -4983,7 +5045,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Result: ${rateCalculatorResult!.toStringAsFixed(rateCalculatorResult! % 1 == 0 ? 0 : 4)}',
+                '1 $fromCurrency = ${rateCalculatorResult!.toStringAsFixed(6).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '')} $toCurrency',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
