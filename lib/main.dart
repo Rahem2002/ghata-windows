@@ -5884,7 +5884,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final transactionData = await Supabase.instance.client
         .from('transactions')
         .select('transaction_type, amount, currency, transaction_date, transaction_time, customer_id, customer_name')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .inFilter('transaction_type', [
+          'money_in',
+          'money_out',
+          'loan_given',
+          'loan_received',
+          'loan_repayment_received',
+          'loan_repayment_paid',
+          'adjustment_in',
+          'adjustment_out',
+        ]);
 
     final exchangeData = await Supabase.instance.client
         .from('exchange_entries')
