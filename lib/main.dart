@@ -3639,6 +3639,7 @@ class LoansScreen extends StatefulWidget {
 
 class _LoansScreenState extends State<LoansScreen> {
   final loanSearchController = TextEditingController();
+  String loanFilter = 'all';
 
   @override
   void dispose() {
@@ -3874,7 +3875,40 @@ class _LoansScreenState extends State<LoansScreen> {
                 }).toList();
 
           final balances = calculateLoanBalances(filteredLoans);
-          final remaining = balances.values.toList();
+
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+
+          final remaining = balances.values.where((item) {
+            final balance = item['balance'] as double;
+            final dueDate = item['due_date']?.toString() ?? '';
+            final due =
+                dueDate.isNotEmpty ? DateTime.tryParse(dueDate) : null;
+
+            final isOverdue =
+                due != null && due.isBefore(today);
+
+            final daysUntilDue =
+                due == null ? null : due.difference(today).inDays;
+
+            final isDueSoon =
+                daysUntilDue != null &&
+                daysUntilDue >= 0 &&
+                daysUntilDue <= 3;
+
+            switch (loanFilter) {
+              case 'receive':
+                return balance > 0;
+              case 'pay':
+                return balance < 0;
+              case 'overdue':
+                return isOverdue;
+              case 'due_soon':
+                return isDueSoon && !isOverdue;
+              default:
+                return true;
+            }
+          }).toList();
 
           final balanceCards = remaining.map((item) {
             final customer =
@@ -4054,6 +4088,38 @@ class _LoansScreenState extends State<LoansScreen> {
                   border: const OutlineInputBorder(),
                 ),
                 onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: const Text('All'),
+                    selected: loanFilter == 'all',
+                    onSelected: (_) => setState(() => loanFilter = 'all'),
+                  ),
+                  ChoiceChip(
+                    label: const Text('You Receive'),
+                    selected: loanFilter == 'receive',
+                    onSelected: (_) => setState(() => loanFilter = 'receive'),
+                  ),
+                  ChoiceChip(
+                    label: const Text('You Pay'),
+                    selected: loanFilter == 'pay',
+                    onSelected: (_) => setState(() => loanFilter = 'pay'),
+                  ),
+                  ChoiceChip(
+                    label: const Text('Overdue'),
+                    selected: loanFilter == 'overdue',
+                    onSelected: (_) => setState(() => loanFilter = 'overdue'),
+                  ),
+                  ChoiceChip(
+                    label: const Text('Due Soon'),
+                    selected: loanFilter == 'due_soon',
+                    onSelected: (_) => setState(() => loanFilter = 'due_soon'),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               if (balanceCards.isEmpty)
