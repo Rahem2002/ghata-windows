@@ -5863,6 +5863,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           'loan_received': 0,
           'loan_repayment_received': 0,
           'loan_repayment_paid': 0,
+          'net_cash_flow': 0,
         },
       );
 
@@ -5870,6 +5871,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
       if (row.containsKey(type)) {
         row[type] = row[type]! + amount;
+      }
+
+      if (type == 'money_in' ||
+          type == 'loan_received' ||
+          type == 'loan_repayment_received' ||
+          type == 'exchange_in') {
+        row['net_cash_flow'] = row['net_cash_flow']! + amount;
+      } else if (type == 'money_out' ||
+          type == 'loan_given' ||
+          type == 'loan_repayment_paid' ||
+          type == 'exchange_out') {
+        row['net_cash_flow'] = row['net_cash_flow']! - amount;
       }
     }
 
@@ -6121,6 +6134,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                       Text(
                         'Loan Repayment Paid: ${data['loan_repayment_paid']!.toStringAsFixed(2)}',
+                      ),
+                      const Divider(),
+                      Text(
+                        'Net Cash Flow: ${data['net_cash_flow']!.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
