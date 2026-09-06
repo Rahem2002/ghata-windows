@@ -4240,6 +4240,10 @@ class _CashboxScreenState extends State<CashboxScreen> {
 
       final exchange = entry['exchanges'] as Map<String, dynamic>?;
 
+      if (entryType != 'money_in' && entryType != 'money_out') {
+        continue;
+      }
+
       all.add({
         'transaction_type':
             entryType == 'money_out' ? 'exchange_out' : 'exchange_in',
@@ -5830,6 +5834,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       final entryType = entry['entry_type']?.toString() ?? '';
 
       final exchange = entry['exchanges'] as Map<String, dynamic>?;
+
+      if (entryType != 'money_in' && entryType != 'money_out') {
+        continue;
+      }
 
       all.add({
         'transaction_type':
