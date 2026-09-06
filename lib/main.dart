@@ -2559,7 +2559,15 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                   .toList(),
               onChanged: (value) {
                 if (value != null) {
-                  setState(() => transactionType = value);
+                  setState(() {
+                    transactionType = value;
+                    if (value == 'adjustment_in' ||
+                        value == 'adjustment_out') {
+                      selectedCustomerId = null;
+                      selectedCustomerName = null;
+                      selectedDueDate = null;
+                    }
+                  });
                 }
               },
             ),
@@ -2625,8 +2633,10 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
             ),
             const SizedBox(height: 16),
 
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: loadCustomers(),
+            if (transactionType != 'adjustment_in' &&
+                transactionType != 'adjustment_out')
+              FutureBuilder<List<Map<String, dynamic>>>(
+                future: loadCustomers(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState ==
                     ConnectionState.waiting) {
