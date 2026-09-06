@@ -3904,6 +3904,18 @@ class _LoansScreenState extends State<LoansScreen> {
 
           final remaining = balances.values.where((item) {
             final balance = item['balance'] as double;
+
+            if (query.isNotEmpty) {
+              final customer =
+                  item['customer_name']?.toString().toLowerCase() ?? '';
+              final currency =
+                  item['currency']?.toString().toLowerCase() ?? '';
+
+              if (!customer.contains(query) &&
+                  !currency.contains(query)) {
+                return false;
+              }
+            }
             final dueDate = item['due_date']?.toString() ?? '';
             final due =
                 dueDate.isNotEmpty ? DateTime.tryParse(dueDate) : null;
