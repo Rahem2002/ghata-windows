@@ -4430,6 +4430,14 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 label = 'Loan Repayment Paid';
                 isIn = false;
                 break;
+              case 'adjustment_in':
+                label = 'Adjustment In';
+                isIn = true;
+                break;
+              case 'adjustment_out':
+                label = 'Adjustment Out';
+                isIn = false;
+                break;
               case 'exchange_in':
                 label = 'Exchange In';
                 isIn = true;
