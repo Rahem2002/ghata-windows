@@ -5768,7 +5768,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     final exchangeData = await Supabase.instance.client
         .from('exchange_entries')
-        .select('entry_type, amount, currency, created_at')
+        .select('entry_type, amount, currency, created_at, exchanges!inner(exchange_date, exchange_time, customer_id, customer_name)')
         .eq('user_id', user.id);
 
     final all = <Map<String, dynamic>>[];
