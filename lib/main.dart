@@ -3454,6 +3454,14 @@ class CustomerLedgerScreen extends StatelessWidget {
         .select()
         .eq('user_id', user.id)
         .eq('customer_id', customerId)
+        .inFilter('transaction_type', [
+          'money_in',
+          'money_out',
+          'loan_given',
+          'loan_received',
+          'loan_repayment_received',
+          'loan_repayment_paid',
+        ])
         .order('transaction_date', ascending: false)
         .order('transaction_time', ascending: false)
         .order('created_at', ascending: false);
