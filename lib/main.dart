@@ -4818,6 +4818,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           'p_to_currency': toCurrency,
           'p_to_amount': toAmount,
           'p_rate': rate,
+          'p_exchange_type': exchangeType,
         },
       );
 
