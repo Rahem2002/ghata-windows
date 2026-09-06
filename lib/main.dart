@@ -3874,7 +3874,7 @@ class _LoansScreenState extends State<LoansScreen> {
                       dueDate.contains(query);
                 }).toList();
 
-          final balances = calculateLoanBalances(filteredLoans);
+          final balances = calculateLoanBalances(loans);
 
           final now = DateTime.now();
           final today = DateTime(now.year, now.month, now.day);
