@@ -4079,6 +4079,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
   String fromCurrency = 'AFN';
   String toCurrency = 'USD';
+  String exchangeType = 'buy';
   String? selectedCustomerId;
   String? selectedCustomerName;
   DateTime selectedExchangeDate = DateTime.now();
@@ -4185,7 +4186,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     final exchanges = await Supabase.instance.client
         .from('exchanges')
         .select(
-          'id, exchange_date, exchange_time, customer_id, customer_name, notes, created_at',
+          'id, exchange_date, exchange_time, exchange_type, customer_id, customer_name, notes, created_at',
         )
         .eq('user_id', user.id)
         .order('exchange_date', ascending: false)
@@ -4301,6 +4302,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
     var editFromCurrency = outEntry?['currency']?.toString() ?? 'AFN';
     var editToCurrency = inEntry?['currency']?.toString() ?? 'USD';
+    var editExchangeType = exchange['exchange_type']?.toString() ?? 'buy';
     var editCustomerId = exchange['customer_id']?.toString();
     var editCustomerName = exchange['customer_name']?.toString();
 
@@ -4329,6 +4331,30 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                DropdownButtonFormField<String>(
+                  initialValue: editExchangeType,
+                  decoration: const InputDecoration(
+                    labelText: 'Exchange Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'buy',
+                      child: Text('Buy'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'sell',
+                      child: Text('Sell'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => editExchangeType = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+
                 DropdownButtonFormField<String>(
                   initialValue: editFromCurrency,
                   decoration: const InputDecoration(
@@ -4602,6 +4628,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           'p_to_currency': editToCurrency,
           'p_to_amount': toAmount,
           'p_rate': rate,
+          'p_exchange_type': editExchangeType,
         },
       );
 
@@ -4743,6 +4770,30 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          DropdownButtonFormField<String>(
+            value: exchangeType,
+            decoration: const InputDecoration(
+              labelText: 'Exchange Type',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: 'buy',
+                child: Text('Buy'),
+              ),
+              DropdownMenuItem(
+                value: 'sell',
+                child: Text('Sell'),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => exchangeType = value);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+
           DropdownButtonFormField<String>(
             value: fromCurrency,
             decoration: const InputDecoration(
@@ -5039,7 +5090,13 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                   final notes =
                       exchange['notes']?.toString() ?? '';
 
+                  final exchangeType =
+                      exchange['exchange_type']?.toString() ?? 'buy';
+                  final exchangeTypeLabel =
+                      exchangeType == 'sell' ? 'Sell' : 'Buy';
+
                   final details = <String>[
+                    exchangeTypeLabel,
                     if (customer != null && customer.isNotEmpty)
                       customer,
                     if (time.isEmpty) date else '$date $time',
