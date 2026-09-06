@@ -4779,22 +4779,31 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         .order('exchange_time', ascending: false)
         .order('created_at', ascending: false);
 
-    final result = <Map<String, dynamic>>[];
+    final exchangeList = List<Map<String, dynamic>>.from(exchanges);
+    if (exchangeList.isEmpty) return [];
 
-    for (final exchange
-        in List<Map<String, dynamic>>.from(exchanges)) {
-      final entries = await Supabase.instance.client
-          .from('exchange_entries')
-          .select('entry_type, amount, currency, rate')
-          .eq('exchange_id', exchange['id']);
+    final entries = await Supabase.instance.client
+        .from('exchange_entries')
+        .select('exchange_id, entry_type, amount, currency, rate')
+        .eq('user_id', user.id);
 
-      result.add({
-        ...exchange,
-        'entries': List<Map<String, dynamic>>.from(entries),
-      });
+    final entriesByExchange = <String, List<Map<String, dynamic>>>{};
+
+    for (final entry in List<Map<String, dynamic>>.from(entries)) {
+      final exchangeId = entry['exchange_id']?.toString() ?? '';
+      if (exchangeId.isEmpty) continue;
+
+      entriesByExchange.putIfAbsent(exchangeId, () => []).add(entry);
     }
 
-    return result;
+    return exchangeList.map((exchange) {
+      final exchangeId = exchange['id']?.toString() ?? '';
+
+      return {
+        ...exchange,
+        'entries': entriesByExchange[exchangeId] ?? <Map<String, dynamic>>[],
+      };
+    }).toList();
   }
 
   Future<void> deleteExchange(Map<String, dynamic> exchange) async {
