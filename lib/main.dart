@@ -1758,7 +1758,8 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     ('loan_received', 'Loan Received'),
     ('loan_repayment_received', 'Loan Repayment Received'),
     ('loan_repayment_paid', 'Loan Repayment Paid'),
-    ('adjustment', 'Adjustment'),
+    ('adjustment_in', 'Adjustment In'),
+    ('adjustment_out', 'Adjustment Out'),
   ];
 
   Future<List<Map<String, dynamic>>> loadTransactions() async {
@@ -4268,6 +4269,10 @@ class _CashboxScreenState extends State<CashboxScreen> {
         balances[currency] = balances[currency]! + amount;
       } else if (type == 'loan_repayment_paid') {
         balances[currency] = balances[currency]! - amount;
+      } else if (type == 'adjustment_in') {
+        balances[currency] = balances[currency]! + amount;
+      } else if (type == 'adjustment_out') {
+        balances[currency] = balances[currency]! - amount;
       }
     }
 
@@ -5881,6 +5886,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
           'loan_received': 0,
           'loan_repayment_received': 0,
           'loan_repayment_paid': 0,
+          'adjustment_in': 0,
+          'adjustment_out': 0,
           'net_cash_flow': 0,
         },
       );
@@ -5894,12 +5901,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
       if (type == 'money_in' ||
           type == 'loan_received' ||
           type == 'loan_repayment_received' ||
-          type == 'exchange_in') {
+          type == 'exchange_in' ||
+          type == 'adjustment_in') {
         row['net_cash_flow'] = row['net_cash_flow']! + amount;
       } else if (type == 'money_out' ||
           type == 'loan_given' ||
           type == 'loan_repayment_paid' ||
-          type == 'exchange_out') {
+          type == 'exchange_out' ||
+          type == 'adjustment_out') {
         row['net_cash_flow'] = row['net_cash_flow']! - amount;
       }
     }
@@ -6152,6 +6161,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                       Text(
                         'Loan Repayment Paid: ${data['loan_repayment_paid']!.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Adjustment In: ${data['adjustment_in']!.toStringAsFixed(2)}',
+                      ),
+                      Text(
+                        'Adjustment Out: ${data['adjustment_out']!.toStringAsFixed(2)}',
                       ),
                       const Divider(),
                       Text(
