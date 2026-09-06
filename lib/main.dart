@@ -2110,7 +2110,14 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       .toList(),
                   onChanged: (value) {
                     if (value != null) {
-                      setDialogState(() => editType = value);
+                      setDialogState(() {
+                        editType = value;
+                        if (value == 'adjustment_in' ||
+                            value == 'adjustment_out') {
+                          editCustomerId = null;
+                          editDueDate = null;
+                        }
+                      });
                     }
                   },
                 ),
