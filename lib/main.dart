@@ -4736,22 +4736,26 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       if (type == 'buy') {
         quantity += assetAmount;
         cost += settlementAmount;
-      } else if (quantity > 0) {
-        final matchedQuantity =
-            assetAmount > quantity ? quantity : assetAmount;
-        unmatchedSell += assetAmount - matchedQuantity;
-        final averageCost = cost / quantity;
-        final matchedProceeds =
-            settlementAmount * (matchedQuantity / assetAmount);
-        final matchedCost = averageCost * matchedQuantity;
+      } else {
+        if (quantity <= 0) {
+          unmatchedSell += assetAmount;
+        } else {
+          final matchedQuantity =
+              assetAmount > quantity ? quantity : assetAmount;
+          unmatchedSell += assetAmount - matchedQuantity;
+          final averageCost = cost / quantity;
+          final matchedProceeds =
+              settlementAmount * (matchedQuantity / assetAmount);
+          final matchedCost = averageCost * matchedQuantity;
 
-        profit += matchedProceeds - matchedCost;
-        quantity -= matchedQuantity;
-        cost -= matchedCost;
+          profit += matchedProceeds - matchedCost;
+          quantity -= matchedQuantity;
+          cost -= matchedCost;
 
-        if (quantity.abs() < 0.0000001) {
-          quantity = 0;
-          cost = 0;
+          if (quantity.abs() < 0.0000001) {
+            quantity = 0;
+            cost = 0;
+          }
         }
       }
 
