@@ -151,6 +151,23 @@ class GhataCalculatorField extends StatelessWidget {
     _notify();
   }
 
+  void _toggleSign() {
+    final text = controller.text.trim();
+
+    if (text.isEmpty) {
+      controller.text = '-';
+    } else if (text.startsWith('-')) {
+      controller.text = text.substring(1);
+    } else {
+      controller.text = '-$text';
+    }
+
+    controller.selection = TextSelection.collapsed(
+      offset: controller.text.length,
+    );
+    _notify();
+  }
+
   void _backspace() {
     if (controller.text.isEmpty) return;
     controller.text =
@@ -326,7 +343,7 @@ class GhataCalculatorField extends StatelessWidget {
                     Row(
                       children: [
                         calcKey(
-                          onPressed: () => refresh(() => _append('-')),
+                          onPressed: () => refresh(_toggleSign),
                           child: const Text(
                             '+/−',
                             style: TextStyle(fontSize: 20),
