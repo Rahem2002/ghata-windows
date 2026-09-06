@@ -4294,6 +4294,10 @@ class _CashboxScreenState extends State<CashboxScreen> {
         balances[currency] = balances[currency]! + amount;
       } else if (type == 'adjustment_out') {
         balances[currency] = balances[currency]! - amount;
+      } else if (type == 'exchange_in') {
+        balances[currency] = balances[currency]! + amount;
+      } else if (type == 'exchange_out') {
+        balances[currency] = balances[currency]! - amount;
       }
     }
 
