@@ -266,6 +266,19 @@ class OfflineDatabase {
     );
   }
 
+  Future<void> permanentlyDeleteLocalOnlyRecord(
+    String table,
+    String id,
+  ) async {
+    final db = await database;
+
+    await db.delete(
+      'offline_records',
+      where: 'table_name = ? AND record_id = ?',
+      whereArgs: [table, id],
+    );
+  }
+
   Future<void> permanentlyDeleteLocalRecord(
     String table,
     String id,

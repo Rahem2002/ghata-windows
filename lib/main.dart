@@ -1,7 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -18,6 +23,187 @@ import 'package:share_plus/share_plus.dart';
 
 
 const _ghataUuid = Uuid();
+
+
+Future<pw.Font> ghataPdfUnicodeFont() async {
+  final data = await rootBundle.load(
+    'assets/fonts/NotoNaskhArabic.ttf',
+  );
+  return pw.Font.ttf(data);
+}
+
+
+
+
+Future<String?> ghataPickCustomerPhoto(BuildContext context) async {
+  final source = await showModalBottomSheet<ImageSource>(
+    context: context,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.photo_camera_outlined),
+                title: Text(ghataT(context, 'Camera')),
+                onTap: () =>
+                    Navigator.pop(sheetContext, ImageSource.camera),
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library_outlined),
+                title: Text(ghataT(context, 'Gallery')),
+                onTap: () =>
+                    Navigator.pop(sheetContext, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+
+  if (source == null) return null;
+
+  final image = await ImagePicker().pickImage(
+    source: source,
+    imageQuality: 82,
+    maxWidth: 1200,
+  );
+
+  return image?.path;
+}
+
+Future<String?> ghataSaveCustomerPhoto(
+  String customerId,
+  String sourcePath,
+) async {
+  try {
+    final directory = await getApplicationDocumentsDirectory();
+    final photoDirectory =
+        Directory('${directory.path}/customer_photos');
+
+    if (!await photoDirectory.exists()) {
+      await photoDirectory.create(recursive: true);
+    }
+
+    final extension = sourcePath.toLowerCase().endsWith('.png')
+        ? '.png'
+        : '.jpg';
+
+    final destination =
+        '${photoDirectory.path}/$customerId$extension';
+
+    final source = File(sourcePath);
+
+    if (!await source.exists()) return null;
+
+    final saved = await source.copy(destination);
+
+    // Local-only table: do not queue to Supabase.
+    await OfflineDatabase.instance.saveRecord(
+      'customer_photos',
+      {
+        'id': customerId,
+        'photo_path': saved.path,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      },
+      synced: true,
+    );
+
+    return saved.path;
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<String?> ghataLoadCustomerPhoto(String customerId) async {
+  try {
+    final record = await OfflineDatabase.instance.getRecord(
+      'customer_photos',
+      customerId,
+    );
+
+    final path = record?['photo_path']?.toString() ?? '';
+
+    if (path.isEmpty) return null;
+
+    final file = File(path);
+
+    if (!await file.exists()) return null;
+
+    return path;
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<void> ghataDeleteCustomerPhoto(String customerId) async {
+  try {
+    final record = await OfflineDatabase.instance.getRecord(
+      'customer_photos',
+      customerId,
+      includeDeleted: true,
+    );
+
+    final path = record?['photo_path']?.toString() ?? '';
+
+    if (path.isNotEmpty) {
+      final file = File(path);
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+
+    await OfflineDatabase.instance.permanentlyDeleteLocalOnlyRecord(
+      'customer_photos',
+      customerId,
+    );
+  } catch (_) {}
+}
+
+
+Future<Map<String, dynamic>?> ghataLoadBusinessProfile() async {
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return null;
+
+  // Online refresh when possible.
+  try {
+    final data = await Supabase.instance.client
+        .from('profiles')
+        .select(
+          'full_name, username, business_name, business_phone, business_address, receipt_note',
+        )
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (data != null) {
+      final record = <String, dynamic>{
+        ...Map<String, dynamic>.from(data),
+        'id': user.id,
+      };
+
+      // Cache only. Do NOT queue a profile sync operation here.
+      await OfflineDatabase.instance.saveRecord(
+        'profiles',
+        record,
+        synced: true,
+      );
+
+      return record;
+    }
+  } catch (_) {
+    // Offline: continue to local cache.
+  }
+
+  return OfflineDatabase.instance.getRecord(
+    'profiles',
+    user.id,
+    includeDeleted: true,
+  );
+}
+
 
 Future<void> ghataTrySync() async {
   try {
@@ -1203,6 +1389,20 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'قرض تلاش کریں',
     'ar': 'بحث القروض',
   },
+  'Use device biometrics to unlock Ghata.': {
+    'en': 'Use device biometrics to unlock Ghata.',
+    'ps': 'د ګهته د خلاصولو لپاره د وسیلې بایومیټریک وکاروئ.',
+    'fa': 'برای باز کردن گهته از بایومتریک دستگاه استفاده کنید.',
+    'ur': 'گھتہ کھولنے کے لیے ڈیوائس بایومیٹرک استعمال کریں۔',
+    'ar': 'استخدم القياسات الحيوية للجهاز لفتح غهته.',
+  },
+  'Enter your 4 to 6 digit PIN.': {
+    'en': 'Enter your 4 to 6 digit PIN.',
+    'ps': 'خپل له ۴ تر ۶ عددي PIN داخل کړئ.',
+    'fa': 'PIN چهار تا شش رقمی خود را وارد کنید.',
+    'ur': 'اپنا 4 سے 6 ہندسوں کا PIN درج کریں۔',
+    'ar': 'أدخل رمز PIN المكون من 4 إلى 6 أرقام.',
+  },
   'Unlock Ghata': {
     'en': 'Unlock Ghata',
     'ps': 'ګهته خلاص کړئ',
@@ -1566,6 +1766,13 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'آدرس',
     'ur': 'پتہ',
     'ar': 'العنوان',
+  },
+  'Due': {
+    'en': 'Due',
+    'ps': 'د ورکړې نېټه',
+    'fa': 'سررسید',
+    'ur': 'ادائیگی کی تاریخ',
+    'ar': 'تاريخ الاستحقاق',
   },
   'Overdue': {
     'en': 'Overdue',
@@ -2917,6 +3124,42 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'معلومات۔ ایکسپورٹ شدہ بیک اپ فائلیں محفوظ جگہ رکھیں۔',
     'ar': 'المعلومات. احتفظ بملفات النسخ الاحتياطية المصدرة في مكان آمن.',
   },
+
+  'Log Out Other Devices': {
+    'en': 'Log Out Other Devices',
+    'ps': 'له نورو وسیلو څخه وتل',
+    'fa': 'خروج از دستگاه‌های دیگر',
+    'ur': 'دیگر ڈیوائسز سے لاگ آؤٹ',
+    'ar': 'تسجيل الخروج من الأجهزة الأخرى',
+  },
+  'This will sign out your account from all other devices. This device will stay signed in.': {
+    'en': 'This will sign out your account from all other devices. This device will stay signed in.',
+    'ps': 'ستاسو حساب به له ټولو نورو وسیلو څخه ووځي. دا وسیله به لاګ اِن پاتې شي.',
+    'fa': 'حساب شما از تمام دستگاه‌های دیگر خارج می‌شود. این دستگاه وارد حساب باقی می‌ماند.',
+    'ur': 'آپ کا اکاؤنٹ تمام دیگر ڈیوائسز سے لاگ آؤٹ ہو جائے گا۔ یہ ڈیوائس لاگ اِن رہے گی۔',
+    'ar': 'سيتم تسجيل خروج حسابك من جميع الأجهزة الأخرى. سيبقى هذا الجهاز مسجلاً للدخول.',
+  },
+  'Other devices have been logged out successfully.': {
+    'en': 'Other devices have been logged out successfully.',
+    'ps': 'له نورو وسیلو څخه په بریالیتوب سره ووتل.',
+    'fa': 'خروج از دستگاه‌های دیگر با موفقیت انجام شد.',
+    'ur': 'دیگر ڈیوائسز سے کامیابی کے ساتھ لاگ آؤٹ ہو گیا۔',
+    'ar': 'تم تسجيل الخروج من الأجهزة الأخرى بنجاح.',
+  },
+  'Unable to log out other devices. Check your internet connection.': {
+    'en': 'Unable to log out other devices. Check your internet connection.',
+    'ps': 'له نورو وسیلو څخه وتل ممکن نه شول. خپل انټرنېټ اتصال وګورئ.',
+    'fa': 'خروج از دستگاه‌های دیگر ممکن نشد. اتصال اینترنت خود را بررسی کنید.',
+    'ur': 'دیگر ڈیوائسز سے لاگ آؤٹ نہیں ہو سکا۔ اپنا انٹرنیٹ کنکشن چیک کریں۔',
+    'ar': 'تعذر تسجيل الخروج من الأجهزة الأخرى. تحقق من اتصالك بالإنترنت.',
+  },
+  'Sign out your account from all other phones and devices.': {
+    'en': 'Sign out your account from all other phones and devices.',
+    'ps': 'خپل حساب له ټولو نورو موبایلونو او وسیلو څخه وباسئ.',
+    'fa': 'حساب خود را از تمام تلفن‌ها و دستگاه‌های دیگر خارج کنید.',
+    'ur': 'اپنے اکاؤنٹ کو تمام دیگر فونز اور ڈیوائسز سے لاگ آؤٹ کریں۔',
+    'ar': 'سجّل خروج حسابك من جميع الهواتف والأجهزة الأخرى.',
+  },
 };
 String ghataT(BuildContext context, String key) {
   final code = Localizations.localeOf(context).languageCode;
@@ -3657,7 +3900,7 @@ class GhataSecurity {
     try {
       final auth = LocalAuthentication();
       return await auth.authenticate(
-        localizedReason: 'Unlock Ghata',
+        localizedReason: ghataT(context, 'Unlock Ghata'),
         options: AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
@@ -4344,6 +4587,59 @@ class _SecurityScreenState extends State<SecurityScreen> {
     await loadSecurityState();
   }
 
+  Future<void> logOutOtherDevices() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(ghataT(context, 'Log Out Other Devices')),
+        content: Text(
+          ghataT(
+            context,
+            'This will sign out your account from all other devices. This device will stay signed in.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(ghataT(context, 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(ghataT(context, 'Log Out')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await Supabase.instance.client.auth.signOut(
+        scope: SignOutScope.others,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ghataT(context, 'Other devices have been logged out successfully.'),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ghataT(context, 'Unable to log out other devices. Check your internet connection.'),
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> testLock() async {
     if (!hasPin) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -4421,12 +4717,29 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     title: Text(ghataT(context, 'Fingerprint / Face ID')),
                     subtitle: Text(
                       biometricAvailable
-                          ? 'Use device biometrics to unlock Ghata.'
+                          ? ghataT(context, 'Use device biometrics to unlock Ghata.')
                           : ghataT(context, 'Biometrics are not available on this device.'),
                     ),
                     value: biometricEnabled,
                     onChanged:
                         biometricAvailable ? changeBiometric : null,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: Icon(Icons.devices_outlined),
+                    title: Text(
+                      ghataT(context, 'Log Out Other Devices'),
+                    ),
+                    subtitle: Text(
+                      ghataT(
+                        context,
+                        'Sign out your account from all other phones and devices.',
+                      ),
+                    ),
+                    trailing: Icon(Icons.logout),
+                    onTap: logOutOtherDevices,
                   ),
                 ),
                 SizedBox(height: 12),
@@ -4529,7 +4842,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
 
     if (!RegExp(r'^\d{4,6}$').hasMatch(pin)) {
       setState(() {
-        errorText = 'Enter your 4 to 6 digit PIN.';
+        errorText = ghataT(context, 'Enter your 4 to 6 digit PIN.');
       });
       return;
     }
@@ -4609,7 +4922,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
                   ),
                   SizedBox(height: 6),
                   Text(
-                    'Unlock Ghata',
+                    ghataT(context, 'Unlock Ghata'),
                     style: TextStyle(fontSize: 18),
                   ),
                   SizedBox(height: 28),
@@ -4654,7 +4967,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
                               )
                             : Icon(Icons.fingerprint),
                         label: Text(
-                          'Fingerprint / Face ID',
+                          ghataT(context, 'Fingerprint / Face ID'),
                         ),
                       ),
                     ),
@@ -4687,22 +5000,74 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<bool> canViewReportsFuture;
 
   Future<bool> loadCanEdit() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return false;
+
     try {
       final value =
           await Supabase.instance.client.rpc('can_staff_edit');
+
+      final cached = await OfflineDatabase.instance.getRecord(
+            'permission_cache',
+            user.id,
+            includeDeleted: true,
+          ) ??
+          <String, dynamic>{};
+
+      await OfflineDatabase.instance.saveRecord(
+        'permission_cache',
+        {
+          ...cached,
+          'id': user.id,
+          'can_edit': value == true,
+        },
+        synced: true,
+      );
+
       return value == true;
     } catch (_) {
-      return false;
+      final cached = await OfflineDatabase.instance.getRecord(
+        'permission_cache',
+        user.id,
+        includeDeleted: true,
+      );
+      return cached?['can_edit'] == true;
     }
   }
 
   Future<bool> loadCanViewReports() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return false;
+
     try {
       final value =
           await Supabase.instance.client.rpc('can_staff_view_reports');
+
+      final cached = await OfflineDatabase.instance.getRecord(
+            'permission_cache',
+            user.id,
+            includeDeleted: true,
+          ) ??
+          <String, dynamic>{};
+
+      await OfflineDatabase.instance.saveRecord(
+        'permission_cache',
+        {
+          ...cached,
+          'id': user.id,
+          'can_view_reports': value == true,
+        },
+        synced: true,
+      );
+
       return value == true;
     } catch (_) {
-      return false;
+      final cached = await OfflineDatabase.instance.getRecord(
+        'permission_cache',
+        user.id,
+        includeDeleted: true,
+      );
+      return cached?['can_view_reports'] == true;
     }
   }
 
@@ -5043,6 +5408,9 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'EUR': return '🇪🇺';
       case 'AED': return '🇦🇪';
       case 'SAR': return '🇸🇦';
+      case 'KWD': return '🇰🇼';
+      case 'QAR': return '🇶🇦';
+      case 'OMR': return '🇴🇲';
       case 'GBP': return '🇬🇧';
       case 'IRR': return '🇮🇷';
       case 'INR': return '🇮🇳';
@@ -5297,13 +5665,50 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            tooltip: ghataT(context, 'Settings & Account'),
-            onPressed: showHomeMenu,
-            icon: Icon(Icons.menu_rounded),
-          ),
-          SizedBox(width: 4),
-        ],
+        Builder(
+          builder: (context) {
+            final appState =
+                context.findAncestorStateOfType<_GhataAppState>();
+            final isDark =
+                Theme.of(context).brightness == Brightness.dark;
+
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PopupMenuButton<String>(
+                  tooltip: ghataT(context, 'language'),
+                  onSelected: appState?.changeLanguage,
+                  itemBuilder: (context) => [
+                    PopupMenuItem(value: 'en', child: Text('🇬🇧 English')),
+                    PopupMenuItem(value: 'ps', child: Text('🇦🇫 پښتو')),
+                    PopupMenuItem(value: 'fa', child: Text('🇦🇫 دری')),
+                    PopupMenuItem(value: 'ur', child: Text('🇵🇰 اردو')),
+                    PopupMenuItem(value: 'ar', child: Text('🇸🇦 العربية')),
+                  ],
+                  icon: Icon(Icons.language_rounded),
+                ),
+                IconButton(
+                  tooltip: isDark
+                      ? ghataT(context, 'lightMode')
+                      : ghataT(context, 'darkMode'),
+                  onPressed: appState?.toggleTheme,
+                  icon: Icon(
+                    isDark
+                        ? Icons.light_mode_rounded
+                        : Icons.dark_mode_rounded,
+                  ),
+                ),
+                IconButton(
+                  tooltip: ghataT(context, 'Settings & Account'),
+                  onPressed: showHomeMenu,
+                  icon: Icon(Icons.menu_rounded),
+                ),
+                SizedBox(width: 4),
+              ],
+            );
+          },
+        ),
+      ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -5314,101 +5719,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ListView(
             padding: EdgeInsets.all(16),
             children: [
-              // GHATA_LANGUAGE_THEME_CONTROLS
-              Builder(
-                builder: (context) {
-                  final appState =
-                      context.findAncestorStateOfType<_GhataAppState>();
-                  final languageCode =
-                      Localizations.localeOf(context).languageCode;
-                  final isDark =
-                      Theme.of(context).brightness == Brightness.dark;
-
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        PopupMenuButton<String>(
-                          tooltip: ghataT(context, 'language'),
-                          onSelected: (value) {
-                            appState?.changeLanguage(value);
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'en',
-                              child: Text('🇬🇧 English'),
-                            ),
-                            PopupMenuItem(
-                              value: 'ps',
-                              child: Text('🇦🇫 پښتو'),
-                            ),
-                            PopupMenuItem(
-                              value: 'fa',
-                              child: Text('🇦🇫 دری'),
-                            ),
-                            PopupMenuItem(
-                              value: 'ur',
-                              child: Text('🇵🇰 اردو'),
-                            ),
-                            PopupMenuItem(
-                              value: 'ar',
-                              child: Text('🇸🇦 العربية'),
-                            ),
-                          ],
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .outlineVariant,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.language_rounded,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 7),
-                                Text(
-                                  ghataLanguageName(languageCode),
-                                ),
-                                SizedBox(width: 3),
-                                Icon(
-                                  Icons.arrow_drop_down,
-                                  size: 20,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Tooltip(
-                          message: isDark
-                              ? ghataT(context, 'lightMode')
-                              : ghataT(context, 'darkMode'),
-                          child: IconButton.filledTonal(
-                            onPressed: appState?.toggleTheme,
-                            icon: Icon(
-                              isDark
-                                  ? Icons.light_mode_rounded
-                                  : Icons.dark_mode_rounded,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-
               FutureBuilder<Map<String, Map<String, double>>>(
                 future: dashboardFuture,
                 builder: (context, snapshot) {
@@ -5852,7 +6162,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     return _GhataBottomItem(
                       icon: Icons.add_circle,
-                      label: 'Add',
+                      label: ghataT(context, 'Add'),
                       prominent: true,
                       onTap: !allowed
                           ? null
@@ -5946,18 +6256,42 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
   }
 
   Future<List<bool>> loadPermissions() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return [false, false];
+
     try {
       final results = await Future.wait([
         Supabase.instance.client.rpc('can_staff_edit'),
         Supabase.instance.client.rpc('can_staff_view_reports'),
       ]);
 
-      return [
+      final values = <bool>[
         results[0] == true,
         results[1] == true,
       ];
+
+      await OfflineDatabase.instance.saveRecord(
+        'permission_cache',
+        {
+          'id': user.id,
+          'can_edit': values[0],
+          'can_view_reports': values[1],
+        },
+        synced: true,
+      );
+
+      return values;
     } catch (_) {
-      return [false, false];
+      final cached = await OfflineDatabase.instance.getRecord(
+        'permission_cache',
+        user.id,
+        includeDeleted: true,
+      );
+
+      return <bool>[
+        cached?['can_edit'] == true,
+        cached?['can_view_reports'] == true,
+      ];
     }
   }
 
@@ -6014,7 +6348,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
               Expanded(
                 child: _GhataBottomItem(
                   icon: Icons.add_circle,
-                  label: 'Add',
+                  label: ghataT(context, 'Add'),
                   prominent: true,
                   onTap: !canEdit
                       ? null
@@ -6288,20 +6622,166 @@ class AboutGhataScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 16),
 
-                    SelectableText(
-                      'Email\nmrahemsadaf@gmail.com',
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () async {
+                          final uri = Uri(
+                            scheme: 'mailto',
+                            path: 'mrahemsadaf@gmail.com',
+                          );
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(13),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.red.withValues(alpha: 0.15),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.email_rounded,
+                                color: Colors.red,
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Email',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 3),
+                                    Text('mrahemsadaf@gmail.com'),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.open_in_new_rounded, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
 
-                    SizedBox(height: 16),
+                    SizedBox(height: 12),
 
-                    SelectableText(
-                      'WhatsApp 1\n+93 771 770 927',
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () async {
+                          await launchUrl(
+                            Uri.parse(
+                              'https://wa.me/93771770927',
+                            ),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(13),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.green.withValues(alpha: 0.16),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.chat_rounded,
+                                color: Colors.green,
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'WhatsApp 1',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 3),
+                                    Text('+93 771 770 927'),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.open_in_new_rounded, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
 
-                    SizedBox(height: 16),
+                    SizedBox(height: 12),
 
-                    SelectableText(
-                      'WhatsApp 2\n+93 774 832 595',
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () async {
+                          await launchUrl(
+                            Uri.parse(
+                              'https://wa.me/93774832595',
+                            ),
+                            mode: LaunchMode.externalApplication,
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(13),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.green.withValues(alpha: 0.16),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.chat_rounded,
+                                color: Colors.green,
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'WhatsApp 2',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 3),
+                                    Text('+93 774 832 595'),
+                                  ],
+                                ),
+                              ),
+                              Icon(Icons.open_in_new_rounded, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -6310,25 +6790,44 @@ class AboutGhataScreen extends StatelessWidget {
 
             SizedBox(height: 24),
 
-            Center(
-              child: Text(
-                'Design by MRS',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
+            Builder(
+              builder: (context) {
+                final language =
+                    Localizations.localeOf(context).languageCode;
 
-            SizedBox(height: 3),
+                final designBy = switch (language) {
+                  'ps' => 'ډیزاین: MRS',
+                  'fa' => 'طراحی توسط MRS',
+                  'ur' => 'ڈیزائن: MRS',
+                  'ar' => 'تصميم بواسطة MRS',
+                  _ => 'Design by MRS',
+                };
 
-            Center(
-              child: Text(
-                'Mohammad Rahem Sadaf',
-                style: TextStyle(
-                  fontSize: 15,
-                ),
-              ),
+                final designerName = language == 'en'
+                    ? 'Mohammad Rahem Sadaf'
+                    : 'محمد رحیم صدف';
+
+                return Column(
+                  children: [
+                    Text(
+                      designBy,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      designerName,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
 
             SizedBox(height: 30),
@@ -6582,22 +7081,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         throw Exception('Not logged in');
       }
 
-      final data = await Supabase.instance.client
-          .from('profiles')
-          .select(
-          'full_name, username, business_name, business_phone, business_address, receipt_note',
-        )
-          .eq('id', user.id)
-          .single();
+      final data = await ghataLoadBusinessProfile();
 
       if (!mounted) return;
 
-      fullNameController.text = data['full_name'] ?? '';
-      usernameController.text = data['username'] ?? '';
-      businessNameController.text = data['business_name'] ?? '';
-      businessPhoneController.text = data['business_phone'] ?? '';
-      businessAddressController.text = data['business_address'] ?? '';
-      receiptNoteController.text = data['receipt_note'] ?? '';
+      if (data != null) {
+        fullNameController.text = data['full_name'] ?? '';
+        usernameController.text = data['username'] ?? '';
+        businessNameController.text = data['business_name'] ?? '';
+        businessPhoneController.text = data['business_phone'] ?? '';
+        businessAddressController.text = data['business_address'] ?? '';
+        receiptNoteController.text = data['receipt_note'] ?? '';
+      }
 
       setState(() {
         email = user.email ?? '';
@@ -6609,7 +7104,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() => isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ghataT(context, 'Unable to load profile'))),
+        SnackBar(
+          content: Text(ghataT(context, 'Unable to load profile')),
+        ),
       );
     }
   }
@@ -7057,15 +7554,6 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     String label,
     String? deletedAt,
   ) async {
-    if (daysRemaining(deletedAt) > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ghataT(context, 'Permanent delete is available after 30 days.')),
-        ),
-      );
-      return;
-    }
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -7089,13 +7577,9 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     if (confirmed != true) return;
 
     try {
-      await OfflineDatabase.instance.updateLocalRecord(
+      await OfflineDatabase.instance.permanentlyDeleteLocalRecord(
         'exchanges',
         id,
-        {
-          'purged_at':
-              DateTime.now().toUtc().toIso8601String(),
-        },
       );
 
       ghataTrySync();
@@ -7164,15 +7648,6 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     String name,
     String? deletedAt,
   ) async {
-    if (daysRemaining(deletedAt) > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ghataT(context, 'Permanent delete is available after 30 days.')),
-        ),
-      );
-      return;
-    }
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -7196,6 +7671,8 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     if (confirmed != true) return;
 
     try {
+      await ghataDeleteCustomerPhoto(id);
+
       await OfflineDatabase.instance
           .permanentlyDeleteLocalRecord(
         'customers',
@@ -7225,15 +7702,6 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     String label,
     String? deletedAt,
   ) async {
-    if (daysRemaining(deletedAt) > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ghataT(context, 'Permanent delete is available after 30 days.')),
-        ),
-      );
-      return;
-    }
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -7257,13 +7725,9 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     if (confirmed != true) return;
 
     try {
-      await OfflineDatabase.instance.updateLocalRecord(
+      await OfflineDatabase.instance.permanentlyDeleteLocalRecord(
         'transactions',
         id,
-        {
-          'purged_at':
-              DateTime.now().toUtc().toIso8601String(),
-        },
       );
 
       ghataTrySync();
@@ -7365,23 +7829,30 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                               : '$address\n$remaining days remaining',
                         ),
                         isThreeLine: address.isNotEmpty,
-                        trailing: remaining > 0
-                            ? TextButton(
-                                onPressed: id.isEmpty
-                                    ? null
-                                    : () => restoreCustomer(id),
-                                child: Text(ghataT(context, 'Restore')),
-                              )
-                            : TextButton(
-                                onPressed: id.isEmpty
-                                    ? null
-                                    : () => permanentlyDeleteCustomer(
-                                          id,
-                                          name,
-                                          customer['deleted_at']?.toString(),
-                                        ),
-                                child: Text(ghataT(context, 'Delete Permanently')),
-                              ),
+                        trailing: Wrap(
+                        spacing: 4,
+                        children: [
+                          TextButton(
+                            onPressed: id.isEmpty
+                                ? null
+                                : () => restoreCustomer(id),
+                            child: Text(ghataT(context, 'Restore')),
+                          ),
+                          TextButton(
+                            onPressed: id.isEmpty
+                                ? null
+                                : () => permanentlyDeleteCustomer(
+                                      id,
+                                      name,
+                                      customer['deleted_at']?.toString(),
+                                    ),
+                            child: Text(
+                              ghataT(context, 'Delete Permanently'),
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
                       ),
                     );
                   }),
@@ -7392,7 +7863,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
 
                 if (transactions.isNotEmpty) ...[
                   Text(
-                    'Transactions',
+                    ghataT(context, 'Transactions'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -7438,23 +7909,30 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                             '$remaining days remaining',
                           ].join(' • '),
                         ),
-                        trailing: remaining > 0
-                            ? TextButton(
-                                onPressed: id.isEmpty
-                                    ? null
-                                    : () => restoreTransaction(id),
-                                child: Text(ghataT(context, 'Restore')),
-                              )
-                            : TextButton(
-                                onPressed: id.isEmpty
-                                    ? null
-                                    : () => permanentlyDeleteTransaction(
-                                          id,
-                                          label,
-                                          transaction['deleted_at']?.toString(),
-                                        ),
-                                child: Text(ghataT(context, 'Delete Permanently')),
-                              ),
+                        trailing: Wrap(
+                        spacing: 4,
+                        children: [
+                          TextButton(
+                            onPressed: id.isEmpty
+                                ? null
+                                : () => restoreTransaction(id),
+                            child: Text(ghataT(context, 'Restore')),
+                          ),
+                          TextButton(
+                            onPressed: id.isEmpty
+                                ? null
+                                : () => permanentlyDeleteTransaction(
+                                      id,
+                                      label,
+                                      transaction['deleted_at']?.toString(),
+                                    ),
+                            child: Text(
+                              ghataT(context, 'Delete Permanently'),
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
                       ),
                     );
                   }),
@@ -7502,23 +7980,30 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                             '$remaining days remaining',
                           ].join(' • '),
                         ),
-                        trailing: remaining > 0
-                            ? TextButton(
-                                onPressed: id.isEmpty
-                                    ? null
-                                    : () => restoreExchange(id),
-                                child: Text(ghataT(context, 'Restore')),
-                              )
-                            : TextButton(
-                                onPressed: id.isEmpty
-                                    ? null
-                                    : () => permanentlyDeleteExchange(
-                                          id,
-                                          label,
-                                          exchange['deleted_at']?.toString(),
-                                        ),
-                                child: Text(ghataT(context, 'Delete Permanently')),
-                              ),
+                        trailing: Wrap(
+                        spacing: 4,
+                        children: [
+                          TextButton(
+                            onPressed: id.isEmpty
+                                ? null
+                                : () => restoreExchange(id),
+                            child: Text(ghataT(context, 'Restore')),
+                          ),
+                          TextButton(
+                            onPressed: id.isEmpty
+                                ? null
+                                : () => permanentlyDeleteExchange(
+                                      id,
+                                      label,
+                                      exchange['deleted_at']?.toString(),
+                                    ),
+                            child: Text(
+                              ghataT(context, 'Delete Permanently'),
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
                       ),
                     );
                   }),
@@ -7608,6 +8093,13 @@ class DailyJournalScreen extends StatefulWidget {
 class _DailyJournalScreenState extends State<DailyJournalScreen> {
   String selectedFilter = 'all';
 
+  DateTime? journalFromDate;
+  DateTime? journalToDate;
+  TimeOfDay? journalFromTime;
+  TimeOfDay? journalToTime;
+  String? journalCurrencyFilter;
+  String? journalCustomerFilter;
+
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
   final referenceController = TextEditingController();
@@ -7636,8 +8128,12 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     }
 
     if (widget.openAddForm) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) showAddTransactionDialog();
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await showAddTransactionDialog();
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
       });
     }
   }
@@ -8734,61 +9230,69 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
 
   pw.Widget ghataPdfWatermark() {
-  return pw.Center(
-    child: pw.Transform.rotate(
-      angle: -0.35,
-      child: pw.Opacity(
-        opacity: 0.10,
-        child: pw.Column(
-          mainAxisSize: pw.MainAxisSize.min,
-          children: [
-            pw.Text(
-              'Design by MRS',
-              style: pw.TextStyle(
-                fontSize: 38,
-                fontWeight: pw.FontWeight.bold,
+    final language = Localizations.localeOf(context).languageCode;
+
+    final designBy = switch (language) {
+      'ps' => 'ډیزاین: MRS',
+      'fa' => 'طراحی توسط MRS',
+      'ur' => 'ڈیزائن: MRS',
+      'ar' => 'تصميم بواسطة MRS',
+      _ => 'Design by MRS',
+    };
+
+    final designerName =
+        language == 'en' ? 'Mohammad Rahem Sadaf' : 'محمد رحیم صدف';
+
+    return pw.Center(
+      child: pw.Transform.rotate(
+        angle: -0.35,
+        child: pw.Opacity(
+          opacity: 0.10,
+          child: pw.Column(
+            mainAxisSize: pw.MainAxisSize.min,
+            children: [
+              pw.Text(
+                designBy,
+                style: pw.TextStyle(
+                  fontSize: 38,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
-            ),
-            pw.SizedBox(height: 4),
-            pw.Text(
-              'Mohammad Rahem Sadaf',
-              style: const pw.TextStyle(fontSize: 22),
-            ),
-          ],
+              pw.SizedBox(height: 4),
+              pw.Text(
+                designerName,
+                style: const pw.TextStyle(fontSize: 22),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
 Future<void> shareTransactionReceiptPdf(
     Map<String, dynamic> transaction,
   ) async {
+    final ghataPdfFont = await ghataPdfUnicodeFont();
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
-      final profile = await Supabase.instance.client
-          .from('profiles')
-          .select(
-            'full_name, business_name, business_phone, business_address, receipt_note',
-          )
-          .eq('id', user.id)
-          .maybeSingle();
+      final profile = await ghataLoadBusinessProfile();
 
       final id = transaction['id']?.toString() ?? '';
       final reference = transaction['reference_no']?.toString() ?? '';
       final customer = transaction['customer_name']?.toString() ?? '';
       final type = transaction['transaction_type']?.toString() ?? '';
       final amount = transaction['amount']?.toString() ?? '0';
-      final currency = transaction['currency']?.toString() ?? '';
+      final currency =
+          transaction['currency']?.toString().toUpperCase() ?? '';
       final date = transaction['transaction_date']?.toString() ?? '';
       final rawTime = transaction['transaction_time']?.toString() ?? '';
-      final time =
-          rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
+      final time = rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
       final description = transaction['description']?.toString() ?? '';
 
-      final typeLabel = switch (type) {
+      final typeKey = switch (type) {
         'money_in' => 'Money In',
         'money_out' => 'Money Out',
         'loan_given' => 'Loan Given',
@@ -8799,6 +9303,7 @@ Future<void> shareTransactionReceiptPdf(
         'adjustment_out' => 'Adjustment Out',
         _ => type.replaceAll('_', ' '),
       };
+      final typeLabel = ghataT(context, typeKey);
 
       final receiptNo = reference.isNotEmpty
           ? reference
@@ -8816,92 +9321,267 @@ Future<void> shareTransactionReceiptPdf(
           profile?['receipt_note']?.toString().trim() ?? '';
       final ownerName = profile?['full_name']?.toString().trim() ?? '';
 
-      final pdf = pw.Document();
+      final isPositive = type == 'money_in' ||
+          type == 'loan_received' ||
+          type == 'loan_repayment_received' ||
+          type == 'adjustment_in';
+
+      final accent = isPositive
+          ? PdfColor.fromHex('#16A34A')
+          : PdfColor.fromHex('#DC2626');
+      final paleAccent = isPositive
+          ? PdfColor.fromHex('#F0FDF4')
+          : PdfColor.fromHex('#FEF2F2');
+      final blue = PdfColor.fromHex('#3157D5');
+      final paleBlue = PdfColor.fromHex('#EEF2FF');
+      final border = PdfColor.fromHex('#E5E7EB');
+      final muted = PdfColor.fromHex('#6B7280');
+
+      pw.Widget infoRow(String label, String value) {
+        return pw.Padding(
+          padding: const pw.EdgeInsets.symmetric(vertical: 4),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.SizedBox(
+                width: 115,
+                child: pw.Text(
+                  label,
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    color: muted,
+                  ),
+                ),
+              ),
+              pw.Expanded(
+                child: pw.Text(
+                  value,
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      final pdf = pw.Document(
+        theme: pw.ThemeData.withFont(
+          base: ghataPdfFont,
+          bold: ghataPdfFont,
+          italic: ghataPdfFont,
+          boldItalic: ghataPdfFont,
+        ),
+      );
 
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(32),
+          margin: const pw.EdgeInsets.all(30),
           build: (_) => pw.Stack(
             children: [
-              pw.Positioned.fill(
-                child: ghataPdfWatermark(),
-              ),
+              pw.Positioned.fill(child: ghataPdfWatermark()),
               pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-            children: [
-              pw.Text(
-                businessName.isEmpty ? 'Ghata' : businessName,
-                textAlign: pw.TextAlign.center,
-                style: pw.TextStyle(
-                  fontSize: 24,
-                  fontWeight: pw.FontWeight.bold,
-                ),
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(18),
+                    decoration: pw.BoxDecoration(
+                      color: blue,
+                      borderRadius: pw.BorderRadius.circular(14),
+                    ),
+                    child: pw.Column(
+                      children: [
+                        pw.Text(
+                          businessName.isEmpty ? 'ګهته • Ghata' : businessName,
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(
+                            color: PdfColors.white,
+                            fontSize: 23,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text(
+                          ghataT(context, 'Transaction Receipt'),
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(
+                            color: PdfColors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (businessAddress.isNotEmpty) ...[
+                          pw.SizedBox(height: 6),
+                          pw.Text(
+                            businessAddress,
+                            textAlign: pw.TextAlign.center,
+                            style: const pw.TextStyle(
+                              color: PdfColors.white,
+                              fontSize: 9,
+                            ),
+                          ),
+                        ],
+                        if (businessPhone.isNotEmpty)
+                          pw.Text(
+                            businessPhone,
+                            textAlign: pw.TextAlign.center,
+                            style: const pw.TextStyle(
+                              color: PdfColors.white,
+                              fontSize: 9,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 14),
+
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(14),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.white,
+                      border: pw.Border.all(color: border),
+                      borderRadius: pw.BorderRadius.circular(12),
+                    ),
+                    child: pw.Column(
+                      children: [
+                        infoRow(ghataT(context, 'Reference'), receiptNo),
+                        if (customer.isNotEmpty)
+                          infoRow(ghataT(context, 'Customer'), customer),
+                        infoRow(ghataT(context, 'Type'), typeLabel),
+                        infoRow(
+                          ghataT(context, 'Date'),
+                          time.isEmpty ? date : '$date  $time',
+                        ),
+                        if (description.isNotEmpty)
+                          infoRow(
+                            ghataT(context, 'Description'),
+                            description,
+                          ),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 14),
+
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(18),
+                    decoration: pw.BoxDecoration(
+                      color: paleAccent,
+                      borderRadius: pw.BorderRadius.circular(12),
+                      border: pw.Border.all(color: accent, width: 1.2),
+                    ),
+                    child: pw.Column(
+                      children: [
+                        pw.Text(
+                          ghataT(context, 'Amount'),
+                          style: pw.TextStyle(
+                            color: muted,
+                            fontSize: 11,
+                          ),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text(
+                          '${dashboardFlag(currency)}  $amount $currency',
+                          textAlign: pw.TextAlign.center,
+                          style: pw.TextStyle(
+                            color: accent,
+                            fontSize: 25,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 5,
+                          ),
+                          decoration: pw.BoxDecoration(
+                            color: accent,
+                            borderRadius: pw.BorderRadius.circular(20),
+                          ),
+                          child: pw.Text(
+                            typeLabel,
+                            style: pw.TextStyle(
+                              color: PdfColors.white,
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  if (ownerName.isNotEmpty) ...[
+                    pw.SizedBox(height: 14),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(12),
+                      decoration: pw.BoxDecoration(
+                        color: paleBlue,
+                        borderRadius: pw.BorderRadius.circular(10),
+                      ),
+                      child: infoRow(
+                        ghataT(context, 'Owner'),
+                        ownerName,
+                      ),
+                    ),
+                  ],
+
+                  if (receiptNote.isNotEmpty) ...[
+                    pw.SizedBox(height: 12),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.all(12),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColor.fromHex('#FFFBEB'),
+                        borderRadius: pw.BorderRadius.circular(10),
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            ghataT(context, 'Receipt Note'),
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                          pw.SizedBox(height: 4),
+                          pw.Text(
+                            receiptNote,
+                            style: const pw.TextStyle(fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  pw.Spacer(),
+                  pw.Divider(color: border),
+                  pw.Text(
+                    ghataT(
+                      context,
+                      'Generated by Ghata - Business Ledger & Accounting',
+                    ),
+                    textAlign: pw.TextAlign.center,
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      color: muted,
+                    ),
+                  ),
+                ],
               ),
-              pw.SizedBox(height: 4),
-              pw.Text(
-                'Transaction Receipt',
-                textAlign: pw.TextAlign.center,
-                style: const pw.TextStyle(fontSize: 14),
-              ),
-              if (businessAddress.isNotEmpty)
-                pw.Text(
-                  businessAddress,
-                  textAlign: pw.TextAlign.center,
-                ),
-              if (businessPhone.isNotEmpty)
-                pw.Text(
-                  businessPhone,
-                  textAlign: pw.TextAlign.center,
-                ),
-              pw.SizedBox(height: 16),
-              pw.Divider(),
-              pw.SizedBox(height: 12),
-              pw.Text("${ghataT(context, 'Reference')}: $receiptNo"),
-              if (customer.isNotEmpty) pw.Text("${ghataT(context, 'Customer')}: $customer"),
-              pw.Text("${ghataT(context, 'Type')}: $typeLabel"),
-              pw.SizedBox(height: 10),
-              pw.Text(
-                "${ghataT(context, 'Amount')}: $amount $currency",
-                style: pw.TextStyle(
-                  fontSize: 20,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.Text(
-                time.isEmpty ? 'Date: $date' : 'Date: $date  $time',
-              ),
-              if (description.isNotEmpty)
-                pw.Text("${ghataT(context, 'Description')}: $description"),
-              pw.Spacer(),
-              if (ownerName.isNotEmpty) pw.Text('${ghataT(context, 'Owner')}: $ownerName'),
-              if (receiptNote.isNotEmpty) ...[
-                pw.SizedBox(height: 10),
-                pw.Text(receiptNote),
-              ],
-              pw.SizedBox(height: 8),
-              pw.Text(
-                ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'),
-                textAlign: pw.TextAlign.center,
-                style: const pw.TextStyle(fontSize: 9),
-              ),
-            ],
-          )
             ],
           ),
         ),
       );
-
-
-
-
 
       final bytes = await pdf.save();
 
       await SharePlus.instance.share(
         ShareParams(
           title: ghataT(context, 'Transaction Receipt'),
-          subject: 'Receipt $receiptNo',
+          subject: '${ghataT(context, 'Receipt')} $receiptNo',
           files: [
             XFile.fromData(
               bytes,
@@ -8914,7 +9594,11 @@ Future<void> shareTransactionReceiptPdf(
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${ghataT(context, 'Unable to create PDF')}: $e")),
+        SnackBar(
+          content: Text(
+            "${ghataT(context, 'Unable to create PDF')}: $e",
+          ),
+        ),
       );
     }
   }
@@ -8925,14 +9609,14 @@ Future<void> shareTransactionReceiptPdf(
     final customer = transaction['customer_name']?.toString() ?? '';
     final type = transaction['transaction_type']?.toString() ?? '';
     final amount = transaction['amount']?.toString() ?? '0';
-    final currency = transaction['currency']?.toString() ?? '';
+    final currency =
+        transaction['currency']?.toString().toUpperCase() ?? '';
     final date = transaction['transaction_date']?.toString() ?? '';
     final rawTime = transaction['transaction_time']?.toString() ?? '';
-    final time =
-        rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
+    final time = rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
     final description = transaction['description']?.toString() ?? '';
 
-    final typeLabel = switch (type) {
+    final typeKey = switch (type) {
       'money_in' => 'Money In',
       'money_out' => 'Money Out',
       'loan_given' => 'Loan Given',
@@ -8943,6 +9627,7 @@ Future<void> shareTransactionReceiptPdf(
       'adjustment_out' => 'Adjustment Out',
       _ => type.replaceAll('_', ' '),
     };
+    final typeLabel = ghataT(context, typeKey);
 
     final receiptNo = reference.isNotEmpty
         ? reference
@@ -8950,51 +9635,154 @@ Future<void> shareTransactionReceiptPdf(
             ? id.substring(0, 8).toUpperCase()
             : id.toUpperCase());
 
+    final isPositive = type == 'money_in' ||
+        type == 'loan_received' ||
+        type == 'loan_repayment_received' ||
+        type == 'adjustment_in';
+
+    final accent = isPositive ? Colors.green : Colors.red;
+
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 4, 20, 24),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(18, 4, 18, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'ګهته – Ghata',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Color(0xFF3157D5),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'ګهته • Ghata',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      ghataT(context, 'Transaction Receipt'),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: 4),
-              Text(
-                'Transaction Receipt',
-                textAlign: TextAlign.center,
-              ),
-              Divider(height: 28),
-              Text("${ghataT(context, 'Reference')}: $receiptNo"),
-              if (customer.isNotEmpty) Text("${ghataT(context, 'Customer')}: $customer"),
-              Text("${ghataT(context, 'Type')}: $typeLabel"),
-              Text(
-                "${ghataT(context, 'Amount')}: $amount $currency",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              SizedBox(height: 12),
+
+              Container(
+                padding: EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _receiptPreviewRow(
+                      ghataT(context, 'Reference'),
+                      receiptNo,
+                    ),
+                    if (customer.isNotEmpty)
+                      _receiptPreviewRow(
+                        ghataT(context, 'Customer'),
+                        customer,
+                      ),
+                    _receiptPreviewRow(
+                      ghataT(context, 'Type'),
+                      typeLabel,
+                    ),
+                    _receiptPreviewRow(
+                      ghataT(context, 'Date'),
+                      time.isEmpty ? date : '$date  $time',
+                    ),
+                    if (description.isNotEmpty)
+                      _receiptPreviewRow(
+                        ghataT(context, 'Description'),
+                        description,
+                      ),
+                  ],
                 ),
               ),
-              Text(time.isEmpty ? 'Date: $date' : 'Date: $date $time'),
-              if (description.isNotEmpty)
-                Text("${ghataT(context, 'Description')}: $description"),
-              SizedBox(height: 20),
+              SizedBox(height: 12),
+
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      ghataT(context, 'Amount'),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      '${dashboardFlag(currency)}  $amount $currency',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 7),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        typeLabel,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 18),
+
               FilledButton.icon(
                 onPressed: () {
                   Navigator.pop(sheetContext);
                   shareTransactionReceiptPdf(transaction);
                 },
                 icon: Icon(Icons.picture_as_pdf_outlined),
-                label: Text(ghataT(context, 'Share PDF Receipt')),
+                label: Text(
+                  ghataT(context, 'Share PDF Receipt'),
+                ),
               ),
             ],
           ),
@@ -9003,6 +9791,35 @@ Future<void> shareTransactionReceiptPdf(
     );
   }
 
+  Widget _receiptPreviewRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 105,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> deleteTransaction(
     Map<String, dynamic> transaction,
@@ -9061,12 +9878,217 @@ Future<void> shareTransactionReceiptPdf(
       );
     }
   }
+  Future<void> showJournalAdvancedFilters() async {
+    final customers = await loadCustomers();
+    if (!mounted) return;
+
+    DateTime? fromDate = journalFromDate;
+    DateTime? toDate = journalToDate;
+    TimeOfDay? fromTime = journalFromTime;
+    TimeOfDay? toTime = journalToTime;
+    String? currencyFilter = journalCurrencyFilter;
+    String? customerFilter = journalCustomerFilter;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          String dateText(DateTime? value) {
+            if (value == null) return ghataT(context, 'All');
+            return '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+          }
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.tune_rounded),
+                SizedBox(width: 8),
+                Text(ghataT(context, 'Filter')),
+              ],
+            ),
+            content: SizedBox(
+              width: 460,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.date_range_outlined),
+                      title: Text(ghataT(context, 'From Date')),
+                      subtitle: Text(dateText(fromDate)),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: fromDate ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => fromDate = picked);
+                        }
+                      },
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.event_outlined),
+                      title: Text(ghataT(context, 'To Date')),
+                      subtitle: Text(dateText(toDate)),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: toDate ?? fromDate ?? DateTime.now(),
+                          firstDate: fromDate ?? DateTime(2020),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => toDate = picked);
+                        }
+                      },
+                    ),
+                    Divider(),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.schedule_outlined),
+                      title: Text(ghataT(context, 'From Time')),
+                      subtitle: Text(
+                        fromTime == null
+                            ? ghataT(context, 'All')
+                            : fromTime!.format(context),
+                      ),
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime: fromTime ?? TimeOfDay(hour: 0, minute: 0),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => fromTime = picked);
+                        }
+                      },
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.schedule_rounded),
+                      title: Text(ghataT(context, 'To Time')),
+                      subtitle: Text(
+                        toTime == null
+                            ? ghataT(context, 'All')
+                            : toTime!.format(context),
+                      ),
+                      onTap: () async {
+                        final picked = await showTimePicker(
+                          context: context,
+                          initialTime:
+                              toTime ?? TimeOfDay(hour: 23, minute: 59),
+                        );
+                        if (picked != null) {
+                          setDialogState(() => toTime = picked);
+                        }
+                      },
+                    ),
+                    SizedBox(height: 8),
+                    DropdownButtonFormField<String?>(
+                      initialValue: currencyFilter,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: ghataT(context, 'Currency'),
+                        prefixIcon: Icon(Icons.payments_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(ghataT(context, 'All')),
+                        ),
+                        ...currencies.map(
+                          (item) => DropdownMenuItem<String?>(
+                            value: item.$1,
+                            child: Text('${item.$2} ${item.$1}'),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setDialogState(() => currencyFilter = value);
+                      },
+                    ),
+                    SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      initialValue: customerFilter,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: ghataT(context, 'Customer'),
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(ghataT(context, 'All')),
+                        ),
+                        ...customers.map(
+                          (customer) => DropdownMenuItem<String?>(
+                            value: customer['id']?.toString(),
+                            child: Text(
+                              customer['full_name']?.toString() ?? '',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setDialogState(() => customerFilter = value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    journalFromDate = null;
+                    journalToDate = null;
+                    journalFromTime = null;
+                    journalToTime = null;
+                    journalCurrencyFilter = null;
+                    journalCustomerFilter = null;
+                  });
+                  Navigator.pop(dialogContext);
+                },
+                child: Text(ghataT(context, 'Clear')),
+              ),
+              FilledButton(
+                onPressed: () {
+                  setState(() {
+                    journalFromDate = fromDate;
+                    journalToDate = toDate;
+                    journalFromTime = fromTime;
+                    journalToTime = toTime;
+                    journalCurrencyFilter = currencyFilter;
+                    journalCustomerFilter = customerFilter;
+                  });
+                  Navigator.pop(dialogContext);
+                },
+                child: Text(ghataT(context, 'Apply')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Daily Journal',
+          ghataT(context, 'Daily Journal'),
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -9097,6 +10119,9 @@ Future<void> shareTransactionReceiptPdf(
                 child: Row(
                   children: [
                     FilterChip(
+                      avatar: selectedFilter == 'all'
+                          ? Icon(Icons.check_rounded, size: 17)
+                          : null,
                       label: Text(ghataT(context, 'All')),
                       selected: selectedFilter == 'all',
                       onSelected: (_) {
@@ -9129,17 +10154,85 @@ Future<void> shareTransactionReceiptPdf(
                     ),
                     SizedBox(width: 8),
                     FilterChip(
-                      label: Text(ghataT(context, 'Customer')),
-                      selected: selectedFilter == 'customer',
+                      label: Text(ghataT(context, 'Adjustments')),
+                      selected: selectedFilter == 'adjustment',
                       onSelected: (_) {
-                        setState(() => selectedFilter = 'customer');
+                        setState(() => selectedFilter = 'adjustment');
                       },
+                    ),
+                    SizedBox(width: 8),
+                    ActionChip(
+                      avatar: Icon(Icons.tune_rounded, size: 18),
+                      label: Text(ghataT(context, 'Filter')),
+                      onPressed: showJournalAdvancedFilters,
                     ),
                   ],
                 ),
               ),
 
+              SizedBox(height: 10),
+
+              if (journalFromDate != null ||
+                  journalToDate != null ||
+                  journalFromTime != null ||
+                  journalToTime != null ||
+                  journalCurrencyFilter != null ||
+                  journalCustomerFilter != null)
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer
+                        .withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.filter_alt_outlined, size: 18),
+                      SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          [
+                            if (journalFromDate != null)
+                              'From ${journalFromDate!.year}-${journalFromDate!.month.toString().padLeft(2, '0')}-${journalFromDate!.day.toString().padLeft(2, '0')}',
+                            if (journalToDate != null)
+                              'To ${journalToDate!.year}-${journalToDate!.month.toString().padLeft(2, '0')}-${journalToDate!.day.toString().padLeft(2, '0')}',
+                            if (journalFromTime != null)
+                              'Time ${journalFromTime!.format(context)}',
+                            if (journalToTime != null)
+                              '– ${journalToTime!.format(context)}',
+                            if (journalCurrencyFilter != null)
+                              '${flagForCurrency(journalCurrencyFilter!)} $journalCurrencyFilter',
+                          ].join(' • '),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () {
+                          setState(() {
+                            journalFromDate = null;
+                            journalToDate = null;
+                            journalFromTime = null;
+                            journalToTime = null;
+                            journalCurrencyFilter = null;
+                            journalCustomerFilter = null;
+                          });
+                        },
+                        icon: Icon(Icons.close_rounded, size: 19),
+                      ),
+                    ],
+                  ),
+                ),
+
               SizedBox(height: 16),
+
 
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: loadTransactions(),
@@ -9191,7 +10284,77 @@ Future<void> shareTransactionReceiptPdf(
                       filterOk = customer.trim().isNotEmpty;
                     }
 
+                    if (selectedFilter == 'adjustment') {
+                      filterOk = type.startsWith('adjustment_');
+                    }
+
                     if (!filterOk) return false;
+
+                    if (journalCurrencyFilter != null &&
+                        currency != journalCurrencyFilter) {
+                      return false;
+                    }
+
+                    if (journalCustomerFilter != null &&
+                        row['customer_id']?.toString() !=
+                            journalCustomerFilter) {
+                      return false;
+                    }
+
+                    final rowDate = DateTime.tryParse(
+                      row['transaction_date']?.toString() ?? '',
+                    );
+
+                    if (rowDate != null) {
+                      final day = DateTime(
+                        rowDate.year,
+                        rowDate.month,
+                        rowDate.day,
+                      );
+
+                      if (journalFromDate != null) {
+                        final from = DateTime(
+                          journalFromDate!.year,
+                          journalFromDate!.month,
+                          journalFromDate!.day,
+                        );
+                        if (day.isBefore(from)) return false;
+                      }
+
+                      if (journalToDate != null) {
+                        final to = DateTime(
+                          journalToDate!.year,
+                          journalToDate!.month,
+                          journalToDate!.day,
+                        );
+                        if (day.isAfter(to)) return false;
+                      }
+                    }
+
+                    final rawFilterTime =
+                        row['transaction_time']?.toString() ?? '';
+                    final timeParts = rawFilterTime.split(':');
+
+                    if (timeParts.length >= 2) {
+                      final hour = int.tryParse(timeParts[0]) ?? 0;
+                      final minute = int.tryParse(timeParts[1]) ?? 0;
+                      final rowMinutes = hour * 60 + minute;
+
+                      if (journalFromTime != null) {
+                        final fromMinutes =
+                            journalFromTime!.hour * 60 +
+                            journalFromTime!.minute;
+                        if (rowMinutes < fromMinutes) return false;
+                      }
+
+                      if (journalToTime != null) {
+                        final toMinutes =
+                            journalToTime!.hour * 60 +
+                            journalToTime!.minute;
+                        if (rowMinutes > toMinutes) return false;
+                      }
+                    }
+
                     if (query.isEmpty) return true;
 
                     return type.toLowerCase().contains(query) ||
@@ -9236,61 +10399,107 @@ Future<void> shareTransactionReceiptPdf(
                     }
                   }
 
+                  final visibleSummary = summary.entries
+                      .where(
+                        (e) =>
+                            (e.value['in'] ?? 0).abs() > 0.000001 ||
+                            (e.value['out'] ?? 0).abs() > 0.000001,
+                      )
+                      .toList();
+
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (summary.isNotEmpty) ...[
-                        Text(
-                          'Summary',
-                          style: TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      if (visibleSummary.isNotEmpty) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                ghataT(context, 'Summary by Currency'),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.bar_chart_rounded,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary,
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 10),
+                        SizedBox(height: 11),
                         SizedBox(
-                          height: 105,
+                          height: 130,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             physics: BouncingScrollPhysics(),
-                            itemCount: summary.length,
+                            itemCount: visibleSummary.length,
                             separatorBuilder: (_, __) =>
                                 SizedBox(width: 10),
                             itemBuilder: (context, index) {
-                              final e =
-                                  summary.entries.elementAt(index);
+                              final e = visibleSummary[index];
+                              final incoming = e.value['in'] ?? 0;
+                              final outgoing = e.value['out'] ?? 0;
 
                               return Container(
-                                width: 175,
-                                padding: EdgeInsets.all(14),
+                                width: 155,
+                                padding: EdgeInsets.all(13),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .surfaceContainerLow,
-                                  borderRadius:
-                                      BorderRadius.circular(18),
+                                  color: index % 3 == 0
+                                      ? Colors.green.withValues(alpha: 0.07)
+                                      : index % 3 == 1
+                                          ? Colors.blue.withValues(alpha: 0.07)
+                                          : Colors.orange.withValues(alpha: 0.07),
+                                  borderRadius: BorderRadius.circular(18),
                                   border: Border.all(
                                     color: Theme.of(context)
                                         .colorScheme
-                                        .outlineVariant,
+                                        .outlineVariant
+                                        .withValues(alpha: 0.7),
                                   ),
                                 ),
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                   children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          flagForCurrency(e.key),
+                                          style: TextStyle(fontSize: 25),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          e.key,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Spacer(),
                                     Text(
-                                      e.key,
+                                      'In: ${incoming.toStringAsFixed(incoming % 1 == 0 ? 0 : 2)}',
+                                      maxLines: 1,
                                       style: TextStyle(
-                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green.shade700,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                    SizedBox(height: 8),
+                                    SizedBox(height: 4),
                                     Text(
-                                      'In: ${e.value['in']!.toStringAsFixed(2)}',
-                                    ),
-                                    Text(
-                                      'Out: ${e.value['out']!.toStringAsFixed(2)}',
+                                      'Out: ${outgoing.toStringAsFixed(outgoing % 1 == 0 ? 0 : 2)}',
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        color: Colors.red.shade600,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -9298,7 +10507,7 @@ Future<void> shareTransactionReceiptPdf(
                             },
                           ),
                         ),
-                        SizedBox(height: 18),
+                        SizedBox(height: 20),
                       ],
 
                       Text(
@@ -9354,58 +10563,127 @@ Future<void> shareTransactionReceiptPdf(
                             _ => type.replaceAll('_', ' '),
                           };
 
-                          return Card(
-                            margin: EdgeInsets.only(bottom: 9),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                child: Icon(
-                                  type == 'money_in' ||
-                                          type ==
-                                              'loan_repayment_received' ||
-                                          type == 'loan_received' ||
-                                          type == 'adjustment_in'
-                                      ? Icons.south_west
-                                      : Icons.north_east,
+                          final isIncoming =
+                              type == 'money_in' ||
+                              type == 'loan_received' ||
+                              type == 'loan_repayment_received' ||
+                              type == 'adjustment_in';
+
+                          final amountValue =
+                              double.tryParse(amount) ?? 0;
+
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 10),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant
+                                    .withValues(alpha: 0.55),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.035),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 3),
                                 ),
-                              ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      customer.trim().isEmpty
-                                          ? 'General'
-                                          : customer,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '$amount $currency',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              subtitle: Text(
-                                [
-                                  label,
-                                  if (time.isEmpty)
-                                    date
-                                  else
-                                    '$date $time',
-                                  if (description.isNotEmpty)
-                                    description,
-                                ].join(' • '),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                              ],
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
                               onTap: () {
                                 showTransactionReceipt(row);
                               },
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: isIncoming
+                                            ? Colors.green.withValues(alpha: 0.12)
+                                            : Colors.red.withValues(alpha: 0.11),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        isIncoming
+                                            ? Icons.south_west_rounded
+                                            : Icons.north_east_rounded,
+                                        color: isIncoming
+                                            ? Colors.green.shade700
+                                            : Colors.red.shade600,
+                                        size: 27,
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      flagForCurrency(currency),
+                                      style: TextStyle(fontSize: 27),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            customer.trim().isEmpty
+                                                ? ghataT(context, 'General')
+                                                : customer,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                          SizedBox(height: 3),
+                                          Text(
+                                            [
+                                              ghataT(context, label),
+                                              if (time.isEmpty)
+                                                date
+                                              else
+                                                '$date $time',
+                                              if (description.isNotEmpty)
+                                                description,
+                                            ].join(' • '),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      '${amountValue.toStringAsFixed(amountValue % 1 == 0 ? 0 : 2)} $currency',
+                                      textAlign: TextAlign.end,
+                                      style: TextStyle(
+                                        color: isIncoming
+                                            ? Colors.green.shade700
+                                            : Colors.red.shade600,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           );
                         }),
@@ -9781,6 +11059,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
   bool isSaving = false;
   String selectedCustomerCountryCode = '+93';
+  String? pendingCustomerPhotoPath;
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
     try {
@@ -9852,11 +11131,20 @@ class _CustomersScreenState extends State<CustomersScreen> {
         },
       );
 
+      if (pendingCustomerPhotoPath != null &&
+          pendingCustomerPhotoPath!.isNotEmpty) {
+        await ghataSaveCustomerPhoto(
+          customerId,
+          pendingCustomerPhotoPath!,
+        );
+      }
+
       nameController.clear();
       phoneController.clear();
       selectedCustomerCountryCode = '+93';
       addressController.clear();
       notesController.clear();
+      pendingCustomerPhotoPath = null;
 
       if (!mounted) return;
 
@@ -9899,6 +11187,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
       text: customer['notes']?.toString() ?? '',
     );
 
+    String? editPhotoPath =
+        await ghataLoadCustomerPhoto(id);
+
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -9907,6 +11198,73 @@ class _CustomersScreenState extends State<CustomersScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              StatefulBuilder(
+                builder: (context, setPhotoState) {
+                  return Column(
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                          final path =
+                              await ghataPickCustomerPhoto(context);
+
+                          if (path != null) {
+                            setPhotoState(() {
+                              editPhotoPath = path;
+                            });
+                          }
+                        },
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CircleAvatar(
+                              radius: 42,
+                              backgroundImage:
+                                  editPhotoPath != null
+                                      ? FileImage(File(editPhotoPath!))
+                                      : null,
+                              child: editPhotoPath == null
+                                  ? Icon(
+                                      Icons.person_outline,
+                                      size: 38,
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              right: -3,
+                              bottom: -3,
+                              child: CircleAvatar(
+                                radius: 15,
+                                child: Icon(
+                                  Icons.camera_alt_rounded,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () async {
+                          final path =
+                              await ghataPickCustomerPhoto(context);
+
+                          if (path != null) {
+                            setPhotoState(() {
+                              editPhotoPath = path;
+                            });
+                          }
+                        },
+                        icon: Icon(Icons.photo_camera_outlined),
+                        label: Text(
+                          ghataT(context, 'Change Photo'),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              SizedBox(height: 10),
               TextField(
                 controller: nameEditController,
                 decoration: InputDecoration(
@@ -10046,6 +11404,19 @@ class _CustomersScreenState extends State<CustomersScreen> {
         },
       );
 
+      if (editPhotoPath != null &&
+          editPhotoPath!.isNotEmpty) {
+        final existing =
+            await ghataLoadCustomerPhoto(id);
+
+        if (existing != editPhotoPath) {
+          await ghataSaveCustomerPhoto(
+            id,
+            editPhotoPath!,
+          );
+        }
+      }
+
       final localTransactions =
           await OfflineDatabase.instance.getRecords('transactions');
 
@@ -10175,6 +11546,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
     addressController.clear();
     notesController.clear();
     selectedCustomerCountryCode = '+93';
+    pendingCustomerPhotoPath = null;
 
     await showDialog<void>(
       context: context,
@@ -10185,6 +11557,65 @@ class _CustomersScreenState extends State<CustomersScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                GestureDetector(
+                  onTap: () async {
+                    final path =
+                        await ghataPickCustomerPhoto(context);
+
+                    if (path != null) {
+                      setDialogState(() {
+                        pendingCustomerPhotoPath = path;
+                      });
+                    }
+                  },
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CircleAvatar(
+                        radius: 45,
+                        backgroundImage:
+                            pendingCustomerPhotoPath != null
+                                ? FileImage(
+                                    File(pendingCustomerPhotoPath!),
+                                  )
+                                : null,
+                        child: pendingCustomerPhotoPath == null
+                            ? Icon(
+                                Icons.person_outline,
+                                size: 42,
+                              )
+                            : null,
+                      ),
+                      Positioned(
+                        right: -3,
+                        bottom: -3,
+                        child: CircleAvatar(
+                          radius: 16,
+                          child: Icon(
+                            Icons.camera_alt_rounded,
+                            size: 17,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () async {
+                    final path =
+                        await ghataPickCustomerPhoto(context);
+
+                    if (path != null) {
+                      setDialogState(() {
+                        pendingCustomerPhotoPath = path;
+                      });
+                    }
+                  },
+                  icon: Icon(Icons.add_a_photo_outlined),
+                  label: Text(ghataT(context, 'Customer Photo')),
+                ),
+                SizedBox(height: 12),
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
@@ -10468,14 +11899,33 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             ),
                             child: Row(
                               children: [
-                                CircleAvatar(
-                                  radius: 27,
-                                  child: Text(
-                                    customerInitial(name),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                FutureBuilder<String?>(
+                                  future: ghataLoadCustomerPhoto(
+                                    customer['id'].toString(),
                                   ),
+                                  builder: (context, photoSnapshot) {
+                                    final photoPath =
+                                        photoSnapshot.data;
+
+                                    return CircleAvatar(
+                                      radius: 27,
+                                      backgroundImage:
+                                          photoPath != null
+                                              ? FileImage(
+                                                  File(photoPath),
+                                                )
+                                              : null,
+                                      child: photoPath == null
+                                          ? Text(
+                                              customerInitial(name),
+                                              style: TextStyle(
+                                                fontWeight:
+                                                    FontWeight.bold,
+                                              ),
+                                            )
+                                          : null,
+                                    );
+                                  },
                                 ),
                                 SizedBox(width: 13),
                                 Expanded(
@@ -10596,6 +12046,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   String get customerName => widget.customerName;
 
   Map<String, dynamic>? customerProfile;
+  String? customerPhotoPath;
 
   @override
   void initState() {
@@ -10605,10 +12056,13 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
   Future<void> refreshCustomerProfile() async {
     final profile = await loadCustomerProfile();
+    final photo = await ghataLoadCustomerPhoto(customerId);
+
     if (!mounted) return;
 
     setState(() {
       customerProfile = profile;
+      customerPhotoPath = photo;
     });
   }
 
@@ -10698,6 +12152,61 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     return balances;
   }
 
+  Future<void> openCustomerWhatsApp() async {
+    final phone = customerProfile?['phone']?.toString().trim() ?? '';
+
+    var digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digits.startsWith('00')) {
+      digits = digits.substring(2);
+    }
+
+    if (digits.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ghataT(context, 'Customer phone number is not available.')),
+        ),
+      );
+      return;
+    }
+
+    final name =
+        customerProfile?['full_name']?.toString().trim().isNotEmpty == true
+            ? customerProfile!['full_name'].toString()
+            : customerName;
+
+    final message = Uri.encodeComponent(
+      'Hello $name',
+    );
+
+    final uri = Uri.parse(
+      'https://wa.me/$digits?text=$message',
+    );
+
+    try {
+      final opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ghataT(context, 'Unable to open WhatsApp.')),
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ghataT(context, 'Unable to open WhatsApp.')),
+        ),
+      );
+    }
+  }
+
   Future<void> openCustomerMoneyEntry(String type) async {
     final profileName =
         customerProfile?['full_name']?.toString().trim().isNotEmpty == true
@@ -10711,6 +12220,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           initialCustomerId: customerId,
           initialCustomerName: profileName,
           initialTransactionType: type,
+          openAddForm: true,
         ),
       ),
     );
@@ -11011,18 +12521,15 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       final transactions = await loadCustomerTransactions();
       final profile = customerProfile ?? await loadCustomerProfile();
 
-      final business = await Supabase.instance.client
-          .from('profiles')
-          .select(
-            'business_name, business_phone, business_address, receipt_note',
-          )
-          .eq('id', user.id)
-          .maybeSingle();
+      final business = await ghataLoadBusinessProfile();
 
       final name =
           profile?['full_name']?.toString().trim().isNotEmpty == true
               ? profile!['full_name'].toString()
               : customerName;
+
+      final phone = profile?['phone']?.toString().trim() ?? '';
+      final address = profile?['address']?.toString().trim() ?? '';
 
       final balances = calculateBalances(transactions)
         ..removeWhere((_, value) => value.abs() <= 0.000001);
@@ -11036,9 +12543,41 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       final receiptNote =
           business?['receipt_note']?.toString().trim() ?? '';
 
+      final language = Localizations.localeOf(context).languageCode;
+      final rtl = {'ps', 'fa', 'ur', 'ar'}.contains(language);
+
+      final designLabel = switch (language) {
+        'ps' => 'ډیزاین: MRS',
+        'fa' => 'طراحی توسط MRS',
+        'ur' => 'ڈیزائن: MRS',
+        'ar' => 'تصميم بواسطة MRS',
+        _ => 'Design by MRS',
+      };
+
+      final designerName =
+          language == 'en' ? 'Mohammad Rahem Sadaf' : 'محمد رحیم صدف';
+
+      final now = DateTime.now();
+      String two(int value) => value.toString().padLeft(2, '0');
+      final dateText =
+          '${now.year}-${two(now.month)}-${two(now.day)}  '
+          '${two(now.hour)}:${two(now.minute)}';
+
       const width = 1080.0;
       final balanceCount = balances.isEmpty ? 1 : balances.length;
-      final height = 520.0 + (balanceCount * 115.0);
+      final extraCustomerLines =
+          (phone.isNotEmpty ? 42.0 : 0.0) +
+          (address.isNotEmpty ? 48.0 : 0.0);
+      final extraBusinessLines =
+          (businessAddress.isNotEmpty ? 36.0 : 0.0) +
+          (businessPhone.isNotEmpty ? 36.0 : 0.0);
+      final extraNote = receiptNote.isNotEmpty ? 80.0 : 0.0;
+
+      final height = 690.0 +
+          extraCustomerLines +
+          extraBusinessLines +
+          extraNote +
+          (balanceCount * 132.0);
 
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
@@ -11046,18 +12585,18 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
       canvas.drawRect(
         Offset.zero & size,
-        Paint()..color = Colors.white,
+        Paint()..color = const Color(0xFFF7F8FC),
       );
 
       void drawText(
         String text,
         double x,
         double y, {
-        double fontSize = 34,
+        double fontSize = 30,
         FontWeight fontWeight = FontWeight.normal,
-        Color color = Colors.black87,
+        Color color = const Color(0xFF1D2433),
         TextAlign textAlign = TextAlign.left,
-        double maxWidth = 960,
+        double maxWidth = 920,
       }) {
         final painter = TextPainter(
           text: TextSpan(
@@ -11069,126 +12608,250 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             ),
           ),
           textAlign: textAlign,
-          textDirection: TextDirection.ltr,
+          textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
           maxLines: 3,
+          ellipsis: '…',
         )..layout(maxWidth: maxWidth);
 
         double dx = x;
         if (textAlign == TextAlign.center) {
           dx = (width - painter.width) / 2;
+        } else if (textAlign == TextAlign.right) {
+          dx = width - x - painter.width;
         }
 
         painter.paint(canvas, Offset(dx, y));
       }
 
+      // Header
+      final headerRect = RRect.fromRectAndRadius(
+        const Rect.fromLTWH(36, 34, width - 72, 185),
+        const Radius.circular(30),
+      );
+
+      canvas.drawRRect(
+        headerRect,
+        Paint()..color = const Color(0xFF2563EB),
+      );
+
       drawText(
-        businessName.isEmpty ? 'Ghata' : businessName,
-        60,
-        45,
-        fontSize: 54,
+        businessName.isEmpty ? 'ګهته • Ghata' : businessName,
+        70,
+        62,
+        fontSize: 48,
         fontWeight: FontWeight.bold,
+        color: Colors.white,
         textAlign: TextAlign.center,
       );
 
       drawText(
-        'Customer Balance',
-        60,
-        115,
-        fontSize: 30,
+        ghataT(context, 'Customer Balance'),
+        70,
+        126,
+        fontSize: 29,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFFEAF1FF),
         textAlign: TextAlign.center,
-        color: Colors.black54,
       );
 
-      double top = 180;
+      drawText(
+        dateText,
+        70,
+        171,
+        fontSize: 21,
+        color: const Color(0xFFD7E5FF),
+        textAlign: TextAlign.center,
+      );
 
-      if (businessAddress.isNotEmpty) {
-        drawText(
-          businessAddress,
-          60,
-          top,
-          fontSize: 25,
-          textAlign: TextAlign.center,
-          color: Colors.black54,
-        );
-        top += 38;
+      double top = 245;
+
+      if (businessAddress.isNotEmpty || businessPhone.isNotEmpty) {
+        if (businessAddress.isNotEmpty) {
+          drawText(
+            businessAddress,
+            70,
+            top,
+            fontSize: 22,
+            color: const Color(0xFF667085),
+            textAlign: TextAlign.center,
+          );
+          top += 36;
+        }
+
+        if (businessPhone.isNotEmpty) {
+          drawText(
+            businessPhone,
+            70,
+            top,
+            fontSize: 22,
+            color: const Color(0xFF667085),
+            textAlign: TextAlign.center,
+          );
+          top += 36;
+        }
+
+        top += 10;
       }
 
-      if (businessPhone.isNotEmpty) {
-        drawText(
-          businessPhone,
-          60,
-          top,
-          fontSize: 25,
-          textAlign: TextAlign.center,
-          color: Colors.black54,
-        );
-        top += 45;
-      }
+      // Customer information card
+      final customerCardHeight =
+          112.0 +
+          (phone.isNotEmpty ? 42.0 : 0.0) +
+          (address.isNotEmpty ? 48.0 : 0.0);
 
-      canvas.drawLine(
-        Offset(60, top),
-        Offset(width - 60, top),
+      final customerRect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(55, top, width - 110, customerCardHeight),
+        const Radius.circular(26),
+      );
+
+      canvas.drawRRect(
+        customerRect,
+        Paint()..color = Colors.white,
+      );
+
+      canvas.drawRRect(
+        customerRect,
         Paint()
-          ..color = Colors.black26
+          ..color = const Color(0xFFE2E8F0)
+          ..style = PaintingStyle.stroke
           ..strokeWidth = 2,
       );
 
-      top += 35;
+      drawText(
+        ghataT(context, 'Customer'),
+        85,
+        top + 24,
+        fontSize: 22,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF64748B),
+      );
 
       drawText(
-        "${ghataT(context, 'Customer')}: $name",
-        70,
+        name,
+        85,
+        top + 56,
+        fontSize: 34,
+        fontWeight: FontWeight.bold,
+        maxWidth: 860,
+      );
+
+      double customerLine = top + 102;
+
+      if (phone.isNotEmpty) {
+        drawText(
+          '${ghataT(context, 'Phone')}: $phone',
+          85,
+          customerLine,
+          fontSize: 23,
+          color: const Color(0xFF64748B),
+        );
+        customerLine += 42;
+      }
+
+      if (address.isNotEmpty) {
+        drawText(
+          '${ghataT(context, 'Address')}: $address',
+          85,
+          customerLine,
+          fontSize: 23,
+          color: const Color(0xFF64748B),
+          maxWidth: 860,
+        );
+      }
+
+      top += customerCardHeight + 38;
+
+      drawText(
+        ghataT(context, 'Current Balance'),
+        60,
         top,
-        fontSize: 35,
+        fontSize: 31,
         fontWeight: FontWeight.bold,
       );
 
-      top += 70;
+      top += 54;
 
       if (balances.isEmpty) {
-        drawText(
-          'No outstanding balance',
-          70,
-          top,
-          fontSize: 34,
-          color: Colors.black54,
+        final emptyRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(55, top, width - 110, 100),
+          const Radius.circular(24),
         );
-        top += 80;
+
+        canvas.drawRRect(
+          emptyRect,
+          Paint()..color = const Color(0xFFF1F5F9),
+        );
+
+        drawText(
+          ghataT(context, 'No outstanding balance.'),
+          85,
+          top + 30,
+          fontSize: 27,
+          color: const Color(0xFF64748B),
+        );
+
+        top += 125;
       } else {
         for (final entry in balances.entries) {
           final value = entry.value;
           final youReceive = value > 0;
-          final label = youReceive ? 'You Receive' : 'You Pay';
+
+          final accent = youReceive
+              ? const Color(0xFF16A34A)
+              : const Color(0xFFDC2626);
+
+          final background = youReceive
+              ? const Color(0xFFF0FDF4)
+              : const Color(0xFFFEF2F2);
 
           final rect = RRect.fromRectAndRadius(
-            Rect.fromLTWH(60, top, width - 120, 88),
-            Radius.circular(18),
+            Rect.fromLTWH(55, top, width - 110, 108),
+            const Radius.circular(24),
           );
 
           canvas.drawRRect(
             rect,
-            Paint()..color = Color(0xFFF3F5F7),
+            Paint()..color = background,
+          );
+
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(55, top, 9, 108),
+              const Radius.circular(10),
+            ),
+            Paint()..color = accent,
+          );
+
+          final label = youReceive
+              ? ghataT(context, 'You Receive')
+              : ghataT(context, 'You Pay');
+
+          drawText(
+            '${flagForCurrency(entry.key)}  ${entry.key}',
+            90,
+            top + 17,
+            fontSize: 27,
+            fontWeight: FontWeight.bold,
           );
 
           drawText(
             label,
             90,
-            top + 20,
-            fontSize: 29,
+            top + 58,
+            fontSize: 23,
             fontWeight: FontWeight.w600,
-            maxWidth: 360,
+            color: accent,
           );
 
-          final amountText =
-              '${value.abs().toStringAsFixed(2)} ${entry.key}';
+          final amountText = value.abs().toStringAsFixed(2);
 
           final amountPainter = TextPainter(
             text: TextSpan(
               text: amountText,
               style: TextStyle(
-                fontSize: 32,
+                fontSize: 35,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: accent,
               ),
             ),
             textDirection: TextDirection.ltr,
@@ -11198,72 +12861,76 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             canvas,
             Offset(
               width - 90 - amountPainter.width,
-              top + 18,
+              top + 34,
             ),
           );
 
-          top += 110;
+          top += 132;
         }
       }
 
       if (receiptNote.isNotEmpty) {
+        final noteRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(55, top, width - 110, 70),
+          const Radius.circular(20),
+        );
+
+        canvas.drawRRect(
+          noteRect,
+          Paint()..color = const Color(0xFFFFFBEB),
+        );
+
         drawText(
           receiptNote,
-          70,
-          top,
-          fontSize: 25,
-          color: Colors.black54,
+          82,
+          top + 20,
+          fontSize: 22,
+          color: const Color(0xFF92400E),
+          maxWidth: 850,
         );
-        top += 65;
+
+        top += 90;
       }
 
-      drawText(
-        ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'),
-        60,
-        height - 65,
-        fontSize: 22,
-        textAlign: TextAlign.center,
-        color: Colors.black45,
+      // Footer
+      canvas.drawLine(
+        Offset(70, height - 150),
+        Offset(width - 70, height - 150),
+        Paint()
+          ..color = const Color(0xFFE2E8F0)
+          ..strokeWidth = 2,
       );
 
+      drawText(
+        ghataT(
+          context,
+          'Generated by Ghata - Business Ledger & Accounting',
+        ),
+        60,
+        height - 126,
+        fontSize: 19,
+        textAlign: TextAlign.center,
+        color: const Color(0xFF94A3B8),
+      );
 
+      drawText(
+        designLabel,
+        60,
+        height - 91,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        textAlign: TextAlign.center,
+        color: const Color(0xFF64748B),
+      );
 
-    final designCreditPainter = TextPainter(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: 'Design by MRS\n',
-            style: TextStyle(
-              color: Color(0xFF555555),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          TextSpan(
-            text: 'Mohammad Rahem Sadaf',
-            style: TextStyle(
-              color: Color(0xFF555555),
-              fontSize: 17,
-            ),
-          ),
-        ],
-      ),
-      textDirection: TextDirection.ltr,
-      textAlign: TextAlign.center,
-    );
-
-    designCreditPainter.layout(
-      minWidth: 0,
-      maxWidth: 700,
-    );
-
-    designCreditPainter.paint(
-      canvas,
-      Offset(
-        (800 - designCreditPainter.width) / 2,
-        1010 - designCreditPainter.height,
-      ),
-    );
+      drawText(
+        designerName,
+        60,
+        height - 62,
+        fontSize: 18,
+        textAlign: TextAlign.center,
+        color: const Color(0xFF64748B),
+      );
 
       final picture = recorder.endRecording();
 
@@ -11279,7 +12946,9 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       image.dispose();
 
       if (byteData == null) {
-        throw Exception(ghataT(context, 'Unable to create image.'));
+        throw Exception(
+          ghataT(context, 'Unable to create image.'),
+        );
       }
 
       final Uint8List bytes = byteData.buffer.asUint8List();
@@ -11292,7 +12961,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         ShareParams(
           title: ghataT(context, 'Customer Balance'),
           subject: '$name - Balance',
-          text: 'Customer balance from Ghata',
+          text: '${ghataT(context, 'Customer Balance')} - $name',
           files: [
             XFile.fromData(
               bytes,
@@ -11306,15 +12975,19 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("${ghataT(context, 'Unable to create balance image')}: $e"),
+          content: Text(
+            "${ghataT(context, 'Unable to create balance image')}: $e",
+          ),
         ),
       );
     }
   }
 
   Future<void> shareCustomerStatementPdf() async {
+    final ghataPdfFont = await ghataPdfUnicodeFont();
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
@@ -11322,13 +12995,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       final transactions = await loadCustomerTransactions();
       final profile = customerProfile ?? await loadCustomerProfile();
 
-      final business = await Supabase.instance.client
-          .from('profiles')
-          .select(
-            'full_name, business_name, business_phone, business_address, receipt_note',
-          )
-          .eq('id', user.id)
-          .maybeSingle();
+      final business = await ghataLoadBusinessProfile();
 
       final name =
           profile?['full_name']?.toString().trim().isNotEmpty == true
@@ -11361,138 +13028,389 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         };
       }
 
-      final pdf = pw.Document();
+      final pdf = pw.Document(
+        theme: pw.ThemeData.withFont(
+          base: ghataPdfFont,
+          bold: ghataPdfFont,
+          italic: ghataPdfFont,
+          boldItalic: ghataPdfFont,
+        ),
+      );
+
+      final blue = PdfColor.fromHex('#3157D5');
+      final paleBlue = PdfColor.fromHex('#EEF2FF');
+      final green = PdfColor.fromHex('#16A34A');
+      final paleGreen = PdfColor.fromHex('#F0FDF4');
+      final red = PdfColor.fromHex('#DC2626');
+      final paleRed = PdfColor.fromHex('#FEF2F2');
+      final border = PdfColor.fromHex('#E5E7EB');
+      final muted = PdfColor.fromHex('#6B7280');
+
+      final language = Localizations.localeOf(context).languageCode;
+      final designBy = switch (language) {
+        'ps' => 'ډیزاین: MRS',
+        'fa' => 'طراحی توسط MRS',
+        'ur' => 'ڈیزائن: MRS',
+        'ar' => 'تصميم بواسطة MRS',
+        _ => 'Design by MRS',
+      };
+      final designerName =
+          language == 'en' ? 'Mohammad Rahem Sadaf' : 'محمد رحیم صدف';
 
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(28),
-          header: (_) => pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          margin: const pw.EdgeInsets.fromLTRB(28, 28, 28, 34),
+
+          header: (_) => pw.Container(
+            padding: const pw.EdgeInsets.all(14),
+            decoration: pw.BoxDecoration(
+              color: blue,
+              borderRadius: pw.BorderRadius.circular(12),
+            ),
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  businessName.isEmpty ? 'ګهته • Ghata' : businessName,
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(
+                    color: PdfColors.white,
+                    fontSize: 21,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  ghataT(context, 'Customer Statement'),
+                  textAlign: pw.TextAlign.center,
+                  style: const pw.TextStyle(
+                    color: PdfColors.white,
+                    fontSize: 13,
+                  ),
+                ),
+                if (businessAddress.isNotEmpty) ...[
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    businessAddress,
+                    textAlign: pw.TextAlign.center,
+                    style: const pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 8,
+                    ),
+                  ),
+                ],
+                if (businessPhone.isNotEmpty)
+                  pw.Text(
+                    businessPhone,
+                    textAlign: pw.TextAlign.center,
+                    style: const pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 8,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          footer: (pdfContext) => pw.Column(
+            mainAxisSize: pw.MainAxisSize.min,
             children: [
-              pw.Text(
-                businessName.isEmpty ? 'Ghata' : businessName,
-                textAlign: pw.TextAlign.center,
-                style: pw.TextStyle(
-                  fontSize: 22,
-                  fontWeight: pw.FontWeight.bold,
-                ),
+              pw.Divider(color: border),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    '$designBy • $designerName',
+                    style: pw.TextStyle(
+                      fontSize: 7,
+                      color: muted,
+                    ),
+                  ),
+                  pw.Text(
+                    '${pdfContext.pageNumber} / ${pdfContext.pagesCount}',
+                    style: pw.TextStyle(
+                      fontSize: 8,
+                      color: muted,
+                    ),
+                  ),
+                ],
               ),
-              if (businessAddress.isNotEmpty)
-                pw.Text(
-                  businessAddress,
-                  textAlign: pw.TextAlign.center,
-                ),
-              if (businessPhone.isNotEmpty)
-                pw.Text(
-                  businessPhone,
-                  textAlign: pw.TextAlign.center,
-                ),
-              pw.SizedBox(height: 8),
-              pw.Divider(),
             ],
           ),
-          footer: (context) => pw.Align(
-            alignment: pw.Alignment.centerRight,
-            child: pw.Text(
-              'Page ${context.pageNumber} of ${context.pagesCount}',
-              style: const pw.TextStyle(fontSize: 9),
-            ),
-          ),
+
           build: (_) => [
-            pw.Text(
-              ghataT(context, 'Customer Full Statement'),
-              style: pw.TextStyle(
-                fontSize: 18,
-                fontWeight: pw.FontWeight.bold,
+            pw.SizedBox(height: 12),
+
+            pw.Container(
+              padding: const pw.EdgeInsets.all(14),
+              decoration: pw.BoxDecoration(
+                color: paleBlue,
+                borderRadius: pw.BorderRadius.circular(12),
+                border: pw.Border.all(color: border),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+                children: [
+                  pw.Text(
+                    ghataT(context, 'Customer'),
+                    style: pw.TextStyle(
+                      color: blue,
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 5),
+                  pw.Text(
+                    name,
+                    style: pw.TextStyle(
+                      fontSize: 17,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  if (phone.isNotEmpty) ...[
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      '${ghataT(context, 'Phone')}: $phone',
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
+                  ],
+                  if (address.isNotEmpty)
+                    pw.Text(
+                      '${ghataT(context, 'Address')}: $address',
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
+                ],
               ),
             ),
-            pw.SizedBox(height: 10),
-            pw.Text("${ghataT(context, 'Customer')}: $name"),
-            if (phone.isNotEmpty) pw.Text("${ghataT(context, 'Phone')}: $phone"),
-            if (address.isNotEmpty) pw.Text('${ghataT(context, 'Address')}: $address'),
-            pw.SizedBox(height: 16),
+
+            pw.SizedBox(height: 14),
 
             pw.Text(
               ghataT(context, 'Current Balance'),
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-            ),
-            pw.SizedBox(height: 6),
-
-            if (balances.isEmpty)
-              pw.Text(ghataT(context, 'No outstanding balance.'))
-            else
-              ...balances.entries.map((entry) {
-                final value = entry.value;
-                return pw.Text(
-                  value > 0
-                      ? 'You Receive: ${value.abs().toStringAsFixed(2)} ${entry.key}'
-                      : 'You Pay: ${value.abs().toStringAsFixed(2)} ${entry.key}',
-                );
-              }),
-
-            pw.SizedBox(height: 18),
-            pw.Text(
-              'Transactions',
               style: pw.TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: pw.FontWeight.bold,
               ),
             ),
             pw.SizedBox(height: 8),
 
-            pw.Table.fromTextArray(
-              headers: [
-                'Date',
-                'Type',
-                'Amount',
-                'Currency',
-                'Description',
-              ],
-              data: transactions.map((transaction) {
-                final date =
-                    transaction['transaction_date']?.toString() ?? '';
-                final rawTime =
-                    transaction['transaction_time']?.toString() ?? '';
-                final time = rawTime.length >= 5
-                    ? rawTime.substring(0, 5)
-                    : rawTime;
-
-                return [
-                  time.isEmpty ? date : '$date $time',
-                  typeLabel(
-                    transaction['transaction_type']?.toString() ?? '',
+            if (balances.isEmpty)
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: paleGreen,
+                  borderRadius: pw.BorderRadius.circular(10),
+                ),
+                child: pw.Text(
+                  ghataT(context, 'No outstanding balance.'),
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(
+                    color: green,
+                    fontWeight: pw.FontWeight.bold,
                   ),
-                  transaction['amount']?.toString() ?? '0',
-                  transaction['currency']?.toString() ?? '',
-                  transaction['description']?.toString() ?? '',
-                ];
-              }).toList(),
-              headerStyle: pw.TextStyle(
-                fontWeight: pw.FontWeight.bold,
-                fontSize: 8,
+                ),
+              )
+            else
+              pw.Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: balances.entries.map((entry) {
+                  final value = entry.value;
+                  final receive = value > 0;
+                  final accent = receive ? green : red;
+                  final bg = receive ? paleGreen : paleRed;
+                  final code = entry.key.toUpperCase();
+
+                  return pw.Container(
+                    width: 250,
+                    padding: const pw.EdgeInsets.all(11),
+                    decoration: pw.BoxDecoration(
+                      color: bg,
+                      borderRadius: pw.BorderRadius.circular(10),
+                      border: pw.Border.all(color: accent),
+                    ),
+                    child: pw.Row(
+                      children: [
+                        pw.Text(
+                          flagForCurrency(code),
+                          style: const pw.TextStyle(fontSize: 17),
+                        ),
+                        pw.SizedBox(width: 8),
+                        pw.Expanded(
+                          child: pw.Column(
+                            crossAxisAlignment:
+                                pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text(
+                                code,
+                                style: pw.TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                              ),
+                              pw.Text(
+                                receive
+                                    ? ghataT(context, 'You Receive')
+                                    : ghataT(context, 'You Pay'),
+                                style: pw.TextStyle(
+                                  fontSize: 8,
+                                  color: accent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        pw.Text(
+                          value.abs().toStringAsFixed(2),
+                          style: pw.TextStyle(
+                            fontSize: 13,
+                            color: accent,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
-              cellStyle: const pw.TextStyle(fontSize: 8),
-              cellAlignment: pw.Alignment.centerLeft,
+
+            pw.SizedBox(height: 18),
+
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  ghataT(context, 'Transactions'),
+                  style: pw.TextStyle(
+                    fontSize: 15,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  decoration: pw.BoxDecoration(
+                    color: paleBlue,
+                    borderRadius: pw.BorderRadius.circular(20),
+                  ),
+                  child: pw.Text(
+                    transactions.length.toString(),
+                    style: pw.TextStyle(
+                      color: blue,
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            pw.SizedBox(height: 8),
+
+            if (transactions.isEmpty)
+              pw.Text(
+                ghataT(context, 'No transactions yet.'),
+                textAlign: pw.TextAlign.center,
+              )
+            else
+              pw.Table.fromTextArray(
+                headers: [
+                  ghataT(context, 'Date'),
+                  ghataT(context, 'Type'),
+                  ghataT(context, 'Amount'),
+                  ghataT(context, 'Currency'),
+                  ghataT(context, 'Description'),
+                ],
+                data: transactions.map((transaction) {
+                  final date =
+                      transaction['transaction_date']?.toString() ?? '';
+                  final rawTime =
+                      transaction['transaction_time']?.toString() ?? '';
+                  final time = rawTime.length >= 5
+                      ? rawTime.substring(0, 5)
+                      : rawTime;
+                  final code =
+                      transaction['currency']?.toString().toUpperCase() ??
+                          '';
+
+                  return [
+                    time.isEmpty ? date : '$date $time',
+                    ghataT(
+                      context,
+                      typeLabel(
+                        transaction['transaction_type']?.toString() ?? '',
+                      ),
+                    ),
+                    transaction['amount']?.toString() ?? '0',
+                    '${flagForCurrency(code)} $code',
+                    transaction['description']?.toString() ?? '',
+                  ];
+                }).toList(),
+                headerDecoration: pw.BoxDecoration(
+                  color: blue,
+                ),
+                headerStyle: pw.TextStyle(
+                  color: PdfColors.white,
+                  fontSize: 8,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                cellStyle: const pw.TextStyle(fontSize: 7.5),
+                cellAlignment: pw.Alignment.centerLeft,
+                cellPadding: const pw.EdgeInsets.all(5),
+                border: pw.TableBorder.all(
+                  color: border,
+                  width: 0.6,
+                ),
+                oddRowDecoration: pw.BoxDecoration(
+                  color: PdfColor.fromHex('#F9FAFB'),
+                ),
+              ),
 
             if (receiptNote.isNotEmpty) ...[
-              pw.SizedBox(height: 16),
-              pw.Text(receiptNote),
+              pw.SizedBox(height: 14),
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(11),
+                decoration: pw.BoxDecoration(
+                  color: PdfColor.fromHex('#FFFBEB'),
+                  borderRadius: pw.BorderRadius.circular(10),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      ghataT(context, 'Receipt Note'),
+                      style: pw.TextStyle(
+                        fontSize: 9,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 3),
+                    pw.Text(
+                      receiptNote,
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
+                  ],
+                ),
+              ),
             ],
 
             pw.SizedBox(height: 12),
             pw.Text(
-              ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'),
-              style: const pw.TextStyle(fontSize: 9),
+              ghataT(
+                context,
+                'Generated by Ghata - Business Ledger & Accounting',
+              ),
+              textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(
+                fontSize: 8,
+                color: muted,
+              ),
             ),
           ],
         ),
       );
-
-
-
-
 
       final bytes = await pdf.save();
 
@@ -11584,6 +13502,8 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                   shareCustomerStatementPdf();
                 } else if (value == 'share') {
                   shareCustomerBalanceImage();
+                } else if (value == 'whatsapp') {
+                  openCustomerWhatsApp();
                 } else if (value == 'edit') {
                   editProfileCustomer();
                 } else if (value == 'delete') {
@@ -11598,6 +13518,16 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 PopupMenuItem(
                   value: 'share',
                   child: Text(ghataT(context, 'Share Balance Image')),
+                ),
+                PopupMenuItem(
+                  value: 'whatsapp',
+                  child: Row(
+                    children: [
+                      Icon(Icons.chat_outlined, color: Colors.green),
+                      SizedBox(width: 10),
+                      Text('WhatsApp'),
+                    ],
+                  ),
                 ),
                 PopupMenuDivider(),
                 PopupMenuItem(
@@ -11648,6 +13578,95 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             return ListView(
               padding: EdgeInsets.all(16),
               children: [
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(14),
+                  margin: EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () async {
+                          final path =
+                              await ghataPickCustomerPhoto(context);
+
+                          if (path != null) {
+                            await ghataSaveCustomerPhoto(
+                              customerId,
+                              path,
+                            );
+                            await refreshCustomerProfile();
+                          }
+                        },
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CircleAvatar(
+                              radius: 38,
+                              backgroundImage:
+                                  customerPhotoPath != null
+                                      ? FileImage(
+                                          File(customerPhotoPath!),
+                                        )
+                                      : null,
+                              child: customerPhotoPath == null
+                                  ? Icon(
+                                      Icons.person_outline,
+                                      size: 36,
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              right: -2,
+                              bottom: -2,
+                              child: CircleAvatar(
+                                radius: 14,
+                                child: Icon(
+                                  Icons.camera_alt_rounded,
+                                  size: 15,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 13),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profileName,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (profileAddress.isNotEmpty) ...[
+                              SizedBox(height: 4),
+                              Text(
+                                profileAddress,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 Row(
                   children: [
                     Expanded(
@@ -11679,9 +13698,34 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     ),
                   ],
                 ),
+                SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: openCustomerWhatsApp,
+                    icon: Icon(
+                      Icons.chat_outlined,
+                      color: Colors.green,
+                    ),
+                    label: Text(
+                      'WhatsApp',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.green),
+                      minimumSize: Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
                 SizedBox(height: 24),
                   Text(
-                    'Balances',
+                    ghataT(context, 'Balances'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -11736,7 +13780,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 SizedBox(height: 8),
 
                 Text(
-                  'Transactions',
+                  ghataT(context, 'Transactions'),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -14434,71 +16478,151 @@ class _ReportsScreenState extends State<ReportsScreen> {
             padding: EdgeInsets.all(16),
             children: [
               Text(
-                'Currency Summary',
+                ghataT(context, 'Currency Summary'),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 12),
 
-              SizedBox(
-                height: 150,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  physics: BouncingScrollPhysics(),
-                  itemCount: report.length,
-                  separatorBuilder: (_, __) =>
-                      SizedBox(width: 10),
-                  itemBuilder: (context, index) {
-                    final entry = report.entries.elementAt(index);
-                    final currency = entry.key;
+              Builder(
+                builder: (context) {
+                  final visibleSummary = report.entries.where((entry) {
                     final data = entry.value;
+                    return (data['money_in'] ?? 0).abs() > 0.000001 ||
+                        (data['money_out'] ?? 0).abs() > 0.000001 ||
+                        (data['net_cash_flow'] ?? 0).abs() > 0.000001;
+                  }).toList();
 
-                    return Container(
-                      width: 210,
-                      padding: EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outlineVariant,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${flagForCurrency(currency)} $currency',
-                            style: TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.bold,
+                  if (visibleSummary.isEmpty) {
+                    return SizedBox.shrink();
+                  }
+
+                  const cardColors = [
+                    Color(0xFFEAF3FF),
+                    Color(0xFFECF8F0),
+                    Color(0xFFFFF4E5),
+                    Color(0xFFF2ECFF),
+                    Color(0xFFFFECEC),
+                    Color(0xFFE9F8F8),
+                  ];
+
+                  return Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: List.generate(
+                      visibleSummary.length,
+                      (index) {
+                        final entry = visibleSummary[index];
+                        final currency = entry.key;
+                        final data = entry.value;
+
+                        final moneyIn =
+                            (data['money_in'] ?? 0).toDouble();
+                        final moneyOut =
+                            (data['money_out'] ?? 0).toDouble();
+                        final net =
+                            (data['net_cash_flow'] ?? 0).toDouble();
+
+                        final width =
+                            (MediaQuery.sizeOf(context).width - 42) / 2;
+
+                        return Container(
+                          width: width,
+                          constraints: BoxConstraints(minHeight: 145),
+                          padding: EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: cardColors[index % cardColors.length],
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant
+                                  .withValues(alpha: 0.55),
                             ),
                           ),
-                          SizedBox(height: 12),
-                          Text(
-                            'Money In: ${data['money_in']!.toStringAsFixed(2)}',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    flagForCurrency(currency),
+                                    style: TextStyle(fontSize: 25),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      currency,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.south_west_rounded,
+                                    size: 17,
+                                    color: Colors.green.shade700,
+                                  ),
+                                  SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      '${ghataT(context, 'Money In')}: ${moneyIn.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        color: Colors.green.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 5),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.north_east_rounded,
+                                    size: 17,
+                                    color: Colors.red.shade700,
+                                  ),
+                                  SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      '${ghataT(context, 'Money Out')}: ${moneyOut.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 10),
+                              Divider(height: 1),
+                              SizedBox(height: 9),
+                              Text(
+                                'Net: ${net.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: net >= 0
+                                      ? Colors.green.shade800
+                                      : Colors.red.shade800,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'Money Out: ${data['money_out']!.toStringAsFixed(2)}',
-                          ),
-                          Spacer(),
-                          Text(
-                            'Net: ${data['net_cash_flow']!.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
 
               SizedBox(height: 22),
