@@ -670,8 +670,8 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'کرنسی ایکسچینج',
     'ar': 'الصرافة',
   },
-  'Recent Transactions': {
-    'en': 'Recent Transactions',
+  ghataT(context, 'Recent Transactions'): {
+    'en': ghataT(context, 'Recent Transactions'),
     'ps': 'وروستۍ معاملې',
     'fa': 'معاملات اخیر',
     'ur': 'حالیہ لین دین',
@@ -684,8 +684,8 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'سب دیکھیں',
     'ar': 'عرض الكل',
   },
-  'No transactions yet': {
-    'en': 'No transactions yet',
+  ghataT(context, 'No transactions yet'): {
+    'en': ghataT(context, 'No transactions yet'),
     'ps': 'تر اوسه معامله نشته',
     'fa': 'هنوز معامله‌ای نیست',
     'ur': 'ابھی کوئی لین دین نہیں',
@@ -1329,6 +1329,496 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'کاروباری فون',
     'ar': 'هاتف النشاط',
   },
+  'Currency Exchange': {
+    'en': 'Currency Exchange',
+    'ps': 'د اسعارو تبادله',
+    'fa': 'تبادل ارز',
+    'ur': 'کرنسی ایکسچینج',
+    'ar': 'صرف العملات',
+  },
+  'Receipts, PDF & Balance Image': {
+    'en': 'Receipts, PDF & Balance Image',
+    'ps': 'رسیدونه، PDF او د بیلانس انځور',
+    'fa': 'رسیدها، PDF و تصویر موجودی',
+    'ur': 'رسیدیں، PDF اور بیلنس تصویر',
+    'ar': 'الإيصالات وPDF وصورة الرصيد',
+  },
+  'Important': {
+    'en': 'Important',
+    'ps': 'مهم',
+    'fa': 'مهم',
+    'ur': 'اہم',
+    'ar': 'مهم',
+  },
+  'The Dashboard gives you a quick overview of your business. Cashbox, Money In, Money Out, You Receive and You Pay are shown separately for each currency. Ghata does not combine different currencies into a converted grand total.': {
+    'en': 'The Dashboard gives you a quick overview of your business. Cashbox, Money In, Money Out, You Receive and You Pay are shown separately for each currency. Ghata does not combine different currencies into a converted grand total.',
+    'ps': 'ډشبورډ ستاسو د کاروبار چټک لنډیز ښيي. صندوق، داخلې پیسې، وتلې پیسې، ستاسو اخیستنې او ستاسو ورکړې د هر اسعار لپاره جلا ښودل کېږي. ګهته بېلابېل اسعار په یوه تبدیل شوي عمومي ټول کې نه ګډوي.',
+    'fa': 'داشبورد یک نمای سریع از تجارت شما نشان می‌دهد. صندوق، پول ورودی، پول خروجی، طلب شما و بدهی شما برای هر ارز جداگانه نمایش داده می‌شود. گِهته ارزهای مختلف را در یک مجموع تبدیل‌شده با هم ترکیب نمی‌کند.',
+    'ur': 'ڈیش بورڈ آپ کے کاروبار کا فوری خلاصہ دکھاتا ہے۔ کیش باکس، رقم وصول، رقم ادائیگی، آپ کو وصول ہونا ہے اور آپ کو ادا کرنا ہے ہر کرنسی کے لیے الگ دکھائے جاتے ہیں۔ گھتہ مختلف کرنسیوں کو تبدیل کرکے ایک مجموعی رقم میں شامل نہیں کرتا۔',
+    'ar': 'تعرض لوحة التحكم ملخصًا سريعًا لنشاطك. ويظهر الصندوق والأموال الداخلة والخارجة والمبالغ المستحقة لك وعليك بشكل منفصل لكل عملة. ولا تقوم غهته بدمج العملات المختلفة في إجمالي محوّل واحد.',
+  },
+  'Use Customers to create and manage customer accounts. Open a customer profile to see their transaction history and separate balances for every currency. You can also edit customer information and create customer transactions.': {
+    'en': 'Use Customers to create and manage customer accounts. Open a customer profile to see their transaction history and separate balances for every currency. You can also edit customer information and create customer transactions.',
+    'ps': 'د پېرودونکو برخه د پېرودونکو حسابونو د جوړولو او مدیریت لپاره وکاروئ. د پېرودونکي پروفایل خلاص کړئ ترڅو د هغه د معاملو تاریخ او د هر اسعار جلا بیلانس وګورئ. د پېرودونکي معلومات هم سمولای او نوې معاملې ورته جوړولای شئ.',
+    'fa': 'از بخش مشتریان برای ایجاد و مدیریت حساب‌های مشتری استفاده کنید. پروفایل مشتری را باز کنید تا تاریخچه معاملات و موجودی جداگانه هر ارز را ببینید. همچنین می‌توانید اطلاعات مشتری را ویرایش و برای او معامله ثبت کنید.',
+    'ur': 'گاہکوں کے اکاؤنٹس بنانے اور منظم کرنے کے لیے Customers استعمال کریں۔ گاہک کا پروفائل کھول کر لین دین کی تاریخ اور ہر کرنسی کا الگ بیلنس دیکھیں۔ آپ گاہک کی معلومات میں ترمیم اور اس کے لیے نئی ٹرانزیکشن بھی بنا سکتے ہیں۔',
+    'ar': 'استخدم قسم العملاء لإنشاء حسابات العملاء وإدارتها. افتح ملف العميل لعرض سجل معاملاته وأرصدته المنفصلة لكل عملة. ويمكنك أيضًا تعديل معلومات العميل وإنشاء معاملات له.',
+  },
+  'Use the Add button to record Money In, Money Out, loans, loan repayments and adjustments. Select the correct currency, date, time and customer when required. You can also add a description and reference number.': {
+    'en': 'Use the Add button to record Money In, Money Out, loans, loan repayments and adjustments. Select the correct currency, date, time and customer when required. You can also add a description and reference number.',
+    'ps': 'د Add تڼۍ په وسیله داخلې پیسې، وتلې پیسې، پورونه، د پور تادیات او سمونونه ثبت کړئ. اړین اسعار، نېټه، وخت او پېرودونکی په سمه توګه وټاکئ. تشریح او د حوالې شمېره هم اضافه کولای شئ.',
+    'fa': 'با دکمه افزودن، پول ورودی، پول خروجی، قرض‌ها، بازپرداخت قرض و اصلاحات را ثبت کنید. در صورت نیاز ارز، تاریخ، زمان و مشتری درست را انتخاب کنید. توضیحات و شماره مرجع نیز قابل افزودن است.',
+    'ur': 'Add بٹن سے رقم وصول، رقم ادائیگی، قرض، قرض کی واپسی اور ایڈجسٹمنٹ درج کریں۔ ضرورت کے مطابق درست کرنسی، تاریخ، وقت اور گاہک منتخب کریں۔ تفصیل اور حوالہ نمبر بھی شامل کیا جا سکتا ہے۔',
+    'ar': 'استخدم زر الإضافة لتسجيل الأموال الداخلة والخارجة والقروض وسداد القروض والتعديلات. اختر العملة والتاريخ والوقت والعميل الصحيح عند الحاجة. ويمكنك أيضًا إضافة وصف ورقم مرجعي.',
+  },
+  'The Daily Journal keeps your transaction history. Use search and filters to find transactions. Transactions can be reviewed with their amount, currency, customer, date, time and description.': {
+    'en': 'The Daily Journal keeps your transaction history. Use search and filters to find transactions. Transactions can be reviewed with their amount, currency, customer, date, time and description.',
+    'ps': 'ورځنی ژورنال ستاسو د معاملو تاریخ ساتي. د معاملې موندلو لپاره لټون او فلټرونه وکاروئ. هره معامله د مبلغ، اسعار، پېرودونکي، نېټې، وخت او تشریح سره کتلای شئ.',
+    'fa': 'دفتر روزانه تاریخچه معاملات شما را نگهداری می‌کند. برای یافتن معاملات از جستجو و فیلترها استفاده کنید. هر معامله با مبلغ، ارز، مشتری، تاریخ، زمان و توضیحات قابل مشاهده است.',
+    'ur': 'روزانہ جرنل آپ کے لین دین کی تاریخ محفوظ رکھتا ہے۔ ٹرانزیکشن تلاش کرنے کے لیے سرچ اور فلٹر استعمال کریں۔ ہر لین دین کو رقم، کرنسی، گاہک، تاریخ، وقت اور تفصیل کے ساتھ دیکھا جا سکتا ہے۔',
+    'ar': 'يحتفظ السجل اليومي بتاريخ معاملاتك. استخدم البحث وعوامل التصفية للعثور على المعاملات. ويمكن مراجعة كل معاملة مع المبلغ والعملة والعميل والتاريخ والوقت والوصف.',
+  },
+  'Ghata tracks money customers owe you and money you owe them. Loan repayments reduce the related balance while keeping the accounting history available.': {
+    'en': 'Ghata tracks money customers owe you and money you owe them. Loan repayments reduce the related balance while keeping the accounting history available.',
+    'ps': 'ګهته هغه پیسې ثبتوي چې پېرودونکي یې تاسو ته پوروړي دي او هغه پیسې چې تاسو یې هغوی ته پوروړي یاست. د پور تادیات اړوند بیلانس کموي، خو د حسابدارۍ تاریخ خوندي ساتي.',
+    'fa': 'گِهته مبالغی را که مشتریان به شما بدهکارند و مبالغی را که شما به آنان بدهکارید پیگیری می‌کند. بازپرداخت قرض، موجودی مربوط را کاهش می‌دهد و تاریخچه حسابداری را حفظ می‌کند.',
+    'ur': 'گھتہ وہ رقم ریکارڈ کرتا ہے جو گاہکوں نے آپ کو دینی ہے اور وہ رقم جو آپ نے انہیں دینی ہے۔ قرض کی واپسی متعلقہ بیلنس کم کرتی ہے جبکہ اکاؤنٹنگ تاریخ محفوظ رہتی ہے۔',
+    'ar': 'تتابع غهته الأموال التي يدين بها العملاء لك والأموال التي تدين بها لهم. ويؤدي سداد القروض إلى خفض الرصيد المرتبط مع الحفاظ على السجل المحاسبي.',
+  },
+  'Use Exchange for currency buy and sell operations. Select the From and To currencies, enter the amounts and exchange rate, and optionally select a customer. Each currency remains independently recorded.': {
+    'en': 'Use Exchange for currency buy and sell operations. Select the From and To currencies, enter the amounts and exchange rate, and optionally select a customer. Each currency remains independently recorded.',
+    'ps': 'د اسعارو د پېر او پلور لپاره Exchange وکاروئ. د From او To اسعار وټاکئ، مبلغونه او د تبادلې نرخ ولیکئ او که اړتیا وي پېرودونکی هم وټاکئ. هر اسعار په خپلواکه توګه ثبت پاتې کېږي.',
+    'fa': 'برای خرید و فروش ارز از بخش تبادل استفاده کنید. ارز مبدأ و مقصد، مبالغ و نرخ تبدیل را وارد کنید و در صورت نیاز مشتری را انتخاب کنید. هر ارز به صورت مستقل ثبت می‌شود.',
+    'ur': 'کرنسی خرید و فروخت کے لیے Exchange استعمال کریں۔ From اور To کرنسیاں منتخب کریں، رقم اور ایکسچینج ریٹ درج کریں اور ضرورت ہو تو گاہک منتخب کریں۔ ہر کرنسی الگ ریکارڈ رہتی ہے۔',
+    'ar': 'استخدم قسم الصرافة لعمليات شراء وبيع العملات. اختر عملتي المصدر والوجهة وأدخل المبالغ وسعر الصرف، ويمكن اختيار عميل عند الحاجة. وتبقى كل عملة مسجلة بشكل مستقل.',
+  },
+  'Cashbox represents the recorded cash movement of the business. Balances are maintained separately by currency and include supported transaction and exchange movements.': {
+    'en': 'Cashbox represents the recorded cash movement of the business. Balances are maintained separately by currency and include supported transaction and exchange movements.',
+    'ps': 'صندوق د کاروبار ثبت شوی نغدي حرکت ښيي. بیلانسونه د هر اسعار لپاره جلا ساتل کېږي او ملاتړ شوې معاملې او د اسعارو تبادلې پکې شاملې دي.',
+    'fa': 'صندوق نشان‌دهنده گردش نقدی ثبت‌شده تجارت است. موجودی‌ها برای هر ارز جداگانه نگهداری می‌شوند و معاملات و تبادلات پشتیبانی‌شده را شامل می‌شوند.',
+    'ur': 'کیش باکس کاروبار کی ریکارڈ شدہ نقدی نقل و حرکت دکھاتا ہے۔ بیلنس ہر کرنسی کے لیے الگ رکھا جاتا ہے اور معاون ٹرانزیکشنز اور ایکسچینج شامل ہوتے ہیں۔',
+    'ar': 'يمثل الصندوق حركة النقد المسجلة للنشاط. ويتم الاحتفاظ بالأرصدة بشكل منفصل لكل عملة وتشمل المعاملات وحركات الصرف المدعومة.',
+  },
+  'Reports summarize Money In, Money Out, exchanges, loans, repayments and adjustments. Reports can be filtered by date, currency and customer. Currency totals are never automatically converted into another currency.': {
+    'en': 'Reports summarize Money In, Money Out, exchanges, loans, repayments and adjustments. Reports can be filtered by date, currency and customer. Currency totals are never automatically converted into another currency.',
+    'ps': 'راپورونه داخلې پیسې، وتلې پیسې، تبادلې، پورونه، تادیات او سمونونه لنډیز کوي. راپورونه د نېټې، اسعار او پېرودونکي له مخې فلټر کېدای شي. د اسعارو مجموعې هېڅکله په اتومات ډول بل اسعار ته نه بدلېږي.',
+    'fa': 'گزارش‌ها پول ورودی، پول خروجی، تبادلات، قرض‌ها، بازپرداخت‌ها و اصلاحات را خلاصه می‌کنند. گزارش‌ها بر اساس تاریخ، ارز و مشتری قابل فیلتر هستند. مجموع ارزها هرگز به صورت خودکار به ارز دیگری تبدیل نمی‌شود.',
+    'ur': 'رپورٹس رقم وصول، رقم ادائیگی، ایکسچینج، قرض، واپسی اور ایڈجسٹمنٹ کا خلاصہ دکھاتی ہیں۔ تاریخ، کرنسی اور گاہک کے مطابق فلٹر کیا جا سکتا ہے۔ کرنسی کے مجموعے خودکار طور پر دوسری کرنسی میں تبدیل نہیں کیے جاتے۔',
+    'ar': 'تلخص التقارير الأموال الداخلة والخارجة وعمليات الصرف والقروض والسداد والتعديلات. ويمكن تصفية التقارير حسب التاريخ والعملة والعميل. ولا يتم تحويل إجماليات العملات تلقائيًا إلى عملة أخرى.',
+  },
+  'Ghata can prepare transaction receipts, customer statements and customer balance images for sharing. Always review the information before sending a document to another person.': {
+    'en': 'Ghata can prepare transaction receipts, customer statements and customer balance images for sharing. Always review the information before sending a document to another person.',
+    'ps': 'ګهته د شریکولو لپاره د معاملو رسیدونه، د پېرودونکو سټېټمنټونه او د بیلانس انځورونه جوړولای شي. له بل چا سره د سند تر شریکولو مخکې تل معلومات وګورئ.',
+    'fa': 'گِهته می‌تواند رسید معاملات، صورت‌حساب مشتری و تصویر موجودی مشتری را برای اشتراک آماده کند. همیشه پیش از ارسال سند به شخص دیگر، اطلاعات را بررسی کنید.',
+    'ur': 'گھتہ شیئر کرنے کے لیے ٹرانزیکشن رسیدیں، گاہک اسٹیٹمنٹ اور بیلنس تصاویر تیار کر سکتا ہے۔ کسی دوسرے شخص کو دستاویز بھیجنے سے پہلے معلومات ضرور چیک کریں۔',
+    'ar': 'يمكن لغهته إعداد إيصالات المعاملات وكشوف حساب العملاء وصور أرصدة العملاء للمشاركة. راجع المعلومات دائمًا قبل إرسال أي مستند إلى شخص آخر.',
+  },
+  'A business owner can manage staff access. Staff permissions control whether a staff member can add or edit records and whether reports are available to them.': {
+    'en': 'A business owner can manage staff access. Staff permissions control whether a staff member can add or edit records and whether reports are available to them.',
+    'ps': 'د کاروبار مالک د کارکوونکو لاسرسی اداره کولای شي. د کارکوونکو صلاحیتونه ټاکي چې څوک ریکارډونه اضافه یا سمولای شي او راپورونو ته لاسرسی ولري.',
+    'fa': 'مالک تجارت می‌تواند دسترسی کارمندان را مدیریت کند. مجوزهای کارمندان تعیین می‌کند که آیا کارمند می‌تواند رکوردها را اضافه یا ویرایش کند و به گزارش‌ها دسترسی داشته باشد.',
+    'ur': 'کاروبار کا مالک عملے کی رسائی منظم کر سکتا ہے۔ اجازتیں طے کرتی ہیں کہ عملے کا رکن ریکارڈ شامل یا ترمیم کر سکتا ہے اور اسے رپورٹس دستیاب ہوں گی یا نہیں۔',
+    'ar': 'يمكن لمالك النشاط إدارة وصول الموظفين. وتحدد صلاحيات الموظف ما إذا كان يستطيع إضافة السجلات أو تعديلها وما إذا كانت التقارير متاحة له.',
+  },
+  'Use Security to protect access to Ghata with the available PIN and biometric options. Keep your account password and security information private.': {
+    'en': 'Use Security to protect access to Ghata with the available PIN and biometric options. Keep your account password and security information private.',
+    'ps': 'د PIN او بایومتریک شته انتخابونو په وسیله ګهته خوندي کړئ. د خپل حساب پاسورډ او امنیتي معلومات له نورو پټ وساتئ.',
+    'fa': 'با استفاده از PIN و گزینه‌های بیومتریک موجود، دسترسی به گِهته را محافظت کنید. رمز حساب و اطلاعات امنیتی خود را محرمانه نگه دارید.',
+    'ur': 'دستیاب PIN اور بایومیٹرک آپشنز سے گھتہ تک رسائی محفوظ کریں۔ اپنے اکاؤنٹ کا پاس ورڈ اور سیکیورٹی معلومات نجی رکھیں۔',
+    'ar': 'استخدم خيارات PIN والقياسات الحيوية المتاحة لحماية الوصول إلى غهته. حافظ على خصوصية كلمة مرور حسابك ومعلومات الأمان.',
+  },
+  'Your Supabase account is the main cloud data source. Backup features can also be used to export supported business information. Keep exported backup files in a safe place.': {
+    'en': 'Your Supabase account is the main cloud data source. Backup features can also be used to export supported business information. Keep exported backup files in a safe place.',
+    'ps': 'ستاسو Supabase حساب د کلاوډ معلوماتو اصلي سرچینه ده. د بیک اپ له لارې ملاتړ شوي کاروباري معلومات صادرولای شئ. صادر شوي بیک اپ فایلونه په خوندي ځای کې وساتئ.',
+    'fa': 'حساب Supabase شما منبع اصلی داده‌های ابری است. از امکانات پشتیبان‌گیری می‌توان برای صدور اطلاعات پشتیبانی‌شده تجارت نیز استفاده کرد. فایل‌های پشتیبان صادرشده را در محل امن نگهداری کنید.',
+    'ur': 'آپ کا Supabase اکاؤنٹ کلاؤڈ ڈیٹا کا بنیادی ذریعہ ہے۔ بیک اپ فیچر سے معاون کاروباری معلومات ایکسپورٹ بھی کی جا سکتی ہیں۔ ایکسپورٹ شدہ بیک اپ فائلیں محفوظ جگہ رکھیں۔',
+    'ar': 'حساب Supabase الخاص بك هو مصدر البيانات السحابية الرئيسي. ويمكن استخدام ميزات النسخ الاحتياطي لتصدير معلومات النشاط المدعومة. احتفظ بملفات النسخ الاحتياطي المصدرة في مكان آمن.',
+  },
+  'Deleted accounting records are moved to the Recycle Bin. Eligible records can be restored during the retention period. Ghata protects accounting history instead of silently destroying important financial records.': {
+    'en': 'Deleted accounting records are moved to the Recycle Bin. Eligible records can be restored during the retention period. Ghata protects accounting history instead of silently destroying important financial records.',
+    'ps': 'حذف شوي حسابداري ریکارډونه Recycle Bin ته انتقالېږي. د ساتنې مودې په جریان کې د شرایطو وړ ریکارډونه بېرته راګرځول کېدای شي. ګهته د مهمو مالي ریکارډونو د پټې له منځه وړلو پر ځای د حسابدارۍ تاریخ ساتي.',
+    'fa': 'رکوردهای حسابداری حذف‌شده به سطل بازیافت منتقل می‌شوند. رکوردهای واجد شرایط در دوره نگهداری قابل بازیابی هستند. گِهته به جای حذف پنهانی اطلاعات مهم مالی، تاریخچه حسابداری را حفظ می‌کند.',
+    'ur': 'حذف شدہ اکاؤنٹنگ ریکارڈ Recycle Bin میں منتقل ہوتے ہیں۔ مقررہ مدت کے دوران اہل ریکارڈ بحال کیے جا سکتے ہیں۔ گھتہ اہم مالی ریکارڈ خاموشی سے ختم کرنے کے بجائے اکاؤنٹنگ تاریخ محفوظ رکھتا ہے۔',
+    'ar': 'يتم نقل السجلات المحاسبية المحذوفة إلى سلة المحذوفات. ويمكن استعادة السجلات المؤهلة خلال مدة الاحتفاظ. وتحافظ غهته على السجل المحاسبي بدلًا من إتلاف السجلات المالية المهمة دون تنبيه.',
+  },
+  'Enter financial information carefully and review balances and reports regularly. Ghata is a record-keeping tool; the accuracy of reports depends on the information entered.': {
+    'en': 'Enter financial information carefully and review balances and reports regularly. Ghata is a record-keeping tool; the accuracy of reports depends on the information entered.',
+    'ps': 'مالي معلومات په احتیاط ثبت کړئ او بیلانسونه او راپورونه په منظم ډول وګورئ. ګهته د ریکارډ ساتلو وسیله ده؛ د راپورونو دقت په داخل شوو معلوماتو پورې اړه لري.',
+    'fa': 'اطلاعات مالی را با دقت وارد کنید و موجودی‌ها و گزارش‌ها را به طور منظم بررسی کنید. گِهته ابزار ثبت اطلاعات است و دقت گزارش‌ها به اطلاعات واردشده بستگی دارد.',
+    'ur': 'مالی معلومات احتیاط سے درج کریں اور بیلنس اور رپورٹس باقاعدگی سے چیک کریں۔ گھتہ ریکارڈ رکھنے کا ذریعہ ہے؛ رپورٹس کی درستگی درج کردہ معلومات پر منحصر ہے۔',
+    'ar': 'أدخل المعلومات المالية بعناية وراجع الأرصدة والتقارير بانتظام. غهته أداة لحفظ السجلات، وتعتمد دقة التقارير على المعلومات التي يتم إدخالها.',
+  },
+  'Password': {
+    'en': 'Password',
+    'ps': 'پاسورډ',
+    'fa': 'رمز عبور',
+    'ur': 'پاس ورڈ',
+    'ar': 'كلمة المرور',
+  },
+  'Login': {
+    'en': 'Login',
+    'ps': 'ننوتل',
+    'fa': 'ورود',
+    'ur': 'لاگ اِن',
+    'ar': 'تسجيل الدخول',
+  },
+  'Please enter your Gmail / Email': {
+    'en': 'Please enter your Gmail / Email',
+    'ps': 'مهرباني وکړئ خپل Gmail / Email ولیکئ',
+    'fa': 'لطفاً Gmail / Email خود را وارد کنید',
+    'ur': 'براہ کرم اپنا Gmail / Email درج کریں',
+    'ar': 'يرجى إدخال Gmail / Email',
+  },
+  'Disable Staff?': {
+    'en': 'Disable Staff?',
+    'ps': 'کارکوونکی غیرفعال کړئ؟',
+    'fa': 'کارمند غیرفعال شود؟',
+    'ur': 'عملے غیرفعال کریں؟',
+    'ar': 'تعطيل الموظف؟',
+  },
+  'Disable': {
+    'en': 'Disable',
+    'ps': 'غیرفعال کړئ',
+    'fa': 'غیرفعال کردن',
+    'ur': 'غیر فعال کریں',
+    'ar': 'تعطيل',
+  },
+  'OK': {
+    'en': 'OK',
+    'ps': 'سمه ده',
+    'fa': 'تأیید',
+    'ur': 'ٹھیک ہے',
+    'ar': 'موافق',
+  },
+  'Unlock': {
+    'en': 'Unlock',
+    'ps': 'خلاص کړئ',
+    'fa': 'باز کردن',
+    'ur': 'کھولیں',
+    'ar': 'فتح',
+  },
+  'Profile': {
+    'en': 'Profile',
+    'ps': 'پروفایل',
+    'fa': 'پروفایل',
+    'ur': 'پروفائل',
+    'ar': 'الملف الشخصي',
+  },
+  'Username': {
+    'en': 'Username',
+    'ps': 'کارن نوم',
+    'fa': 'نام کاربری',
+    'ur': 'صارف نام',
+    'ar': 'اسم المستخدم',
+  },
+  'Username can be changed every 30 days': {
+    'en': 'Username can be changed every 30 days',
+    'ps': 'کارن نوم په هرو ۳۰ ورځو کې یو ځل بدلولای شئ',
+    'fa': 'نام کاربری هر ۳۰ روز یک‌بار قابل تغییر است',
+    'ur': 'صارف نام ہر 30 دن بعد تبدیل کیا جا سکتا ہے',
+    'ar': 'يمكن تغيير اسم المستخدم كل 30 يومًا',
+  },
+  'Email': {
+    'en': 'Email',
+    'ps': 'برېښنالیک',
+    'fa': 'ایمیل',
+    'ur': 'ای میل',
+    'ar': 'البريد الإلكتروني',
+  },
+  'Thank you for your business': {
+    'en': 'Thank you for your business',
+    'ps': 'ستاسو له معاملې مننه',
+    'fa': 'از معامله شما سپاسگزاریم',
+    'ur': 'آپ کے کاروبار کا شکریہ',
+    'ar': 'شكرًا لتعاملك معنا',
+  },
+  'Customer (Optional)': {
+    'en': 'Customer (Optional)',
+    'ps': 'پېرودونکی (اختیاري)',
+    'fa': 'مشتری (اختیاری)',
+    'ur': 'گاہک (اختیاری)',
+    'ar': 'العميل (اختياري)',
+  },
+  'Customer / Person (Optional)': {
+    'en': 'Customer / Person (Optional)',
+    'ps': 'پېرودونکی / شخص (اختیاري)',
+    'fa': 'مشتری / شخص (اختیاری)',
+    'ur': 'گاہک / شخص (اختیاری)',
+    'ar': 'العميل / الشخص (اختياري)',
+  },
+  'Time': {
+    'en': 'Time',
+    'ps': 'وخت',
+    'fa': 'زمان',
+    'ur': 'وقت',
+    'ar': 'الوقت',
+  },
+  'Loans': {
+    'en': 'Loans',
+    'ps': 'پورونه',
+    'fa': 'قرض‌ها',
+    'ur': 'قرض',
+    'ar': 'القروض',
+  },
+  'Address': {
+    'en': 'Address',
+    'ps': 'پته',
+    'fa': 'آدرس',
+    'ur': 'پتہ',
+    'ar': 'العنوان',
+  },
+  'Overdue': {
+    'en': 'Overdue',
+    'ps': 'له وخته تېر',
+    'fa': 'سررسید گذشته',
+    'ur': 'واجب الادا',
+    'ar': 'متأخر',
+  },
+  'Type': {
+    'en': 'Type',
+    'ps': 'ډول',
+    'fa': 'نوع',
+    'ur': 'قسم',
+    'ar': 'النوع',
+  },
+  'Owner': {
+    'en': 'Owner',
+    'ps': 'مالک',
+    'fa': 'مالک',
+    'ur': 'مالک',
+    'ar': 'المالك',
+  },
+  'No outstanding balance.': {
+    'en': 'No outstanding balance.',
+    'ps': 'هیڅ پاتې بیلانس نشته.',
+    'fa': 'هیچ موجودی معوقی وجود ندارد.',
+    'ur': 'کوئی بقایا بیلنس نہیں ہے۔',
+    'ar': 'لا يوجد رصيد مستحق.',
+  },
+  'Customer, currency, type, due date...': {
+    'en': 'Customer, currency, type, due date...',
+    'ps': 'پېرودونکی، اسعار، ډول، د ورکړې نېټه...',
+    'fa': 'مشتری، ارز، نوع، تاریخ سررسید...',
+    'ur': 'گاہک، کرنسی، قسم، آخری تاریخ...',
+    'ar': 'العميل، العملة، النوع، تاريخ الاستحقاق...',
+  },
+  'Exchange removed from Recycle Bin.': {
+    'en': 'Exchange removed from Recycle Bin.',
+    'ps': 'تبادله له حذف شوو معلوماتو څخه لرې شوه.',
+    'fa': 'تبادله از سطل بازیافت حذف شد.',
+    'ur': 'ایکسچینج ری سائیکل بن سے حذف کر دیا گیا۔',
+    'ar': 'تم حذف عملية الصرف من سلة المحذوفات.',
+  },
+  'Customer removed from Recycle Bin.': {
+    'en': 'Customer removed from Recycle Bin.',
+    'ps': 'پېرودونکی له حذف شوو معلوماتو څخه لرې شو.',
+    'fa': 'مشتری از سطل بازیافت حذف شد.',
+    'ur': 'گاہک ری سائیکل بن سے حذف کر دیا گیا۔',
+    'ar': 'تم حذف العميل من سلة المحذوفات.',
+  },
+  'Transaction removed from Recycle Bin.': {
+    'en': 'Transaction removed from Recycle Bin.',
+    'ps': 'معامله له حذف شوو معلوماتو څخه لرې شوه.',
+    'fa': 'معامله از سطل بازیافت حذف شد.',
+    'ur': 'لین دین ری سائیکل بن سے حذف کر دیا گیا۔',
+    'ar': 'تم حذف المعاملة من سلة المحذوفات.',
+  },
+  'Transaction moved to Recycle Bin. You can restore it within 30 days.': {
+    'en': 'Transaction moved to Recycle Bin. You can restore it within 30 days.',
+    'ps': 'معامله حذف شوو معلوماتو ته انتقال شوه. تر ۳۰ ورځو پورې یې بېرته راګرځولای شئ.',
+    'fa': 'معامله به سطل بازیافت منتقل شد. تا ۳۰ روز می‌توانید آن را بازیابی کنید.',
+    'ur': 'لین دین ری سائیکل بن میں منتقل ہو گیا۔ آپ اسے 30 دن کے اندر بحال کر سکتے ہیں۔',
+    'ar': 'تم نقل المعاملة إلى سلة المحذوفات. يمكنك استعادتها خلال 30 يومًا.',
+  },
+  'Customer moved to Recycle Bin. You can restore it within 30 days.': {
+    'en': 'Customer moved to Recycle Bin. You can restore it within 30 days.',
+    'ps': 'پېرودونکی حذف شوو معلوماتو ته انتقال شو. تر ۳۰ ورځو پورې یې بېرته راګرځولای شئ.',
+    'fa': 'مشتری به سطل بازیافت منتقل شد. تا ۳۰ روز می‌توانید آن را بازیابی کنید.',
+    'ur': 'گاہک ری سائیکل بن میں منتقل ہو گیا۔ آپ اسے 30 دن کے اندر بحال کر سکتے ہیں۔',
+    'ar': 'تم نقل العميل إلى سلة المحذوفات. يمكنك استعادته خلال 30 يومًا.',
+  },
+  ghataT(context, 'Business Ledger & Accounting'): {
+    'en': ghataT(context, 'Business Ledger & Accounting'),
+    'ps': 'د سوداګرۍ حساب او محاسبه',
+    'fa': 'دفتر حساب و حسابداری تجارت',
+    'ur': 'کاروباری کھاتہ اور حسابداری',
+    'ar': 'دفتر الأعمال والمحاسبة',
+  },
+  'Enter your Gmail / Email': {
+    'en': 'Enter your Gmail / Email',
+    'ps': 'خپل Gmail / Email ولیکئ',
+    'fa': 'Gmail / Email خود را وارد کنید',
+    'ur': 'اپنا Gmail / Email درج کریں',
+    'ar': 'أدخل Gmail / Email',
+  },
+  'Disabled': {
+    'en': 'Disabled',
+    'ps': 'غیرفعال',
+    'fa': 'غیرفعال',
+    'ur': 'غیر فعال',
+    'ar': 'معطل',
+  },
+  ghataT(context, 'Change App PIN'): {
+    'en': ghataT(context, 'Change App PIN'),
+    'ps': 'د اپ PIN بدل کړئ',
+    'fa': 'تغییر PIN برنامه',
+    'ur': 'ایپ PIN تبدیل کریں',
+    'ar': 'تغيير PIN التطبيق',
+  },
+  ghataT(context, 'Create App PIN'): {
+    'en': ghataT(context, 'Create App PIN'),
+    'ps': 'د اپ PIN جوړ کړئ',
+    'fa': 'ایجاد PIN برنامه',
+    'ur': 'ایپ PIN بنائیں',
+    'ar': 'إنشاء PIN للتطبيق',
+  },
+  'App PIN saved.': {
+    'en': 'App PIN saved.',
+    'ps': 'د اپ PIN خوندي شو.',
+    'fa': 'PIN برنامه ذخیره شد.',
+    'ur': 'ایپ PIN محفوظ ہوگیا۔',
+    'ar': 'تم حفظ PIN التطبيق.',
+  },
+  'App PIN created.': {
+    'en': 'App PIN created.',
+    'ps': 'د اپ PIN جوړ شو.',
+    'fa': 'PIN برنامه ایجاد شد.',
+    'ur': 'ایپ PIN بن گیا۔',
+    'ar': 'تم إنشاء PIN التطبيق.',
+  },
+  'Use a 4 to 6 digit PIN to protect Ghata.': {
+    'en': 'Use a 4 to 6 digit PIN to protect Ghata.',
+    'ps': 'د ګهته د ساتنې لپاره له ۴ تر ۶ عددي PIN وکاروئ.',
+    'fa': 'برای محافظت از گِهته از PIN چهار تا شش رقمی استفاده کنید.',
+    'ur': 'گھتہ کی حفاظت کے لیے 4 سے 6 ہندسوں کا PIN استعمال کریں۔',
+    'ar': 'استخدم PIN من 4 إلى 6 أرقام لحماية غهته.',
+  },
+  'Verification email sent. Please check your email.': {
+    'en': 'Verification email sent. Please check your email.',
+    'ps': 'د تایید ایمیل ولېږل شو. خپل ایمیل وګورئ.',
+    'fa': 'ایمیل تأیید ارسال شد. ایمیل خود را بررسی کنید.',
+    'ur': 'تصدیقی ای میل بھیج دی گئی ہے۔ اپنا ای میل چیک کریں۔',
+    'ar': 'تم إرسال بريد التحقق. تحقق من بريدك الإلكتروني.',
+  },
+  'This customer has no loan to repay in this currency.': {
+    'en': 'This customer has no loan to repay in this currency.',
+    'ps': 'دا پېرودونکی په دې اسعارو کې د بېرته ورکولو پور نه لري.',
+    'fa': 'این مشتری در این ارز قرضی برای بازپرداخت ندارد.',
+    'ur': 'اس گاہک کے پاس اس کرنسی میں واپس کرنے کے لیے کوئی قرض نہیں۔',
+    'ar': 'لا يوجد على هذا العميل قرض للسداد بهذه العملة.',
+  },
+  'You do not owe this customer in this currency.': {
+    'en': 'You do not owe this customer in this currency.',
+    'ps': 'تاسو دې پېرودونکي ته په دې اسعارو کې پور نه لرئ.',
+    'fa': 'شما در این ارز به این مشتری بدهکار نیستید.',
+    'ur': 'آپ اس کرنسی میں اس گاہک کے مقروض نہیں ہیں۔',
+    'ar': 'أنت غير مدين لهذا العميل بهذه العملة.',
+  },
+  'Summary': {
+    'en': 'Summary',
+    'ps': 'لنډیز',
+    'fa': 'خلاصه',
+    'ur': 'خلاصہ',
+    'ar': 'الملخص',
+  },
+  'General': {
+    'en': 'General',
+    'ps': 'عمومي',
+    'fa': 'عمومی',
+    'ur': 'عمومی',
+    'ar': 'عام',
+  },
+  ghataT(context, 'Customer Full Statement'): {
+    'en': ghataT(context, 'Customer Full Statement'),
+    'ps': 'د پېرودونکي بشپړ حساب',
+    'fa': 'صورت‌حساب کامل مشتری',
+    'ur': 'گاہک کا مکمل اسٹیٹمنٹ',
+    'ar': 'كشف الحساب الكامل للعميل',
+  },
+  'Balances': {
+    'en': 'Balances',
+    'ps': 'بیلانسونه',
+    'fa': 'موجودی‌ها',
+    'ur': 'بیلنس',
+    'ar': 'الأرصدة',
+  },
+  'History': {
+    'en': 'History',
+    'ps': 'تاریخچه',
+    'fa': 'تاریخچه',
+    'ur': 'تاریخ',
+    'ar': 'السجل',
+  },
+  'Available Balance': {
+    'en': 'Available Balance',
+    'ps': 'موجود بیلانس',
+    'fa': 'موجودی قابل دسترس',
+    'ur': 'دستیاب بیلنس',
+    'ar': 'الرصيد المتاح',
+  },
+  'Exchange moved to Recycle Bin. You can restore it within 30 days.': {
+    'en': 'Exchange moved to Recycle Bin. You can restore it within 30 days.',
+    'ps': 'تبادله حذف شوو معلوماتو ته انتقال شوه. تر ۳۰ ورځو پورې یې بېرته راګرځولای شئ.',
+    'fa': 'تبادله به سطل بازیافت منتقل شد. تا ۳۰ روز می‌توانید آن را بازیابی کنید.',
+    'ur': 'ایکسچینج ری سائیکل بن میں منتقل ہوگیا۔ آپ اسے 30 دن کے اندر بحال کر سکتے ہیں۔',
+    'ar': 'تم نقل عملية الصرف إلى سلة المحذوفات. يمكنك استعادتها خلال 30 يومًا.',
+  },
+  'Amount You Give': {
+    'en': 'Amount You Give',
+    'ps': 'هغه مقدار چې ورکوئ',
+    'fa': 'مقداری که می‌دهید',
+    'ur': 'وہ رقم جو آپ دیتے ہیں',
+    'ar': 'المبلغ الذي تدفعه',
+  },
+  'Exchange Rate (optional)': {
+    'en': 'Exchange Rate (optional)',
+    'ps': 'د تبادلې نرخ (اختیاري)',
+    'fa': 'نرخ تبادله (اختیاری)',
+    'ur': 'شرح تبادلہ (اختیاری)',
+    'ar': 'سعر الصرف (اختياري)',
+  },
+  'From Amount': {
+    'en': 'From Amount',
+    'ps': 'د ورکړې مقدار',
+    'fa': 'مقدار مبدأ',
+    'ur': 'ابتدائی رقم',
+    'ar': 'المبلغ المصدر',
+  },
+  'To Amount': {
+    'en': 'To Amount',
+    'ps': 'د ترلاسه کولو مقدار',
+    'fa': 'مقدار مقصد',
+    'ur': 'وصولی رقم',
+    'ar': 'المبلغ المستلم',
+  },
+  'Rate (optional)': {
+    'en': 'Rate (optional)',
+    'ps': 'نرخ (اختیاري)',
+    'fa': 'نرخ (اختیاری)',
+    'ur': 'شرح (اختیاری)',
+    'ar': 'السعر (اختياري)',
+  },
+  'Saving...': {
+    'en': 'Saving...',
+    'ps': 'خوندي کېږي...',
+    'fa': 'در حال ذخیره...',
+    'ur': 'محفوظ ہو رہا ہے...',
+    'ar': 'جارٍ الحفظ...',
+  },
+  'Record Exchange': {
+    'en': 'Record Exchange',
+    'ps': 'تبادله ثبت کړئ',
+    'fa': 'ثبت تبادله',
+    'ur': 'ایکسچینج محفوظ کریں',
+    'ar': 'تسجيل الصرف',
+  },
+  ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'): {
+    'en': ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'),
+    'ps': 'د ګهته – سوداګرۍ حساب او محاسبې لخوا جوړ شوی',
+    'fa': 'ایجاد شده توسط گِهته – دفتر حساب و حسابداری تجارت',
+    'ur': 'گھتہ – کاروباری کھاتہ اور حسابداری کے ذریعے تیار شدہ',
+    'ar': 'تم إنشاؤه بواسطة غهته – دفتر الأعمال والمحاسبة',
+  },
   'Complete Guide': {
     'en': 'Complete Guide',
     'ps': 'بشپړ لارښود',
@@ -1364,8 +1854,8 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'پاس ورڈ تبدیل کریں',
     'ar': 'تغيير كلمة المرور',
   },
-  'Current Balance': {
-    'en': 'Current Balance',
+  ghataT(context, 'Current Balance'): {
+    'en': ghataT(context, 'Current Balance'),
     'ps': 'اوسنی بیلانس',
     'fa': 'موجودی فعلی',
     'ur': 'موجودہ بیلنس',
@@ -2704,7 +3194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: passwordController,
                     obscureText: hidePassword,
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: ghataT(context, 'Password'),
                       prefixIcon: const Icon(Icons.lock_outline),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
@@ -2741,14 +3231,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 52,
                     child: FilledButton(
                       onPressed: isLoading ? null : login,
-                      child: const Text('Login'),
+                      child: Text(ghataT(context, 'Login')),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Don't have an account?"),
+                      Text(ghataT(context, "Don't have an account?")),
                       TextButton(
                         onPressed: () {
                           Navigator.push(
@@ -2921,7 +3411,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: passwordController,
                 obscureText: hidePassword,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: ghataT(context, 'Password'),
                   prefixIcon: const Icon(Icons.lock_outline),
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
@@ -3002,8 +3492,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your Gmail / Email'),
+        SnackBar(
+          content: Text(ghataT(context, 'Please enter your Gmail / Email')),
         ),
       );
       return;
@@ -3347,7 +3837,7 @@ class _StaffManagementScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Disable Staff?'),
+        title: Text(ghataT(context, 'Disable Staff?')),
         content: Text(
           '$email will no longer have staff access.',
         ),
@@ -3360,7 +3850,7 @@ class _StaffManagementScreenState
           FilledButton(
             onPressed: () =>
                 Navigator.pop(dialogContext, true),
-            child: const Text('Disable'),
+            child: Text(ghataT(context, 'Disable')),
           ),
         ],
       ),
@@ -3539,7 +4029,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
       await SharePlus.instance.share(
         ShareParams(
-          title: 'Ghata Backup',
+          title: ghataT(context, 'Ghata Backup'),
           subject: 'Ghata Accounting Backup',
           text:
               'Ghata backup created ${now.toString().substring(0, 16)}',
@@ -3586,7 +4076,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('OK'),
+            child: Text(ghataT(context, 'OK')),
           ),
         ],
       ),
@@ -3767,7 +4257,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   Future<void> createOrChangePin() async {
     if (hasPin) {
-      final current = await requestPin(title: 'Enter Current PIN');
+      final current = await requestPin(title: ghataT(context, 'Enter Current PIN'));
       if (current == null) return;
 
       if (!await GhataSecurity.verifyPin(current)) {
@@ -3782,7 +4272,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     if (!mounted) return;
 
     final pin = await requestPin(
-      title: hasPin ? 'Change App PIN' : 'Create App PIN',
+      title: hasPin ? ghataT(context, 'Change App PIN') : ghataT(context, 'Create App PIN'),
       confirm: true,
     );
 
@@ -3795,14 +4285,14 @@ class _SecurityScreenState extends State<SecurityScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          hasPin ? 'App PIN saved.' : 'App PIN created.',
+          hasPin ? ghataT(context, 'App PIN saved.') : ghataT(context, 'App PIN created.'),
         ),
       ),
     );
   }
 
   Future<void> removePin() async {
-    final current = await requestPin(title: 'Enter Current PIN');
+    final current = await requestPin(title: ghataT(context, 'Enter Current PIN'));
     if (current == null) return;
 
     if (!await GhataSecurity.verifyPin(current)) {
@@ -3875,7 +4365,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
     if (!mounted) return;
 
-    final pin = await requestPin(title: 'Unlock Ghata');
+    final pin = await requestPin(title: ghataT(context, 'Unlock Ghata'));
     if (pin == null) return;
 
     final valid = await GhataSecurity.verifyPin(pin);
@@ -3907,7 +4397,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                       ListTile(
                         leading: const Icon(Icons.pin_outlined),
                         title: Text(
-                          hasPin ? 'Change App PIN' : 'Create App PIN',
+                          hasPin ? ghataT(context, 'Change App PIN') : ghataT(context, 'Create App PIN'),
                         ),
                         subtitle: const Text(
                           'Use a 4 to 6 digit PIN to protect Ghata.',
@@ -3947,7 +4437,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Startup auto-lock will be connected in the final integration batch.',
+                  '',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
                 ),
@@ -4143,7 +4633,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
                     child: FilledButton.icon(
                       onPressed: unlockWithPin,
                       icon: const Icon(Icons.lock_open_outlined),
-                      label: const Text('Unlock'),
+                      label: Text(ghataT(context, 'Unlock')),
                     ),
                   ),
                   if (biometricEnabled) ...[
@@ -4422,7 +4912,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(
+            ListTile(
               title: Text(
                 'Settings & Account',
                 style: TextStyle(
@@ -4517,7 +5007,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (_) => AuthScreen(),
+            builder: (_) => LoginScreen(),
           ),
           (route) => false,
         );
@@ -4711,7 +5201,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(
-              'Business Ledger & Accounting',
+              ghataT(context, 'Business Ledger & Accounting'),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.normal,
@@ -4930,7 +5420,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Expanded(
                     child: Text(
-                      'Recent Transactions',
+                      ghataT(context, 'Recent Transactions'),
                       style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
@@ -4976,7 +5466,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: EdgeInsets.all(18),
                         child: Center(
                           child: Text(
-                            'No transactions yet',
+                            ghataT(context, 'No transactions yet'),
                             style: TextStyle(
                               color: Colors.grey,
                             ),
@@ -5084,7 +5574,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: _GhataBottomItem(
                   icon: Icons.home_rounded,
-                  label: 'Home',
+                  label: ghataT(context, 'Home'),
                   selected: true,
                   onTap: () {
                     refreshDashboard();
@@ -5095,7 +5585,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: _GhataBottomItem(
                   icon: Icons.people_outline,
-                  label: 'Customers',
+                  label: ghataT(context, 'Customers'),
                   onTap: () async {
                     await Navigator.push(
                       context,
@@ -5140,7 +5630,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: _GhataBottomItem(
                   icon: Icons.menu_book_outlined,
-                  label: 'Daily Journal',
+                  label: ghataT(context, 'Daily Journal'),
                   onTap: () async {
                     await Navigator.push(
                       context,
@@ -5160,7 +5650,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   builder: (context, snapshot) {
                     return _GhataBottomItem(
                       icon: Icons.bar_chart_rounded,
-                      label: 'Reports',
+                      label: ghataT(context, 'Reports'),
                       onTap: snapshot.data != true
                           ? null
                           : () {
@@ -5249,7 +5739,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
               Expanded(
                 child: _GhataBottomItem(
                   icon: Icons.home_rounded,
-                  label: 'Home',
+                  label: ghataT(context, 'Home'),
                   selected: widget.selectedIndex == 0,
                   onTap: widget.selectedIndex == 0
                       ? () {}
@@ -5266,7 +5756,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
               Expanded(
                 child: _GhataBottomItem(
                   icon: Icons.people_outline,
-                  label: 'Customers',
+                  label: ghataT(context, 'Customers'),
                   selected: widget.selectedIndex == 1,
                   onTap: widget.selectedIndex == 1
                       ? () {}
@@ -5302,7 +5792,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
               Expanded(
                 child: _GhataBottomItem(
                   icon: Icons.menu_book_outlined,
-                  label: 'Daily Journal',
+                  label: ghataT(context, 'Daily Journal'),
                   selected: widget.selectedIndex == 3,
                   onTap: widget.selectedIndex == 3
                       ? () {}
@@ -5314,7 +5804,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
               Expanded(
                 child: _GhataBottomItem(
                   icon: Icons.bar_chart_rounded,
-                  label: 'Reports',
+                  label: ghataT(context, 'Reports'),
                   selected: widget.selectedIndex == 4,
                   onTap: !canReports
                       ? null
@@ -5420,16 +5910,16 @@ class AboutGhataScreen extends StatelessWidget {
 
             const Center(
               child: Text(
-                'Business Ledger & Accounting',
+                ghataT(context, 'Business Ledger & Accounting'),
                 textAlign: TextAlign.center,
               ),
             ),
 
             const SizedBox(height: 24),
 
-            const Text(
-              'Complete Guide',
-              style: TextStyle(
+            Text(
+              ghataT(context, 'Complete Guide'),
+              style: const TextStyle(
                 fontSize: 21,
                 fontWeight: FontWeight.bold,
               ),
@@ -5440,147 +5930,112 @@ class AboutGhataScreen extends StatelessWidget {
             guideSection(
               context,
               Icons.home_outlined,
-              'Dashboard',
-              'The Dashboard gives you a quick overview of your business. '
-                  'Cashbox, Money In, Money Out, You Receive and You Pay are '
-                  'shown separately for each currency. Ghata does not combine '
-                  ghataT(context, 'different currencies into a converted grand total.'),
+              ghataT(context, 'Dashboard'),
+              ghataT(context, 'The Dashboard gives you a quick overview of your business. Cashbox, Money In, Money Out, You Receive and You Pay are shown separately for each currency. Ghata does not combine different currencies into a converted grand total.'),
             ),
 
             guideSection(
               context,
               Icons.people_outline,
-              'Customers',
-              'Use Customers to create and manage customer accounts. Open a '
-                  'customer profile to see their transaction history and '
-                  'separate balances for every currency. You can also edit '
-                  ghataT(context, 'customer information and create customer transactions.'),
+              ghataT(context, 'Customers'),
+              ghataT(context, 'Use Customers to create and manage customer accounts. Open a customer profile to see their transaction history and separate balances for every currency. You can also edit customer information and create customer transactions.'),
             ),
 
             guideSection(
               context,
               Icons.add_circle_outline,
-              'Add Transaction',
-              'Use the Add button to record Money In, Money Out, loans, loan '
-                  'repayments and adjustments. Select the correct currency, '
-                  'date, time and customer when required. You can also add a '
-                  ghataT(context, ghataT(context, 'description and reference number.')),
+              ghataT(context, 'Add Transaction'),
+              ghataT(context, 'Use the Add button to record Money In, Money Out, loans, loan repayments and adjustments. Select the correct currency, date, time and customer when required. You can also add a description and reference number.'),
             ),
 
             guideSection(
               context,
               Icons.menu_book_outlined,
-              'Daily Journal',
-              'The Daily Journal keeps your transaction history. Use search '
-                  'and filters to find transactions. Transactions can be '
-                  'reviewed with their amount, currency, customer, date, time '
-                  'and description.',
+              ghataT(context, 'Daily Journal'),
+              ghataT(context, 'The Daily Journal keeps your transaction history. Use search and filters to find transactions. Transactions can be reviewed with their amount, currency, customer, date, time and description.'),
             ),
 
             guideSection(
               context,
               Icons.handshake_outlined,
-              'Loans & Debts',
-              'Ghata tracks money customers owe you and money you owe them. '
-                  'Loan repayments reduce the related balance while keeping '
-                  ghataT(context, ghataT(context, 'the accounting history available.')),
+              ghataT(context, 'Loans & Debts'),
+              ghataT(context, 'Ghata tracks money customers owe you and money you owe them. Loan repayments reduce the related balance while keeping the accounting history available.'),
             ),
 
             guideSection(
               context,
               Icons.currency_exchange,
-              'Currency Exchange',
-              'Use Exchange for currency buy and sell operations. Select the '
-                  'From and To currencies, enter the amounts and exchange '
-                  'rate, and optionally select a customer. Each currency '
-                  ghataT(context, ghataT(context, 'remains independently recorded.')),
+              ghataT(context, 'Currency Exchange'),
+              ghataT(context, 'Use Exchange for currency buy and sell operations. Select the From and To currencies, enter the amounts and exchange rate, and optionally select a customer. Each currency remains independently recorded.'),
             ),
 
             guideSection(
               context,
               Icons.account_balance_wallet_outlined,
-              'Cashbox',
-              'Cashbox represents the recorded cash movement of the business. '
-                  'Balances are maintained separately by currency and include '
-                  ghataT(context, 'supported transaction and exchange movements.'),
+              ghataT(context, 'Cashbox'),
+              ghataT(context, 'Cashbox represents the recorded cash movement of the business. Balances are maintained separately by currency and include supported transaction and exchange movements.'),
             ),
 
             guideSection(
               context,
               Icons.bar_chart_outlined,
-              'Reports',
-              'Reports summarize Money In, Money Out, exchanges, loans, '
-                  'repayments and adjustments. Reports can be filtered by '
-                  'date, currency and customer. Currency totals are never '
-                  ghataT(context, 'automatically converted into another currency.'),
+              ghataT(context, 'Reports'),
+              ghataT(context, 'Reports summarize Money In, Money Out, exchanges, loans, repayments and adjustments. Reports can be filtered by date, currency and customer. Currency totals are never automatically converted into another currency.'),
             ),
 
             guideSection(
               context,
               Icons.receipt_long_outlined,
-              'Receipts, PDF & Balance Image',
-              'Ghata can prepare transaction receipts, customer statements '
-                  'and customer balance images for sharing. Always review the '
-                  ghataT(context, 'information before sending a document to another person.'),
+              ghataT(context, 'Receipts, PDF & Balance Image'),
+              ghataT(context, 'Ghata can prepare transaction receipts, customer statements and customer balance images for sharing. Always review the information before sending a document to another person.'),
             ),
 
             guideSection(
               context,
               Icons.groups_outlined,
-              'Staff & Roles',
-              'A business owner can manage staff access. Staff permissions '
-                  'control whether a staff member can add or edit records and '
-                  ghataT(context, 'whether reports are available to them.'),
+              ghataT(context, 'Staff & Roles'),
+              ghataT(context, 'A business owner can manage staff access. Staff permissions control whether a staff member can add or edit records and whether reports are available to them.'),
             ),
 
             guideSection(
               context,
               Icons.security_outlined,
-              'Security',
-              'Use Security to protect access to Ghata with the available PIN '
-                  'and biometric options. Keep your account password and '
-                  ghataT(context, 'security information private.'),
+              ghataT(context, 'Security'),
+              ghataT(context, 'Use Security to protect access to Ghata with the available PIN and biometric options. Keep your account password and security information private.'),
             ),
 
             guideSection(
               context,
               Icons.cloud_outlined,
-              'Backup & Restore',
-              'Your Supabase account is the main cloud data source. Backup '
-                  'features can also be used to export supported business '
-                  ghataT(context, 'information. Keep exported backup files in a safe place.'),
+              ghataT(context, 'Backup & Restore'),
+              ghataT(context, 'Your Supabase account is the main cloud data source. Backup features can also be used to export supported business information. Keep exported backup files in a safe place.'),
             ),
 
             guideSection(
               context,
               Icons.delete_outline,
-              'Recycle Bin',
-              'Deleted accounting records are moved to the Recycle Bin. '
-                  'Eligible records can be restored during the retention '
-                  'period. Ghata protects accounting history instead of '
-                  ghataT(context, 'silently destroying important financial records.'),
+              ghataT(context, 'Recycle Bin'),
+              ghataT(context, 'Deleted accounting records are moved to the Recycle Bin. Eligible records can be restored during the retention period. Ghata protects accounting history instead of silently destroying important financial records.'),
             ),
 
             guideSection(
               context,
               Icons.info_outline,
-              'Important',
-              'Enter financial information carefully and review balances and '
-                  'reports regularly. Ghata is a record-keeping tool; the '
-                  ghataT(context, 'accuracy of reports depends on the information entered.'),
+              ghataT(context, 'Important'),
+              ghataT(context, 'Enter financial information carefully and review balances and reports regularly. Ghata is a record-keeping tool; the accuracy of reports depends on the information entered.'),
             ),
 
             const SizedBox(height: 14),
 
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(18),
+                padding: const EdgeInsets.all(18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Contact Owner',
-                      style: TextStyle(
+                      ghataT(context, 'Contact Owner'),
+                      style: const TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
                       ),
@@ -5981,7 +6436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(ghataT(context, 'Profile')),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -6008,10 +6463,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   TextField(
                     controller: usernameController,
                     decoration: const InputDecoration(
-                      labelText: 'Username',
+                      labelText: ghataT(context, 'Username'),
                       prefixIcon: Icon(Icons.alternate_email),
                       border: OutlineInputBorder(),
-                      helperText: 'Username can be changed every 30 days',
+                      helperText: ghataT(context, 'Username can be changed every 30 days'),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -6019,14 +6474,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     readOnly: true,
                     controller: TextEditingController(text: email),
                     decoration: const InputDecoration(
-                      labelText: 'Email',
+                      labelText: ghataT(context, 'Email'),
                       prefixIcon: Icon(Icons.email_outlined),
                       border: OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 28),
-                  const Text(
-                    'Business Profile',
+                  Text(ghataT(context, 'Business Profile'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -6066,7 +6520,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     maxLines: 2,
                     decoration: InputDecoration(
                       labelText: ghataT(context, 'Receipt Note'),
-                      hintText: 'Thank you for your business',
+                      hintText: ghataT(context, 'Thank you for your business'),
                       prefixIcon: Icon(Icons.notes_outlined),
                       border: OutlineInputBorder(),
                     ),
@@ -6153,7 +6607,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Verification email sent. Please check your email.',
           ),
@@ -6403,7 +6857,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exchange removed from Recycle Bin.')),
+        SnackBar(content: Text(ghataT(context, 'Exchange removed from Recycle Bin.'))),
       );
 
       setState(() {});
@@ -6507,7 +6961,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Customer removed from Recycle Bin.')),
+        SnackBar(content: Text(ghataT(context, 'Customer removed from Recycle Bin.'))),
       );
 
       setState(() {});
@@ -6572,7 +7026,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Transaction removed from Recycle Bin.'),
+          content: Text(ghataT(context, 'Transaction removed from Recycle Bin.')),
         ),
       );
 
@@ -7116,7 +7570,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       if (transactionType == 'loan_repayment_received') {
         if (receivableBalance <= 0) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
                 'This customer has no loan to repay in this currency.',
               ),
@@ -7140,7 +7594,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       if (transactionType == 'loan_repayment_paid') {
         if (payableBalance <= 0) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
                 'You do not owe this customer in this currency.',
               ),
@@ -7286,7 +7740,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
                     GhataCalculatorField(
                       controller: amountController,
-                      label: 'Amount',
+                      label: ghataT(context, 'Amount'),
                       onChanged: () {
                         setDialogState(() {
                           calculatorResult =
@@ -7345,7 +7799,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       initialValue: selectedCustomerId,
                       isExpanded: true,
                       decoration: const InputDecoration(
-                        labelText: 'Customer (Optional)',
+                        labelText: ghataT(context, 'Customer (Optional)'),
                         prefixIcon:
                             Icon(Icons.person_outline),
                         border: OutlineInputBorder(),
@@ -7439,7 +7893,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       contentPadding: EdgeInsets.zero,
                       leading:
                           const Icon(Icons.access_time),
-                      title: const Text('Time'),
+                      title: Text(ghataT(context, 'Time')),
                       subtitle:
                           Text(selectedTime.format(context)),
                       onTap: () async {
@@ -7632,7 +8086,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
               children: [
                 GhataCalculatorField(
                   controller: amountEditController,
-                  label: 'Amount',
+                  label: ghataT(context, 'Amount'),
                   onChanged: () {
                     setDialogState(() {
                       editCalculatorResult =
@@ -7768,7 +8222,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.access_time),
-                  title: const Text('Time'),
+                  title: Text(ghataT(context, 'Time')),
                   subtitle: Text(editTime.format(context)),
                   trailing: const Icon(Icons.edit_outlined),
                   onTap: () async {
@@ -7787,7 +8241,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                   initialValue: editCustomerId,
                   isExpanded: true,
                   decoration: const InputDecoration(
-                    labelText: 'Customer / Person (Optional)',
+                    labelText: ghataT(context, 'Customer / Person (Optional)'),
                     border: OutlineInputBorder(),
                   ),
                   items: [
@@ -8174,14 +8628,14 @@ Future<void> shareTransactionReceiptPdf(
               if (description.isNotEmpty)
                 pw.Text("${ghataT(context, 'Description')}: $description"),
               pw.Spacer(),
-              if (ownerName.isNotEmpty) pw.Text('Owner: $ownerName'),
+              if (ownerName.isNotEmpty) pw.Text('${ghataT(context, 'Owner')}: $ownerName'),
               if (receiptNote.isNotEmpty) ...[
                 pw.SizedBox(height: 10),
                 pw.Text(receiptNote),
               ],
               pw.SizedBox(height: 8),
               pw.Text(
-                'Generated by Ghata - Business Ledger & Accounting',
+                ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'),
                 textAlign: pw.TextAlign.center,
                 style: const pw.TextStyle(fontSize: 9),
               ),
@@ -8200,7 +8654,7 @@ Future<void> shareTransactionReceiptPdf(
 
       await SharePlus.instance.share(
         ShareParams(
-          title: 'Transaction Receipt',
+          title: ghataT(context, 'Transaction Receipt'),
           subject: 'Receipt $receiptNo',
           files: [
             XFile.fromData(
@@ -8346,7 +8800,7 @@ Future<void> shareTransactionReceiptPdf(
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Transaction moved to Recycle Bin. You can restore it within 30 days.'),
+          content: Text(ghataT(context, 'Transaction moved to Recycle Bin. You can restore it within 30 days.')),
         ),
       );
 
@@ -8421,7 +8875,7 @@ Future<void> shareTransactionReceiptPdf(
                     ),
                     const SizedBox(width: 8),
                     FilterChip(
-                      label: const Text('Loans'),
+                      label: Text(ghataT(context, 'Loans')),
                       selected: selectedFilter == 'loan',
                       onSelected: (_) {
                         setState(() => selectedFilter = 'loan');
@@ -9270,7 +9724,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
               TextField(
                 controller: addressEditController,
                 decoration: const InputDecoration(
-                  labelText: 'Address',
+                  labelText: ghataT(context, 'Address'),
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -9442,7 +9896,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Customer moved to Recycle Bin. You can restore it within 30 days.'),
+          content: Text(ghataT(context, 'Customer moved to Recycle Bin. You can restore it within 30 days.')),
         ),
       );
 
@@ -9541,7 +9995,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 TextField(
                   controller: addressController,
                   decoration: const InputDecoration(
-                    labelText: 'Address',
+                    labelText: ghataT(context, 'Address'),
                     prefixIcon: Icon(Icons.location_on_outlined),
                     border: OutlineInputBorder(),
                   ),
@@ -9830,7 +10284,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                       deleteCustomer(customer);
                                     }
                                   },
-                                  itemBuilder: (_) => const [
+                                  itemBuilder: (_) =>  [
                                     PopupMenuItem(
                                       value: 'edit',
                                       child: ListTile(
@@ -10111,7 +10565,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
               TextField(
                 controller: addressController,
                 decoration: const InputDecoration(
-                  labelText: 'Address',
+                  labelText: ghataT(context, 'Address'),
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -10518,7 +10972,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       }
 
       drawText(
-        'Generated by Ghata - Business Ledger & Accounting',
+        ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'),
         60,
         height - 65,
         fontSize: 22,
@@ -10590,7 +11044,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
       await SharePlus.instance.share(
         ShareParams(
-          title: 'Customer Balance',
+          title: ghataT(context, 'Customer Balance'),
           subject: '$name - Balance',
           text: 'Customer balance from Ghata',
           files: [
@@ -10701,7 +11155,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           ),
           build: (_) => [
             pw.Text(
-              'Customer Full Statement',
+              ghataT(context, 'Customer Full Statement'),
               style: pw.TextStyle(
                 fontSize: 18,
                 fontWeight: pw.FontWeight.bold,
@@ -10710,17 +11164,17 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             pw.SizedBox(height: 10),
             pw.Text("${ghataT(context, 'Customer')}: $name"),
             if (phone.isNotEmpty) pw.Text("${ghataT(context, 'Phone')}: $phone"),
-            if (address.isNotEmpty) pw.Text('Address: $address'),
+            if (address.isNotEmpty) pw.Text('${ghataT(context, 'Address')}: $address'),
             pw.SizedBox(height: 16),
 
             pw.Text(
-              'Current Balance',
+              ghataT(context, 'Current Balance'),
               style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 6),
 
             if (balances.isEmpty)
-              pw.Text('No outstanding balance.')
+              pw.Text(ghataT(context, 'No outstanding balance.'))
             else
               ...balances.entries.map((entry) {
                 final value = entry.value;
@@ -10783,7 +11237,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
             pw.SizedBox(height: 12),
             pw.Text(
-              'Generated by Ghata - Business Ledger & Accounting',
+              ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'),
               style: const pw.TextStyle(fontSize: 9),
             ),
           ],
@@ -10802,7 +11256,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
       await SharePlus.instance.share(
         ShareParams(
-          title: 'Customer Statement',
+          title: ghataT(context, 'Customer Statement'),
           subject: '$name - Statement',
           files: [
             XFile.fromData(
@@ -10890,7 +11344,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                   deleteProfileCustomer();
                 }
               },
-              itemBuilder: (context) => const [
+              itemBuilder: (context) =>  [
                 PopupMenuItem(
                   value: 'pdf',
                   child: Text(ghataT(context, 'Full Statement (PDF)')),
@@ -11598,7 +12052,7 @@ class _LoansScreenState extends State<LoansScreen> {
                 controller: loanSearchController,
                 decoration: InputDecoration(
                   labelText: ghataT(context, 'Search loans'),
-                  hintText: 'Customer, currency, type, due date...',
+                  hintText: ghataT(context, 'Customer, currency, type, due date...'),
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: loanSearchController.text.isNotEmpty
                       ? IconButton(
@@ -11634,7 +12088,7 @@ class _LoansScreenState extends State<LoansScreen> {
                     onSelected: (_) => setState(() => loanFilter = 'pay'),
                   ),
                   ChoiceChip(
-                    label: const Text('Overdue'),
+                    label: Text(ghataT(context, 'Overdue')),
                     selected: loanFilter == 'overdue',
                     onSelected: (_) => setState(() => loanFilter = 'overdue'),
                   ),
@@ -12251,7 +12705,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Exchange moved to Recycle Bin. You can restore it within 30 days.',
           ),
@@ -12338,11 +12792,11 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: editExchangeType,
                   decoration: const InputDecoration(
-                    labelText: 'Type',
+                    labelText: ghataT(context, 'Type'),
               prefixIcon: Icon(Icons.swap_horiz_rounded),
                     border: OutlineInputBorder(),
                   ),
-                  items: const [
+                  items:  [
                     DropdownMenuItem(
                       value: 'buy',
                       child: Text(ghataT(context, 'Buy')),
@@ -12384,7 +12838,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 const SizedBox(height: 12),
                 GhataCalculatorField(
                   controller: fromController,
-                  label: 'Amount You Give',
+                  label: ghataT(context, 'Amount You Give'),
                   onChanged: () {
                     final fromValue = evaluateCalculatorExpression(
                       fromController.text.trim(),
@@ -12430,7 +12884,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 const SizedBox(height: 12),
                 GhataCalculatorField(
                   controller: toController,
-                  label: 'Amount You Receive',
+                  label: ghataT(context, 'Amount You Receive'),
                   onChanged: () {
                     final fromValue = evaluateCalculatorExpression(
                       fromController.text.trim(),
@@ -12454,7 +12908,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 const SizedBox(height: 12),
                 GhataCalculatorField(
                   controller: editRateController,
-                  label: 'Exchange Rate (optional)',
+                  label: ghataT(context, 'Exchange Rate (optional)'),
                   onChanged: () {
                     final fromValue = evaluateCalculatorExpression(
                       fromController.text.trim(),
@@ -12544,7 +12998,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.access_time),
-                  title: const Text('Time'),
+                  title: Text(ghataT(context, 'Time')),
                   subtitle: Text(editTime.format(context)),
                   onTap: () async {
                     final picked = await showTimePicker(
@@ -12922,7 +13376,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               labelText: ghataT(context, 'Exchange Type'),
               border: OutlineInputBorder(),
             ),
-            items: const [
+            items:  [
               DropdownMenuItem(
                 value: 'buy',
                 child: Text(ghataT(context, 'Buy')),
@@ -12962,7 +13416,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
           GhataCalculatorField(
             controller: fromAmountController,
-            label: 'From Amount',
+            label: ghataT(context, 'From Amount'),
             onChanged: () =>
                 updateExchangeCalculatorResults(changed: 'from'),
           ),
@@ -13000,7 +13454,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
           GhataCalculatorField(
             controller: toAmountController,
-            label: 'To Amount',
+            label: ghataT(context, 'To Amount'),
             onChanged: () =>
                 updateExchangeCalculatorResults(changed: 'to'),
           ),
@@ -13018,7 +13472,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
           GhataCalculatorField(
             controller: rateController,
-            label: 'Rate (optional)',
+            label: ghataT(context, 'Rate (optional)'),
             onChanged: () =>
                 updateExchangeCalculatorResults(changed: 'rate'),
           ),
@@ -13178,8 +13632,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Profit / Loss',
+                  Text(ghataT(context, 'Profit / Loss'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
