@@ -7805,7 +7805,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                         border: OutlineInputBorder(),
                       ),
                       items: [
-                        const DropdownMenuItem<String?>(
+                        DropdownMenuItem<String?>(
                           value: null,
                           child: Text(ghataT(context, 'General / No Customer')),
                         ),
@@ -12941,7 +12941,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     border: OutlineInputBorder(),
                   ),
                   items: [
-                    const DropdownMenuItem<String?>(
+                    DropdownMenuItem<String?>(
                       value: null,
                       child: Text(ghataT(context, 'No Customer')),
                     ),
@@ -13500,7 +13500,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                   border: OutlineInputBorder(),
                 ),
                 items: [
-                  const DropdownMenuItem<String?>(
+                  DropdownMenuItem<String?>(
                     value: null,
                     child: Text(ghataT(context, 'No Customer')),
                   ),
@@ -14081,7 +14081,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 border: OutlineInputBorder(),
               ),
               items: [
-                const DropdownMenuItem<String?>(
+                DropdownMenuItem<String?>(
                   value: null,
                   child: Text(ghataT(context, 'All currencies')),
                 ),
@@ -14111,7 +14111,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     border: OutlineInputBorder(),
                   ),
                   items: [
-                    const DropdownMenuItem<String?>(
+                    DropdownMenuItem<String?>(
                       value: null,
                       child: Text(ghataT(context, 'All customers')),
                     ),
