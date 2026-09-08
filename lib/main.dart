@@ -2611,7 +2611,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Please enter your email and password')),
         ),
       );
@@ -2641,7 +2641,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Unable to login. Please try again.'))),
+        SnackBar(content: Text(ghataT(context, 'Unable to login. Please try again.'))),
       );
     } finally {
       if (mounted) {
@@ -2693,7 +2693,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: ghataT(context, 'Gmail / Email'),
                       prefixIcon: Icon(Icons.email_outlined),
                       border: OutlineInputBorder(),
@@ -2800,14 +2800,14 @@ class _SignupScreenState extends State<SignupScreen> {
         password.isEmpty ||
         confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Please fill in all fields'))),
+        SnackBar(content: Text(ghataT(context, 'Please fill in all fields'))),
       );
       return;
     }
 
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Password must be at least 6 characters')),
         ),
       );
@@ -2816,7 +2816,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Passwords do not match'))),
+        SnackBar(content: Text(ghataT(context, 'Passwords do not match'))),
       );
       return;
     }
@@ -2836,7 +2836,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (response.user != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
               ghataT(context, 'Account created successfully.'),
             ),
@@ -2861,7 +2861,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Something went wrong. Please try again.')),
         ),
       );
@@ -2900,7 +2900,7 @@ class _SignupScreenState extends State<SignupScreen> {
               const SizedBox(height: 24),
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Full Name'),
                   prefixIcon: Icon(Icons.person_outline),
                   border: OutlineInputBorder(),
@@ -2910,7 +2910,7 @@ class _SignupScreenState extends State<SignupScreen> {
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Gmail / Email'),
                   prefixIcon: Icon(Icons.email_outlined),
                   border: OutlineInputBorder(),
@@ -3020,7 +3020,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Password reset link sent to your email.')),
         ),
       );
@@ -3034,7 +3034,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Unable to send reset link. Please try again.')),
         ),
       );
@@ -3077,7 +3077,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 ghataT(context, 'We will send you a password reset link.'),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
@@ -3086,7 +3086,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Gmail / Email'),
                   prefixIcon: Icon(Icons.email_outlined),
                   border: OutlineInputBorder(),
@@ -3245,7 +3245,7 @@ class _StaffManagementScreenState
                 TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Staff Email'),
                     hintText: 'staff@example.com',
                     border: OutlineInputBorder(),
@@ -3303,7 +3303,7 @@ class _StaffManagementScreenState
     if (email.isEmpty || !email.contains('@')) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Enter a valid staff email.')),
         ),
       );
@@ -3324,7 +3324,7 @@ class _StaffManagementScreenState
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Staff permissions saved.')),
         ),
       );
@@ -3378,7 +3378,7 @@ class _StaffManagementScreenState
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Staff disabled.'))),
+        SnackBar(content: Text(ghataT(context, 'Staff disabled.'))),
       );
     } catch (e) {
       if (!mounted) return;
@@ -3556,7 +3556,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Backup created successfully.')),
         ),
       );
@@ -3634,9 +3634,10 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Keep backup files in a safe place such as your '
-            ghataT(context, 'private cloud storage or another trusted device.'),
+          Text(
+            ghataT(context, 'Keep backup files in a safe place such as your') +
+                ' ' +
+                ghataT(context, 'private cloud storage or another trusted device.'),
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey),
           ),
@@ -3702,7 +3703,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
               obscureText: true,
               keyboardType: TextInputType.number,
               maxLength: 6,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: ghataT(context, 'PIN (4-6 digits)'),
                 border: OutlineInputBorder(),
               ),
@@ -3714,7 +3715,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 obscureText: true,
                 keyboardType: TextInputType.number,
                 maxLength: 6,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Confirm PIN'),
                   border: OutlineInputBorder(),
                 ),
@@ -3735,7 +3736,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
               if (!valid) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(ghataT(context, 'PIN must be 4 to 6 digits.')),
                   ),
                 );
@@ -3744,7 +3745,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
               if (confirm && first != secondController.text.trim()) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(ghataT(context, 'PINs do not match.')),
                   ),
                 );
@@ -3772,7 +3773,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
       if (!await GhataSecurity.verifyPin(current)) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(ghataT(context, 'Incorrect PIN.'))),
+          SnackBar(content: Text(ghataT(context, 'Incorrect PIN.'))),
         );
         return;
       }
@@ -3807,7 +3808,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     if (!await GhataSecurity.verifyPin(current)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Incorrect PIN.'))),
+        SnackBar(content: Text(ghataT(context, 'Incorrect PIN.'))),
       );
       return;
     }
@@ -3817,7 +3818,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text(ghataT(context, 'App PIN removed.'))),
+      SnackBar(content: Text(ghataT(context, 'App PIN removed.'))),
     );
   }
 
@@ -3825,7 +3826,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     if (enabled) {
       if (!hasPin) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(ghataT(context, 'Create an App PIN first.')),
           ),
         );
@@ -3834,7 +3835,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
       if (!biometricAvailable) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
               ghataT(context, 'Fingerprint or Face ID is not available on this device.'),
             ),
@@ -3856,7 +3857,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
   Future<void> testLock() async {
     if (!hasPin) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Create an App PIN first.'))),
+        SnackBar(content: Text(ghataT(context, 'Create an App PIN first.'))),
       );
       return;
     }
@@ -3866,7 +3867,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
       if (success) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(ghataT(context, 'Ghata unlocked successfully.'))),
+          SnackBar(content: Text(ghataT(context, 'Ghata unlocked successfully.'))),
         );
         return;
       }
@@ -5715,7 +5716,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Password must be at least 6 characters')),
         ),
       );
@@ -5724,7 +5725,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Passwords do not match'))),
+        SnackBar(content: Text(ghataT(context, 'Passwords do not match'))),
       );
       return;
     }
@@ -5739,7 +5740,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Password changed successfully.')),
         ),
       );
@@ -5907,7 +5908,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() => isLoading = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Unable to load profile'))),
+        SnackBar(content: Text(ghataT(context, 'Unable to load profile'))),
       );
     }
   }
@@ -5918,7 +5919,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (fullName.isEmpty || username.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Please complete all fields'))),
+        SnackBar(content: Text(ghataT(context, 'Please complete all fields'))),
       );
       return;
     }
@@ -5950,7 +5951,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Profile updated successfully'))),
+        SnackBar(content: Text(ghataT(context, 'Profile updated successfully'))),
       );
     } on PostgrestException catch (e) {
       if (!mounted) return;
@@ -5997,7 +5998,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 30),
                   TextField(
                     controller: fullNameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: ghataT(context, 'Full Name'),
                       prefixIcon: Icon(Icons.person_outline),
                       border: OutlineInputBorder(),
@@ -6034,7 +6035,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: businessNameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: ghataT(context, 'Business Name'),
                       prefixIcon: Icon(Icons.store_outlined),
                       border: OutlineInputBorder(),
@@ -6044,7 +6045,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   TextField(
                     controller: businessPhoneController,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: ghataT(context, 'Business Phone'),
                       prefixIcon: Icon(Icons.phone_outlined),
                       border: OutlineInputBorder(),
@@ -6053,7 +6054,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 16),
                   TextField(
                     controller: businessAddressController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: ghataT(context, 'Business Address'),
                       prefixIcon: Icon(Icons.location_on_outlined),
                       border: OutlineInputBorder(),
@@ -6063,7 +6064,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   TextField(
                     controller: receiptNoteController,
                     maxLines: 2,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: ghataT(context, 'Receipt Note'),
                       hintText: 'Thank you for your business',
                       prefixIcon: Icon(Icons.notes_outlined),
@@ -6136,7 +6137,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
 
     if (newEmail.isEmpty || !newEmail.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Please enter a valid email'))),
+        SnackBar(content: Text(ghataT(context, 'Please enter a valid email'))),
       );
       return;
     }
@@ -6199,7 +6200,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
               autocorrect: false,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: ghataT(context, 'New Email'),
                 prefixIcon: Icon(Icons.email_outlined),
                 border: OutlineInputBorder(),
@@ -6284,7 +6285,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(ghataT(context, 'Transaction restored successfully.')),
       ),
     );
@@ -6334,7 +6335,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(ghataT(context, 'Exchange restored successfully.')),
       ),
     );
@@ -6358,7 +6359,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
   ) async {
     if (daysRemaining(deletedAt) > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Permanent delete is available after 30 days.')),
         ),
       );
@@ -6402,7 +6403,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Exchange removed from Recycle Bin.')),
+        SnackBar(content: Text('Exchange removed from Recycle Bin.')),
       );
 
       setState(() {});
@@ -6441,7 +6442,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(ghataT(context, 'Customer restored successfully.')),
       ),
     );
@@ -6465,7 +6466,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
   ) async {
     if (daysRemaining(deletedAt) > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Permanent delete is available after 30 days.')),
         ),
       );
@@ -6506,7 +6507,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Customer removed from Recycle Bin.')),
+        SnackBar(content: Text('Customer removed from Recycle Bin.')),
       );
 
       setState(() {});
@@ -6526,7 +6527,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
   ) async {
     if (daysRemaining(deletedAt) > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Permanent delete is available after 30 days.')),
         ),
       );
@@ -6570,7 +6571,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Transaction removed from Recycle Bin.'),
         ),
       );
@@ -6627,7 +6628,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
             if (customers.isEmpty &&
                 transactions.isEmpty &&
                 exchanges.isEmpty) {
-              return const Center(
+              return Center(
                 child: Text(ghataT(context, 'Recycle Bin is empty.')),
               );
             }
@@ -7050,7 +7051,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     if (customerRequiredTypes.contains(transactionType) &&
         selectedCustomerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Please select a customer for loan transactions.')),
         ),
       );
@@ -7061,7 +7062,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Please enter a valid amount.'))),
+        SnackBar(content: Text(ghataT(context, 'Please enter a valid amount.'))),
       );
       return;
     }
@@ -7070,7 +7071,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'You are not logged in.'))),
+        SnackBar(content: Text(ghataT(context, 'You are not logged in.'))),
       );
       return;
     }
@@ -7212,7 +7213,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Transaction saved successfully.')),
         ),
       );
@@ -7256,7 +7257,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                   children: [
                     DropdownButtonFormField<String>(
                       initialValue: transactionType,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: ghataT(context, 'Transaction Type'),
                         prefixIcon:
                             Icon(Icons.swap_vert_rounded),
@@ -7313,7 +7314,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
                     DropdownButtonFormField<String>(
                       initialValue: currency,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: ghataT(context, 'Currency'),
                         prefixIcon:
                             Icon(Icons.payments_outlined),
@@ -7460,7 +7461,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     TextField(
                       controller: descriptionController,
                       maxLines: 2,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: ghataT(context, 'Description'),
                         prefixIcon:
                             Icon(Icons.notes_outlined),
@@ -7472,7 +7473,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
                     TextField(
                       controller: referenceController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: ghataT(context, 'Reference No.'),
                         prefixIcon:
                             Icon(Icons.tag_outlined),
@@ -7656,7 +7657,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: editType,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Transaction Type'),
                     border: OutlineInputBorder(),
                   ),
@@ -7684,7 +7685,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: editCurrency,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Currency'),
                     border: OutlineInputBorder(),
                   ),
@@ -7790,7 +7791,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     border: OutlineInputBorder(),
                   ),
                   items: [
-                    const DropdownMenuItem<String>(
+                    DropdownMenuItem<String>(
                       value: null,
                       child: Text(ghataT(context, 'No Customer')),
                     ),
@@ -7821,7 +7822,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: descriptionEditController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Description'),
                     border: OutlineInputBorder(),
                   ),
@@ -7829,7 +7830,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: referenceEditController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Reference No.'),
                     border: OutlineInputBorder(),
                   ),
@@ -7864,7 +7865,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Enter a valid amount greater than zero.')),
         ),
       );
@@ -7887,7 +7888,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             ghataT(context, 'Select a customer for loan and repayment transactions.'),
           ),
@@ -8010,7 +8011,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Transaction updated successfully.')),
         ),
       );
@@ -8344,7 +8345,7 @@ Future<void> shareTransactionReceiptPdf(
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Transaction moved to Recycle Bin. You can restore it within 30 days.'),
         ),
       );
@@ -8610,7 +8611,7 @@ Future<void> shareTransactionReceiptPdf(
                       const SizedBox(height: 8),
 
                       if (filtered.isEmpty)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.all(35),
                           child: Center(
                             child: Text(ghataT(context, 'No transactions found.')),
@@ -8971,7 +8972,7 @@ Future<String?> showCustomerCountryCodePicker(
                   children: [
                     TextField(
                       autofocus: true,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: ghataT(context, 'Search country or code'),
                         hintText: ghataT(context, 'Afghanistan or +93'),
                         prefixIcon: Icon(Icons.search),
@@ -8984,7 +8985,7 @@ Future<String?> showCustomerCountryCodePicker(
                     const SizedBox(height: 12),
                     Expanded(
                       child: filtered.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text(ghataT(context, 'No country found.')),
                             )
                           : ListView.builder(
@@ -9116,7 +9117,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Customer name is required.'))),
+        SnackBar(content: Text(ghataT(context, 'Customer name is required.'))),
       );
       return;
     }
@@ -9162,7 +9163,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Customer added successfully.'))),
+        SnackBar(content: Text(ghataT(context, 'Customer added successfully.'))),
       );
     } catch (e) {
       if (!mounted) return;
@@ -9208,7 +9209,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
             children: [
               TextField(
                 controller: nameEditController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Customer Name'),
                   border: OutlineInputBorder(),
                 ),
@@ -9255,7 +9256,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         child: TextField(
                           controller: phoneEditController,
                           keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: ghataT(context, 'Phone Number'),
                             border: OutlineInputBorder(),
                           ),
@@ -9277,7 +9278,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
               TextField(
                 controller: notesEditController,
                 maxLines: 2,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Notes'),
                   border: OutlineInputBorder(),
                 ),
@@ -9312,7 +9313,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Customer name is required.')),
         ),
       );
@@ -9382,7 +9383,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Customer updated successfully.')),
         ),
       );
@@ -9440,7 +9441,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Customer moved to Recycle Bin. You can restore it within 30 days.'),
         ),
       );
@@ -9486,7 +9487,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Customer Name'),
                     prefixIcon: Icon(Icons.person_outline),
                     border: OutlineInputBorder(),
@@ -9528,7 +9529,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                       child: TextField(
                         controller: phoneController,
                         keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: ghataT(context, 'Phone Number'),
                           border: OutlineInputBorder(),
                         ),
@@ -9549,7 +9550,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 TextField(
                   controller: notesController,
                   maxLines: 2,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Notes'),
                     prefixIcon: Icon(Icons.notes_outlined),
                     border: OutlineInputBorder(),
@@ -9569,7 +9570,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   : () async {
                       if (nameController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content:
                                 Text(ghataT(context, 'Customer name is required.')),
                           ),
@@ -9725,7 +9726,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   }
 
                   if (filtered.isEmpty) {
-                    return const Padding(
+                    return Padding(
                       padding: EdgeInsets.all(40),
                       child: Center(
                         child: Text(ghataT(context, 'No matching customers.')),
@@ -10049,7 +10050,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Customer Name'),
                   border: OutlineInputBorder(),
                 ),
@@ -10096,7 +10097,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                         child: TextField(
                           controller: phoneController,
                           keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: ghataT(context, 'Phone Number'),
                             border: OutlineInputBorder(),
                           ),
@@ -10118,7 +10119,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
               TextField(
                 controller: notesController,
                 maxLines: 2,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Notes'),
                   border: OutlineInputBorder(),
                 ),
@@ -10152,7 +10153,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     if (name.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(ghataT(context, 'Customer name is required.'))),
+          SnackBar(content: Text(ghataT(context, 'Customer name is required.'))),
         );
       }
       nameController.dispose();
@@ -10228,7 +10229,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(ghataT(context, 'Customer updated successfully.'))),
+        SnackBar(content: Text(ghataT(context, 'Customer updated successfully.'))),
       );
     } catch (e) {
       if (!mounted) return;
@@ -10283,7 +10284,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
           'Customer moved to Recycle Bin. You can restore it within 30 days.',
         ),
@@ -10989,7 +10990,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                   const SizedBox(height: 10),
 
                   if (balances.isEmpty)
-                    const Card(
+                    Card(
                       child: Padding(
                         padding: EdgeInsets.all(18),
                         child: Text(ghataT(context, 'No balance yet.')),
@@ -11044,7 +11045,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 const SizedBox(height: 8),
 
                 if (transactions.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.all(24),
                     child: Center(
                       child: Text(ghataT(context, 'No transactions yet.')),
@@ -11646,7 +11647,7 @@ class _LoansScreenState extends State<LoansScreen> {
               ),
               const SizedBox(height: 16),
               if (balanceCards.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: Text(ghataT(context, 'No outstanding loans or debts.')),
                 )
@@ -11918,7 +11919,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               if (balanceCards.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: Text(ghataT(context, 'Cashbox balance is zero.')),
                 )
@@ -11934,7 +11935,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
               ),
               const SizedBox(height: 8),
               if (historyCards.isEmpty)
-                const Text(ghataT(context, 'No cashbox history yet.'))
+                Text(ghataT(context, 'No cashbox history yet.'))
               else
                 ...historyCards,
             ],
@@ -12361,7 +12362,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
                 DropdownButtonFormField<String>(
                   initialValue: editFromCurrency,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'From Currency'),
               prefixIcon: Icon(Icons.arrow_upward_rounded),
                     border: OutlineInputBorder(),
@@ -12407,7 +12408,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: editToCurrency,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'To Currency'),
               prefixIcon: Icon(Icons.arrow_downward_rounded),
                     border: OutlineInputBorder(),
@@ -12480,7 +12481,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 DropdownButtonFormField<String?>(
                   value: editCustomerId,
                   isExpanded: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Customer (optional)'),
                   prefixIcon: Icon(Icons.person_outline),
                     border: OutlineInputBorder(),
@@ -12560,7 +12561,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 TextField(
                   controller: editNotesController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Notes'),
               prefixIcon: Icon(Icons.notes_outlined),
                     border: OutlineInputBorder(),
@@ -12606,7 +12607,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         (rate != null && rate <= 0)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(ghataT(context, 'Please check exchange values.')),
           ),
         );
@@ -12732,7 +12733,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Exchange updated successfully.')),
         ),
       );
@@ -12764,7 +12765,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
     if (fromAmount == null || fromAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Please enter a valid From amount.')),
         ),
       );
@@ -12773,7 +12774,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
     if (toAmount == null || toAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Please enter a valid To amount.')),
         ),
       );
@@ -12782,7 +12783,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
     if (fromCurrency == toCurrency) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Please select two different currencies.')),
         ),
       );
@@ -12791,7 +12792,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
     if (rate != null && rate <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Rate must be greater than zero.')),
         ),
       );
@@ -12887,7 +12888,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(ghataT(context, 'Exchange saved successfully.')),
         ),
       );
@@ -12917,7 +12918,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         children: [
           DropdownButtonFormField<String>(
             value: exchangeType,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: ghataT(context, 'Exchange Type'),
               border: OutlineInputBorder(),
             ),
@@ -12941,7 +12942,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
           DropdownButtonFormField<String>(
             value: fromCurrency,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: ghataT(context, 'From Currency'),
               border: OutlineInputBorder(),
             ),
@@ -12979,7 +12980,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
           DropdownButtonFormField<String>(
             value: toCurrency,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: ghataT(context, 'To Currency'),
               border: OutlineInputBorder(),
             ),
@@ -13040,7 +13041,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
               return DropdownButtonFormField<String?>(
                 value: selectedCustomerId,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Customer (optional)'),
                   border: OutlineInputBorder(),
                 ),
@@ -13133,7 +13134,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           TextField(
             controller: notesController,
             maxLines: 3,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: ghataT(context, 'Notes'),
               border: OutlineInputBorder(),
             ),
@@ -13267,7 +13268,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               final history = snapshot.data ?? [];
 
               if (history.isEmpty) {
-                return const Text(ghataT(context, 'No exchange history yet.'));
+                return Text(ghataT(context, 'No exchange history yet.'));
               }
 
               return Column(
@@ -13622,7 +13623,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: DropdownButtonFormField<String?>(
               value: selectedCurrency,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: ghataT(context, 'Currency'),
                 border: OutlineInputBorder(),
               ),
@@ -13652,7 +13653,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                 return DropdownButtonFormField<String?>(
                   value: selectedCustomerId,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Customer'),
                     border: OutlineInputBorder(),
                   ),
@@ -13725,7 +13726,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           final report = calculateReport(transactions);
 
           if (report.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(ghataT(context, 'No report data yet.')),
             );
           }
