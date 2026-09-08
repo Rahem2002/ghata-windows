@@ -3900,7 +3900,7 @@ class GhataSecurity {
     try {
       final auth = LocalAuthentication();
       return await auth.authenticate(
-        localizedReason: ghataT(context, 'Unlock Ghata'),
+        localizedReason: 'Unlock Ghata',
         options: AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
@@ -9482,7 +9482,7 @@ Future<void> shareTransactionReceiptPdf(
                         ),
                         pw.SizedBox(height: 5),
                         pw.Text(
-                          '${dashboardFlag(currency)}  $amount $currency',
+                          '${flagForCurrency(currency)}  $amount $currency',
                           textAlign: pw.TextAlign.center,
                           style: pw.TextStyle(
                             color: accent,
@@ -9743,7 +9743,7 @@ Future<void> shareTransactionReceiptPdf(
                     ),
                     SizedBox(height: 5),
                     Text(
-                      '${dashboardFlag(currency)}  $amount $currency',
+                      '${flagForCurrency(currency)}  $amount $currency',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: accent,
