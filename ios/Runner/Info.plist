@@ -43,7 +43,9 @@
 					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
 					<key>UISceneStoryboardFile</key>
 					<string>Main</string>
-				</dict>
+					<key>NSFaceIDUsageDescription</key>
+	<string>Ghata uses Face ID to securely unlock your accounting data.</string>
+</dict>
 			</array>
 		</dict>
 	</dict>
