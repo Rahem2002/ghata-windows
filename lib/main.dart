@@ -5035,25 +5035,76 @@ class _HomeScreenState extends State<HomeScreen> {
     return value.toStringAsFixed(2);
   }
 
+  String dashboardFlag(String code) {
+    switch (code.toUpperCase()) {
+      case 'AFN': return '🇦🇫';
+      case 'USD': return '🇺🇸';
+      case 'PKR': return '🇵🇰';
+      case 'EUR': return '🇪🇺';
+      case 'AED': return '🇦🇪';
+      case 'SAR': return '🇸🇦';
+      case 'GBP': return '🇬🇧';
+      case 'IRR': return '🇮🇷';
+      case 'INR': return '🇮🇳';
+      case 'CNY': return '🇨🇳';
+      case 'TRY': return '🇹🇷';
+      case 'RUB': return '🇷🇺';
+      case 'JPY': return '🇯🇵';
+      case 'CAD': return '🇨🇦';
+      default: return '💱';
+    }
+  }
+
+  Color dashboardCurrencyColor(String code) {
+    switch (code.toUpperCase()) {
+      case 'AFN': return Colors.green;
+      case 'USD': return Colors.blue;
+      case 'PKR': return Colors.green;
+      case 'EUR': return Colors.indigo;
+      case 'AED': return Colors.orange;
+      default: return Theme.of(context).colorScheme.primary;
+    }
+  }
+
   Widget summarySection(
     Map<String, Map<String, double>> data,
     String key,
     String title,
     IconData icon,
   ) {
-    final rows = data.entries
+    final currencies = data.entries
         .where((e) => (e.value[key] ?? 0).abs() > 0.000001)
+        .map((e) => e.key.toUpperCase())
         .toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
+      ..sort();
+
+    final isCashbox = key == 'cashbox';
+    final isMoneyIn = key == 'today_in';
+    final isMoneyOut = key == 'today_out';
+    final isReceive = key == 'receive';
+
+    final accent = isCashbox
+        ? Theme.of(context).colorScheme.primary
+        : isMoneyIn
+            ? Colors.green
+            : isMoneyOut
+                ? Colors.red
+                : isReceive
+                    ? Colors.blue
+                    : Colors.orange;
+
+    final bg = accent.withValues(alpha: 0.08);
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(15),
+      margin: EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.all(isCashbox ? 13 : 11),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
+        color: isCashbox
+            ? Theme.of(context).colorScheme.surface
+            : bg,
+        borderRadius: BorderRadius.circular(17),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
+          color: accent.withValues(alpha: 0.18),
         ),
       ),
       child: Column(
@@ -5061,80 +5112,116 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 22),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.13),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: accent, size: 20),
+              ),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  title,
+                  isCashbox
+                      ? '${ghataT(context, 'Cashbox')} (${ghataT(context, 'Total Balance')})'
+                      : title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 17,
+                    fontSize: isCashbox ? 17 : 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              if (rows.length > 2)
+              if (!isCashbox)
                 Icon(
-                  Icons.swipe_rounded,
-                  size: 20,
-                  color: Colors.grey,
+                  Icons.chevron_right_rounded,
+                  size: 21,
+                  color: accent,
                 ),
             ],
           ),
-          SizedBox(height: 12),
-          if (rows.isEmpty)
-            Text(
-              'No balance',
-              style: TextStyle(color: Colors.grey),
+          SizedBox(height: 9),
+
+          if (currencies.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                ghataT(context, 'No balance'),
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurfaceVariant,
+                ),
+              ),
             )
           else
-            SizedBox(
-              height: 72,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: BouncingScrollPhysics(),
-                itemCount: rows.length,
-                separatorBuilder: (_, __) =>
-                    SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final e = rows[index];
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final itemWidth = isCashbox
+                    ? (constraints.maxWidth < 380 ? 92.0 : 105.0)
+                    : (constraints.maxWidth < 180 ? 66.0 : 78.0);
 
-                  return Container(
-                    constraints: BoxConstraints(
-                      minWidth: 140,
-                      maxWidth: 185,
-                    ),
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          e.key,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
+                return Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: currencies.map((code) {
+                    final value = data[code]?[key] ?? 0;
+                    final c = dashboardCurrencyColor(code);
+
+                    return Container(
+                      width: itemWidth,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: isCashbox ? 8 : 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isCashbox
+                            ? c.withValues(alpha: 0.08)
+                            : Theme.of(context)
+                                .colorScheme
+                                .surface
+                                .withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            dashboardFlag(code),
+                            style: TextStyle(
+                              fontSize: isCashbox ? 19 : 15,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          amountText(e.value[key] ?? 0),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
+                          SizedBox(height: 2),
+                          Text(
+                            code,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                          SizedBox(height: 2),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              amountText(value),
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: isCashbox ? 15 : 12,
+                                fontWeight: FontWeight.bold,
+                                color: isCashbox ? c : accent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
         ],
       ),
@@ -5356,29 +5443,49 @@ class _HomeScreenState extends State<HomeScreen> {
                         ghataT(context, 'Cashbox'),
                         Icons.account_balance_wallet_outlined,
                       ),
-                      summarySection(
-                        data,
-                        'today_in',
-                        ghataT(context, 'Money In'),
-                        Icons.south_west_rounded,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: summarySection(
+                              data,
+                              'today_in',
+                              ghataT(context, 'Money In'),
+                              Icons.south_west_rounded,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: summarySection(
+                              data,
+                              'today_out',
+                              ghataT(context, 'Money Out'),
+                              Icons.north_east_rounded,
+                            ),
+                          ),
+                        ],
                       ),
-                      summarySection(
-                        data,
-                        'today_out',
-                        ghataT(context, 'Money Out'),
-                        Icons.north_east_rounded,
-                      ),
-                      summarySection(
-                        data,
-                        'receive',
-                        ghataT(context, 'You Receive'),
-                        Icons.call_received_rounded,
-                      ),
-                      summarySection(
-                        data,
-                        'pay',
-                        ghataT(context, 'You Pay'),
-                        Icons.call_made_rounded,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: summarySection(
+                              data,
+                              'receive',
+                              ghataT(context, 'You Receive'),
+                              Icons.call_received_rounded,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: summarySection(
+                              data,
+                              'pay',
+                              ghataT(context, 'You Pay'),
+                              Icons.call_made_rounded,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   );
@@ -5388,27 +5495,70 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(height: 4),
 
               editPermissionButton(
-                SizedBox(
+                Container(
                   width: double.infinity,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                        vertical: 16,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF6C4DFF),
+                        Color(0xFF845EF7),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(17),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ExchangeScreen(),
+                          ),
+                        );
+                        refreshDashboard();
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 17,
+                          vertical: 15,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.16),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.currency_exchange_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                ghataT(context, 'Exchange'),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    onPressed: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ExchangeScreen(),
-                        ),
-                      );
-                      refreshDashboard();
-                    },
-                    icon: Icon(
-                      Icons.currency_exchange_rounded,
-                    ),
-                    label: Text(ghataT(context, 'Exchange')),
                   ),
                 ),
               ),
@@ -5461,92 +5611,188 @@ class _HomeScreenState extends State<HomeScreen> {
                   final rows = snapshot.data ?? [];
 
                   if (rows.isEmpty) {
-                    return Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(18),
-                        child: Center(
-                          child: Text(
-                            ghataT(context, 'No transactions yet'),
-                            style: TextStyle(
-                              color: Colors.grey,
-                            ),
+                    return Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Center(
+                        child: Text(
+                          ghataT(context, 'No transactions yet'),
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
                           ),
                         ),
                       ),
                     );
                   }
 
-                  return Column(
-                    children: rows.map((row) {
-                      final type =
-                          row['transaction_type']
-                                  ?.toString() ??
-                              '';
-                      final amount =
-                          row['amount']?.toString() ?? '0';
-                      final currency =
-                          row['currency']?.toString() ?? '';
-                      final customer =
-                          row['customer_name']
-                                  ?.toString() ??
-                              '';
-                      final date =
-                          row['transaction_date']
-                                  ?.toString() ??
-                              '';
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .outlineVariant,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        ...rows.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final row = entry.value;
 
-                      final incoming =
-                          type == 'money_in' ||
-                          type ==
-                              'loan_repayment_received' ||
-                          type == 'loan_received' ||
-                          type == 'adjustment_in';
+                          final type =
+                              row['transaction_type']
+                                      ?.toString() ??
+                                  '';
+                          final amount =
+                              row['amount']?.toString() ?? '0';
+                          final currency =
+                              row['currency']?.toString() ?? '';
+                          final customer =
+                              row['customer_name']
+                                      ?.toString() ??
+                                  '';
+                          final date =
+                              row['transaction_date']
+                                      ?.toString() ??
+                                  '';
 
-                      return Card(
-                        margin:
-                            EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: Icon(
-                              incoming
-                                  ? Icons
-                                      .south_west_rounded
-                                  : Icons
-                                      .north_east_rounded,
-                            ),
-                          ),
-                          title: Text(
-                            '$amount $currency',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(
-                            [
-                              homeTransactionLabel(type),
-                              if (customer.isNotEmpty)
-                                customer,
-                              if (date.isNotEmpty) date,
-                            ].join(' • '),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: Icon(
-                            Icons.chevron_right,
-                          ),
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    DailyJournalScreen(),
+                          final incoming =
+                              type == 'money_in' ||
+                              type ==
+                                  'loan_repayment_received' ||
+                              type == 'loan_received' ||
+                              type == 'adjustment_in';
+
+                          final accent =
+                              incoming ? Colors.green : Colors.red;
+
+                          return Column(
+                            children: [
+                              InkWell(
+                                borderRadius:
+                                    BorderRadius.circular(16),
+                                onTap: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          DailyJournalScreen(),
+                                    ),
+                                  );
+                                  refreshDashboard();
+                                },
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 11,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: accent.withValues(
+                                            alpha: 0.10,
+                                          ),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          incoming
+                                              ? Icons
+                                                  .south_west_rounded
+                                              : Icons
+                                                  .north_east_rounded,
+                                          color: accent,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              customer.isNotEmpty
+                                                  ? customer
+                                                  : homeTransactionLabel(
+                                                      type,
+                                                    ),
+                                              maxLines: 1,
+                                              overflow:
+                                                  TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight:
+                                                    FontWeight.w600,
+                                              ),
+                                            ),
+                                            SizedBox(height: 3),
+                                            Text(
+                                              [
+                                                homeTransactionLabel(
+                                                  type,
+                                                ),
+                                                if (date.isNotEmpty)
+                                                  date,
+                                              ].join(' • '),
+                                              maxLines: 1,
+                                              overflow:
+                                                  TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '$amount $currency',
+                                            style: TextStyle(
+                                              color: accent,
+                                              fontSize: 13,
+                                              fontWeight:
+                                                  FontWeight.bold,
+                                            ),
+                                          ),
+                                          SizedBox(height: 3),
+                                          Text(
+                                            dashboardFlag(currency),
+                                            style:
+                                                TextStyle(fontSize: 15),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            );
-                            refreshDashboard();
-                          },
-                        ),
-                      );
-                    }).toList(),
+                              if (index != rows.length - 1)
+                                Divider(height: 1),
+                            ],
+                          );
+                        }),
+                      ],
+                    ),
                   );
                 },
               ),
