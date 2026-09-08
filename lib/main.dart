@@ -313,7 +313,7 @@ double? evaluateCalculatorExpression(String input) {
 
 
 class GhataCalculatorField extends StatelessWidget {
-  const GhataCalculatorField({
+  GhataCalculatorField({
     super.key,
     required this.controller,
     required this.label,
@@ -401,7 +401,7 @@ class GhataCalculatorField extends StatelessWidget {
             }) {
               return Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(5),
+                  padding: EdgeInsets.all(5),
                   child: SizedBox(
                     height: 68,
                     child: primary
@@ -441,7 +441,7 @@ class GhataCalculatorField extends StatelessWidget {
                 },
                 child: Text(
                   key,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w500,
                   ),
@@ -451,7 +451,7 @@ class GhataCalculatorField extends StatelessWidget {
 
             return SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+                padding: EdgeInsets.fromLTRB(14, 12, 14, 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -462,35 +462,35 @@ class GhataCalculatorField extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     Container(
                       width: double.infinity,
-                      constraints: const BoxConstraints(minHeight: 80),
+                      constraints: BoxConstraints(minHeight: 80),
                       alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      padding: EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
                         controller.text.isEmpty ? '0' : controller.text,
                         textAlign: TextAlign.end,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 42,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
 
                     Row(
                       children: [
                         calcKey(
                           onPressed: () => refresh(_clear),
-                          child: const Text(
+                          child: Text(
                             'AC',
                             style: TextStyle(fontSize: 22),
                           ),
                         ),
                         calcKey(
                           onPressed: () => refresh(_backspace),
-                          child: const Icon(
+                          child: Icon(
                             Icons.backspace_outlined,
                             size: 26,
                           ),
@@ -527,7 +527,7 @@ class GhataCalculatorField extends StatelessWidget {
                       children: [
                         calcKey(
                           onPressed: () => refresh(_toggleSign),
-                          child: const Text(
+                          child: Text(
                             '+/−',
                             style: TextStyle(fontSize: 20),
                           ),
@@ -556,8 +556,8 @@ class GhataCalculatorField extends StatelessWidget {
       onTap: () => _openCalculator(context),
       decoration: InputDecoration(
         labelText: label,
-        suffixIcon: const Icon(Icons.calculate_outlined),
-        border: const OutlineInputBorder(),
+        suffixIcon: Icon(Icons.calculate_outlined),
+        border: OutlineInputBorder(),
       ),
     );
   }
@@ -574,7 +574,7 @@ Future<void> main() async {
     anonKey: supabaseAnonKey,
   );
 
-  runApp(const GhataApp());
+  runApp(GhataApp());
 }
 
 
@@ -670,8 +670,8 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'کرنسی ایکسچینج',
     'ar': 'الصرافة',
   },
-  ghataT(context, 'Recent Transactions'): {
-    'en': ghataT(context, 'Recent Transactions'),
+  'Recent Transactions': {
+    'en': 'Recent Transactions',
     'ps': 'وروستۍ معاملې',
     'fa': 'معاملات اخیر',
     'ur': 'حالیہ لین دین',
@@ -684,8 +684,8 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'سب دیکھیں',
     'ar': 'عرض الكل',
   },
-  ghataT(context, 'No transactions yet'): {
-    'en': ghataT(context, 'No transactions yet'),
+  'No transactions yet': {
+    'en': 'No transactions yet',
     'ps': 'تر اوسه معامله نشته',
     'fa': 'هنوز معامله‌ای نیست',
     'ur': 'ابھی کوئی لین دین نہیں',
@@ -1637,8 +1637,8 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'گاہک ری سائیکل بن میں منتقل ہو گیا۔ آپ اسے 30 دن کے اندر بحال کر سکتے ہیں۔',
     'ar': 'تم نقل العميل إلى سلة المحذوفات. يمكنك استعادته خلال 30 يومًا.',
   },
-  ghataT(context, 'Business Ledger & Accounting'): {
-    'en': ghataT(context, 'Business Ledger & Accounting'),
+  'Business Ledger & Accounting': {
+    'en': 'Business Ledger & Accounting',
     'ps': 'د سوداګرۍ حساب او محاسبه',
     'fa': 'دفتر حساب و حسابداری تجارت',
     'ur': 'کاروباری کھاتہ اور حسابداری',
@@ -1658,15 +1658,15 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'غیر فعال',
     'ar': 'معطل',
   },
-  ghataT(context, 'Change App PIN'): {
-    'en': ghataT(context, 'Change App PIN'),
+  'Change App PIN': {
+    'en': 'Change App PIN',
     'ps': 'د اپ PIN بدل کړئ',
     'fa': 'تغییر PIN برنامه',
     'ur': 'ایپ PIN تبدیل کریں',
     'ar': 'تغيير PIN التطبيق',
   },
-  ghataT(context, 'Create App PIN'): {
-    'en': ghataT(context, 'Create App PIN'),
+  'Create App PIN': {
+    'en': 'Create App PIN',
     'ps': 'د اپ PIN جوړ کړئ',
     'fa': 'ایجاد PIN برنامه',
     'ur': 'ایپ PIN بنائیں',
@@ -1728,8 +1728,8 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'عمومی',
     'ar': 'عام',
   },
-  ghataT(context, 'Customer Full Statement'): {
-    'en': ghataT(context, 'Customer Full Statement'),
+  'Customer Full Statement': {
+    'en': 'Customer Full Statement',
     'ps': 'د پېرودونکي بشپړ حساب',
     'fa': 'صورت‌حساب کامل مشتری',
     'ur': 'گاہک کا مکمل اسٹیٹمنٹ',
@@ -1812,8 +1812,8 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'ایکسچینج محفوظ کریں',
     'ar': 'تسجيل الصرف',
   },
-  ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'): {
-    'en': ghataT(context, 'Generated by Ghata - Business Ledger & Accounting'),
+  'Generated by Ghata - Business Ledger & Accounting': {
+    'en': 'Generated by Ghata - Business Ledger & Accounting',
     'ps': 'د ګهته – سوداګرۍ حساب او محاسبې لخوا جوړ شوی',
     'fa': 'ایجاد شده توسط گِهته – دفتر حساب و حسابداری تجارت',
     'ur': 'گھتہ – کاروباری کھاتہ اور حسابداری کے ذریعے تیار شدہ',
@@ -1854,8 +1854,8 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'پاس ورڈ تبدیل کریں',
     'ar': 'تغيير كلمة المرور',
   },
-  ghataT(context, 'Current Balance'): {
-    'en': ghataT(context, 'Current Balance'),
+  'Current Balance': {
+    'en': 'Current Balance',
     'ps': 'اوسنی بیلانس',
     'fa': 'موجودی فعلی',
     'ur': 'موجودہ بیلنس',
@@ -2945,7 +2945,7 @@ String ghataLanguageName(String code) {
 }
 
 class GhataApp extends StatefulWidget {
-  const GhataApp({super.key});
+  GhataApp({super.key});
 
   @override
   State<GhataApp> createState() => _GhataAppState();
@@ -2958,7 +2958,7 @@ class _GhataAppState extends State<GhataApp> {
   static const _languageKey = 'ghata_language';
   static const _themeKey = 'ghata_theme_mode';
 
-  Locale _locale = const Locale('en');
+  Locale _locale = Locale('en');
   ThemeMode _themeMode = ThemeMode.light;
 
   String get currentLanguage => _locale.languageCode;
@@ -3031,7 +3031,7 @@ class _GhataAppState extends State<GhataApp> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           navigatorKey.currentState?.pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (_) => const NewPasswordScreen(),
+              builder: (_) => NewPasswordScreen(),
             ),
             (route) => false,
           );
@@ -3050,7 +3050,7 @@ class _GhataAppState extends State<GhataApp> {
       // Default language: English
       locale: _locale,
 
-      supportedLocales: const [
+      supportedLocales: [
         Locale('en'), // English
         Locale('ps'), // پښتو
         Locale('fa'), // دری
@@ -3058,7 +3058,7 @@ class _GhataAppState extends State<GhataApp> {
         Locale('ar'), // العربية
       ],
 
-      localizationsDelegates: const [
+      localizationsDelegates: [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
@@ -3076,14 +3076,14 @@ class _GhataAppState extends State<GhataApp> {
       ),
       themeMode: _themeMode,
       home: Supabase.instance.client.auth.currentSession == null
-          ? const LoginScreen()
-          : const GhataStartupGate(),
+          ? LoginScreen()
+          : GhataStartupGate(),
     );
   }
 }
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -3120,7 +3120,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => HomeScreen()),
         (route) => false,
       );
     } on AuthException catch (e) {
@@ -3153,19 +3153,19 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: BoxConstraints(maxWidth: 420),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.menu_book_rounded,
                     size: 72,
                     color: Colors.blue,
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  SizedBox(height: 16),
+                  Text(
                     'ګهته',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -3173,13 +3173,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
+                  SizedBox(height: 4),
+                  Text(
                     'Ghata – Business Ledger & Accounting',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey),
                   ),
-                  const SizedBox(height: 36),
+                  SizedBox(height: 36),
                   TextField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -3189,14 +3189,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   TextField(
                     controller: passwordController,
                     obscureText: hidePassword,
                     decoration: InputDecoration(
                       labelText: ghataT(context, 'Password'),
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: const OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
                       suffixIcon: IconButton(
                         onPressed: () {
                           setState(() {
@@ -3211,7 +3211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -3219,14 +3219,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ForgotPasswordScreen(),
+                            builder: (_) => ForgotPasswordScreen(),
                           ),
                         );
                       },
                       child: Text(ghataT(context, 'Forgot Password?')),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   SizedBox(
                     height: 52,
                     child: FilledButton(
@@ -3234,7 +3234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text(ghataT(context, 'Login')),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -3244,7 +3244,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const SignupScreen(),
+                              builder: (_) => SignupScreen(),
                             ),
                           );
                         },
@@ -3263,7 +3263,7 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  SignupScreen({super.key});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -3336,7 +3336,7 @@ class _SignupScreenState extends State<SignupScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (_) => const HomeScreen(),
+            builder: (_) => HomeScreen(),
           ),
           (route) => false,
         );
@@ -3379,15 +3379,15 @@ class _SignupScreenState extends State<SignupScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             children: [
-              const Icon(
+              Icon(
                 Icons.person_add_alt_1_rounded,
                 size: 70,
                 color: Colors.blue,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               TextField(
                 controller: nameController,
                 decoration: InputDecoration(
@@ -3396,7 +3396,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -3406,14 +3406,14 @@ class _SignupScreenState extends State<SignupScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               TextField(
                 controller: passwordController,
                 obscureText: hidePassword,
                 decoration: InputDecoration(
                   labelText: ghataT(context, 'Password'),
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  border: const OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_outline),
+                  border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     onPressed: () {
                       setState(() {
@@ -3428,14 +3428,14 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               TextField(
                 controller: confirmPasswordController,
                 obscureText: hideConfirmPassword,
                 decoration: InputDecoration(
                   labelText: ghataT(context, 'Confirm Password'),
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  border: const OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_outline),
+                  border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     onPressed: () {
                       setState(() {
@@ -3450,14 +3450,14 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: FilledButton(
                   onPressed: isLoading ? null : createAccount,
                   child: isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
@@ -3476,7 +3476,7 @@ class _SignupScreenState extends State<SignupScreen> {
 }
 
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key});
+  ForgotPasswordScreen({super.key});
 
   @override
   State<ForgotPasswordScreen> createState() =>
@@ -3549,30 +3549,30 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             children: [
-              const SizedBox(height: 30),
-              const Icon(
+              SizedBox(height: 30),
+              Icon(
                 Icons.lock_reset_rounded,
                 size: 76,
                 color: Colors.blue,
               ),
-              const SizedBox(height: 20),
-              const Text(
+              SizedBox(height: 20),
+              Text(
                 'Enter your Gmail / Email',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
                 ghataT(context, 'We will send you a password reset link.'),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               TextField(
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -3582,14 +3582,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: FilledButton(
                   onPressed: isLoading ? null : sendResetLink,
                   child: isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
@@ -3658,7 +3658,7 @@ class GhataSecurity {
       final auth = LocalAuthentication();
       return await auth.authenticate(
         localizedReason: 'Unlock Ghata',
-        options: const AuthenticationOptions(
+        options: AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
         ),
@@ -3673,7 +3673,7 @@ class GhataSecurity {
 
 
 class StaffManagementScreen extends StatefulWidget {
-  const StaffManagementScreen({super.key});
+  StaffManagementScreen({super.key});
 
   @override
   State<StaffManagementScreen> createState() =>
@@ -3741,11 +3741,11 @@ class _StaffManagementScreenState
                     border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(ghataT(context, 'Add / Edit')),
-                  subtitle: const Text(
+                  subtitle: Text(
                     'Allow adding and editing accounting records.',
                   ),
                   value: canAddEdit,
@@ -3886,13 +3886,13 @@ class _StaffManagementScreenState
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: addStaff,
-        icon: const Icon(Icons.person_add_outlined),
+        icon: Icon(Icons.person_add_outlined),
         label: Text(ghataT(context, 'Add Staff')),
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : staff.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'No staff added yet.',
                     textAlign: TextAlign.center,
@@ -3901,7 +3901,7 @@ class _StaffManagementScreenState
               : RefreshIndicator(
                   onRefresh: loadStaff,
                   child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(
+                    padding: EdgeInsets.fromLTRB(
                       12,
                       12,
                       12,
@@ -3938,7 +3938,7 @@ class _StaffManagementScreenState
                           trailing: active
                               ? IconButton(
                                   tooltip: ghataT(context, 'Disable Staff'),
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.block_outlined,
                                   ),
                                   onPressed: () =>
@@ -3956,7 +3956,7 @@ class _StaffManagementScreenState
 
 
 class BackupRestoreScreen extends StatefulWidget {
-  const BackupRestoreScreen({super.key});
+  BackupRestoreScreen({super.key});
 
   @override
   State<BackupRestoreScreen> createState() =>
@@ -4015,7 +4015,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
       final bytes = Uint8List.fromList(
         utf8.encode(
-          const JsonEncoder.withIndent('  ').convert(backup),
+          JsonEncoder.withIndent('  ').convert(backup),
         ),
       );
 
@@ -4068,7 +4068,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(ghataT(context, 'Restore Backup')),
-        content: const Text(
+        content: Text(
           'Backup export is ready. Safe restore will be enabled '
           'after restore validation is connected, so an invalid or '
           'wrong-account backup cannot overwrite accounting data.',
@@ -4090,40 +4090,40 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
         title: Text(ghataT(context, 'Backup & Restore')),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
           Card(
             child: ListTile(
-              leading: const Icon(Icons.cloud_upload_outlined),
+              leading: Icon(Icons.cloud_upload_outlined),
               title: Text(ghataT(context, 'Create Backup')),
-              subtitle: const Text(
+              subtitle: Text(
                 'Export customers, transactions, exchanges and profile.',
               ),
               trailing: busy
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 24,
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                       ),
                     )
-                  : const Icon(Icons.chevron_right),
+                  : Icon(Icons.chevron_right),
               onTap: busy ? null : createBackup,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.restore_outlined),
+              leading: Icon(Icons.restore_outlined),
               title: Text(ghataT(context, 'Restore Backup')),
-              subtitle: const Text(
+              subtitle: Text(
                 'Protected restore with validation.',
               ),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: Icon(Icons.chevron_right),
               onTap: showRestoreInfo,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             ghataT(context, 'Keep backup files in a safe place such as your') +
                 ' ' +
@@ -4139,7 +4139,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
 
 class SecurityScreen extends StatefulWidget {
-  const SecurityScreen({super.key});
+  SecurityScreen({super.key});
 
   @override
   State<SecurityScreen> createState() => _SecurityScreenState();
@@ -4199,7 +4199,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
               ),
             ),
             if (confirm) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: secondController,
                 obscureText: true,
@@ -4387,37 +4387,37 @@ class _SecurityScreenState extends State<SecurityScreen> {
         title: Text(ghataT(context, 'Security')),
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               children: [
                 Card(
                   child: Column(
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.pin_outlined),
+                        leading: Icon(Icons.pin_outlined),
                         title: Text(
                           hasPin ? ghataT(context, 'Change App PIN') : ghataT(context, 'Create App PIN'),
                         ),
-                        subtitle: const Text(
+                        subtitle: Text(
                           'Use a 4 to 6 digit PIN to protect Ghata.',
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Icon(Icons.chevron_right),
                         onTap: createOrChangePin,
                       ),
                       if (hasPin)
                         ListTile(
-                          leading: const Icon(Icons.lock_open_outlined),
+                          leading: Icon(Icons.lock_open_outlined),
                           title: Text(ghataT(context, 'Remove App PIN')),
                           onTap: removePin,
                         ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Card(
                   child: SwitchListTile(
-                    secondary: const Icon(Icons.fingerprint),
+                    secondary: Icon(Icons.fingerprint),
                     title: Text(ghataT(context, 'Fingerprint / Face ID')),
                     subtitle: Text(
                       biometricAvailable
@@ -4429,14 +4429,14 @@ class _SecurityScreenState extends State<SecurityScreen> {
                         biometricAvailable ? changeBiometric : null,
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 FilledButton.icon(
                   onPressed: testLock,
-                  icon: const Icon(Icons.lock_outline),
+                  icon: Icon(Icons.lock_outline),
                   label: Text(ghataT(context, 'Test App Lock')),
                 ),
-                const SizedBox(height: 12),
-                const Text(
+                SizedBox(height: 12),
+                Text(
                   '',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
@@ -4450,7 +4450,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
 
 class GhataStartupGate extends StatefulWidget {
-  const GhataStartupGate({super.key});
+  GhataStartupGate({super.key});
 
   @override
   State<GhataStartupGate> createState() => _GhataStartupGateState();
@@ -4559,7 +4559,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => const LoginScreen(),
+        builder: (_) => LoginScreen(),
       ),
       (_) => false,
     );
@@ -4574,7 +4574,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
         ),
@@ -4582,37 +4582,37 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
     }
 
     if (unlocked) {
-      return const HomeScreen();
+      return HomeScreen();
     }
 
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: BoxConstraints(maxWidth: 420),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.lock_outline,
                     size: 72,
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  SizedBox(height: 16),
+                  Text(
                     'ګهته – Ghata',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
+                  SizedBox(height: 6),
+                  Text(
                     'Unlock Ghata',
                     style: TextStyle(fontSize: 18),
                   ),
-                  const SizedBox(height: 28),
+                  SizedBox(height: 28),
                   TextField(
                     controller: pinController,
                     autofocus: !biometricEnabled,
@@ -4623,21 +4623,21 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
                     onSubmitted: (_) => unlockWithPin(),
                     decoration: InputDecoration(
                       labelText: ghataT(context, 'App PIN'),
-                      border: const OutlineInputBorder(),
+                      border: OutlineInputBorder(),
                       errorText: errorText,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: unlockWithPin,
-                      icon: const Icon(Icons.lock_open_outlined),
+                      icon: Icon(Icons.lock_open_outlined),
                       label: Text(ghataT(context, 'Unlock')),
                     ),
                   ),
                   if (biometricEnabled) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -4645,21 +4645,21 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
                             ? null
                             : unlockWithBiometric,
                         icon: checkingBiometric
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(Icons.fingerprint),
-                        label: const Text(
+                            : Icon(Icons.fingerprint),
+                        label: Text(
                           'Fingerprint / Face ID',
                         ),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   TextButton(
                     onPressed: signOut,
                     child: Text(ghataT(context, 'Sign Out')),
@@ -4676,7 +4676,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
 
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -4922,42 +4922,42 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.person_outline),
+              leading: Icon(Icons.person_outline),
               title: Text(ghataT(context, 'Profile & Business')),
               onTap: () => Navigator.pop(context, 'profile'),
             ),
             ListTile(
-              leading: const Icon(Icons.security_outlined),
+              leading: Icon(Icons.security_outlined),
               title: Text(ghataT(context, 'Security')),
               onTap: () => Navigator.pop(context, 'security'),
             ),
             ListTile(
-              leading: const Icon(Icons.groups_outlined),
+              leading: Icon(Icons.groups_outlined),
               title: Text(ghataT(context, 'Staff & Roles')),
               onTap: () => Navigator.pop(context, 'staff'),
             ),
             ListTile(
-              leading: const Icon(Icons.cloud_outlined),
+              leading: Icon(Icons.cloud_outlined),
               title: Text(ghataT(context, 'Backup & Restore')),
               onTap: () => Navigator.pop(context, 'backup'),
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline),
+              leading: Icon(Icons.delete_outline),
               title: Text(ghataT(context, 'Recycle Bin')),
               onTap: () => Navigator.pop(context, 'recycle'),
             ),
             ListTile(
-              leading: const Icon(Icons.info_outline_rounded),
+              leading: Icon(Icons.info_outline_rounded),
               title: Text(ghataT(context, 'About Ghata')),
               onTap: () => Navigator.pop(context, 'about'),
             ),
-            const Divider(),
+            Divider(),
             ListTile(
-              leading: const Icon(Icons.logout),
+              leading: Icon(Icons.logout),
               title: Text(ghataT(context, 'Sign Out')),
               onTap: () => Navigator.pop(context, 'logout'),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
           ],
         ),
       ),
@@ -4968,23 +4968,23 @@ class _HomeScreenState extends State<HomeScreen> {
     Widget? screen;
 
     if (choice == 'profile') {
-      screen = const ProfileScreen();
+      screen = ProfileScreen();
     } else if (choice == 'security') {
-      screen = const SecurityScreen();
+      screen = SecurityScreen();
     } else if (choice == 'staff') {
-      screen = const StaffManagementScreen();
+      screen = StaffManagementScreen();
     } else if (choice == 'backup') {
-      screen = const BackupRestoreScreen();
+      screen = BackupRestoreScreen();
     } else if (choice == 'recycle') {
-      screen = const RecycleBinScreen();
+      screen = RecycleBinScreen();
     } else if (choice == 'about') {
-      screen = const AboutGhataScreen();
+      screen = AboutGhataScreen();
     } else if (choice == 'logout') {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: Text(ghataT(context, 'Sign Out')),
-          content: const Text(
+          content: Text(
             'Are you sure you want to sign out?',
           ),
           actions: [
@@ -5047,8 +5047,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ..sort((a, b) => a.key.compareTo(b.key));
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(20),
@@ -5062,27 +5062,27 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             children: [
               Icon(icon, size: 22),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
               if (rows.length > 2)
-                const Icon(
+                Icon(
                   Icons.swipe_rounded,
                   size: 20,
                   color: Colors.grey,
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (rows.isEmpty)
-            const Text(
+            Text(
               'No balance',
               style: TextStyle(color: Colors.grey),
             )
@@ -5091,19 +5091,19 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 72,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
+                physics: BouncingScrollPhysics(),
                 itemCount: rows.length,
                 separatorBuilder: (_, __) =>
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final e = rows[index];
 
                   return Container(
-                    constraints: const BoxConstraints(
+                    constraints: BoxConstraints(
                       minWidth: 140,
                       maxWidth: 185,
                     ),
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Theme.of(context)
                           .colorScheme
@@ -5116,16 +5116,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           e.key,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           amountText(e.value[key] ?? 0),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
                           ),
@@ -5153,14 +5153,14 @@ class _HomeScreenState extends State<HomeScreen> {
       future: canEditFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const SizedBox(
+          return SizedBox(
             height: 48,
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
         if (snapshot.data != true) {
-          return const SizedBox.shrink();
+          return SizedBox.shrink();
         }
 
         return child;
@@ -5173,14 +5173,14 @@ class _HomeScreenState extends State<HomeScreen> {
       future: canViewReportsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const SizedBox(
+          return SizedBox(
             height: 48,
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
         if (snapshot.data != true) {
-          return const SizedBox.shrink();
+          return SizedBox.shrink();
         }
 
         return child;
@@ -5193,7 +5193,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -5213,9 +5213,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             tooltip: ghataT(context, 'Settings & Account'),
             onPressed: showHomeMenu,
-            icon: const Icon(Icons.menu_rounded),
+            icon: Icon(Icons.menu_rounded),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
         ],
       ),
       body: SafeArea(
@@ -5225,7 +5225,7 @@ class _HomeScreenState extends State<HomeScreen> {
             await dashboardFuture;
           },
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             children: [
               // GHATA_LANGUAGE_THEME_CONTROLS
               Builder(
@@ -5238,7 +5238,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Theme.of(context).brightness == Brightness.dark;
 
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.only(bottom: 12),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -5247,7 +5247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onSelected: (value) {
                             appState?.changeLanguage(value);
                           },
-                          itemBuilder: (context) => const [
+                          itemBuilder: (context) => [
                             PopupMenuItem(
                               value: 'en',
                               child: Text('🇬🇧 English'),
@@ -5270,7 +5270,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                           child: Container(
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 8,
                             ),
@@ -5285,16 +5285,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.language_rounded,
                                   size: 20,
                                 ),
-                                const SizedBox(width: 7),
+                                SizedBox(width: 7),
                                 Text(
                                   ghataLanguageName(languageCode),
                                 ),
-                                const SizedBox(width: 3),
-                                const Icon(
+                                SizedBox(width: 3),
+                                Icon(
                                   Icons.arrow_drop_down,
                                   size: 20,
                                 ),
@@ -5302,7 +5302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Tooltip(
                           message: isDark
                               ? ghataT(context, 'lightMode')
@@ -5327,7 +5327,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
-                    return const Padding(
+                    return Padding(
                       padding: EdgeInsets.all(30),
                       child: Center(
                         child: CircularProgressIndicator(),
@@ -5338,7 +5338,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (snapshot.hasError) {
                     return Card(
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         child: Text(
                           'Could not load dashboard: ${snapshot.error}',
                         ),
@@ -5385,14 +5385,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
 
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
 
               editPermissionButton(
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         vertical: 16,
                       ),
                     ),
@@ -5400,12 +5400,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const ExchangeScreen(),
+                          builder: (_) => ExchangeScreen(),
                         ),
                       );
                       refreshDashboard();
                     },
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.currency_exchange_rounded,
                     ),
                     label: Text(ghataT(context, 'Exchange')),
@@ -5414,11 +5414,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
 
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
 
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       ghataT(context, 'Recent Transactions'),
                       style: TextStyle(
@@ -5433,7 +5433,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (_) =>
-                              const DailyJournalScreen(),
+                              DailyJournalScreen(),
                         ),
                       );
                       refreshDashboard();
@@ -5443,14 +5443,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
 
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
 
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: loadRecentTransactions(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
-                    return const Padding(
+                    return Padding(
                       padding: EdgeInsets.all(18),
                       child: Center(
                         child: CircularProgressIndicator(),
@@ -5461,7 +5461,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   final rows = snapshot.data ?? [];
 
                   if (rows.isEmpty) {
-                    return const Card(
+                    return Card(
                       child: Padding(
                         padding: EdgeInsets.all(18),
                         child: Center(
@@ -5504,7 +5504,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       return Card(
                         margin:
-                            const EdgeInsets.only(bottom: 8),
+                            EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           leading: CircleAvatar(
                             child: Icon(
@@ -5517,7 +5517,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           title: Text(
                             '$amount $currency',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -5531,7 +5531,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          trailing: const Icon(
+                          trailing: Icon(
                             Icons.chevron_right,
                           ),
                           onTap: () async {
@@ -5539,7 +5539,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    const DailyJournalScreen(),
+                                    DailyJournalScreen(),
                               ),
                             );
                             refreshDashboard();
@@ -5551,7 +5551,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
 
-              const SizedBox(height: 90),
+              SizedBox(height: 90),
 
             ],
           ),
@@ -5590,7 +5590,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const CustomersScreen(),
+                        builder: (_) => CustomersScreen(),
                       ),
                     );
                     refreshDashboard();
@@ -5615,7 +5615,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) =>
-                                      const DailyJournalScreen(
+                                      DailyJournalScreen(
                                         openAddForm: true,
                                       ),
                                 ),
@@ -5636,7 +5636,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (_) =>
-                            const DailyJournalScreen(),
+                            DailyJournalScreen(),
                       ),
                     );
                     refreshDashboard();
@@ -5658,7 +5658,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) =>
-                                      const ReportsScreen(),
+                                      ReportsScreen(),
                                 ),
                               );
                             },
@@ -5747,7 +5747,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
                             context,
                             MaterialPageRoute(
                               builder: (_) =>
-                                  const HomeScreen(),
+                                  HomeScreen(),
                             ),
                             (route) => false,
                           ),
@@ -5761,7 +5761,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
                   onTap: widget.selectedIndex == 1
                       ? () {}
                       : () => replaceWith(
-                            const CustomersScreen(),
+                            CustomersScreen(),
                           ),
                 ),
               ),
@@ -5780,7 +5780,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    const DailyJournalScreen(
+                                    DailyJournalScreen(
                                   openAddForm: true,
                                 ),
                               ),
@@ -5797,7 +5797,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
                   onTap: widget.selectedIndex == 3
                       ? () {}
                       : () => replaceWith(
-                            const DailyJournalScreen(),
+                            DailyJournalScreen(),
                           ),
                 ),
               ),
@@ -5811,7 +5811,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
                       : widget.selectedIndex == 4
                           ? () {}
                           : () => replaceWith(
-                                const ReportsScreen(),
+                                ReportsScreen(),
                               ),
                 ),
               ),
@@ -5825,7 +5825,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
 
 
 class AboutGhataScreen extends StatelessWidget {
-  const AboutGhataScreen({super.key});
+  AboutGhataScreen({super.key});
 
   Widget guideSection(
     BuildContext context,
@@ -5834,31 +5834,31 @@ class AboutGhataScreen extends StatelessWidget {
     String text,
   ) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
               child: Icon(icon),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     text,
-                    style: const TextStyle(
+                    style: TextStyle(
                       height: 1.45,
                     ),
                   ),
@@ -5879,11 +5879,11 @@ class AboutGhataScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           children: [
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
 
-            const Center(
+            Center(
               child: CircleAvatar(
                 radius: 42,
                 child: Icon(
@@ -5893,9 +5893,9 @@ class AboutGhataScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
 
-            const Center(
+            Center(
               child: Text(
                 'ګهته – Ghata',
                 textAlign: TextAlign.center,
@@ -5906,26 +5906,26 @@ class AboutGhataScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
 
-            const Center(
+            Center(
               child: Text(
                 ghataT(context, 'Business Ledger & Accounting'),
                 textAlign: TextAlign.center,
               ),
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
             Text(
               ghataT(context, 'Complete Guide'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 21,
                 fontWeight: FontWeight.bold,
               ),
             ),
 
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             guideSection(
               context,
@@ -6025,17 +6025,17 @@ class AboutGhataScreen extends StatelessWidget {
               ghataT(context, 'Enter financial information carefully and review balances and reports regularly. Ghata is a record-keeping tool; the accuracy of reports depends on the information entered.'),
             ),
 
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
 
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: EdgeInsets.all(18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       ghataT(context, 'Contact Owner'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 19,
                         fontWeight: FontWeight.bold,
                       ),
@@ -6062,9 +6062,9 @@ class AboutGhataScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
-            const Center(
+            Center(
               child: Text(
                 'Design by MRS',
                 style: TextStyle(
@@ -6074,9 +6074,9 @@ class AboutGhataScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 3),
+            SizedBox(height: 3),
 
-            const Center(
+            Center(
               child: Text(
                 'Mohammad Rahem Sadaf',
                 style: TextStyle(
@@ -6085,7 +6085,7 @@ class AboutGhataScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 30),
+            SizedBox(height: 30),
           ],
         ),
       ),
@@ -6115,7 +6115,7 @@ class _GhataBottomItem extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           vertical: 8,
           horizontal: 2,
         ),
@@ -6131,7 +6131,7 @@ class _GhataBottomItem extends StatelessWidget {
                       ? Theme.of(context).colorScheme.primary
                       : null,
             ),
-            const SizedBox(height: 3),
+            SizedBox(height: 3),
             Text(
               label,
               maxLines: 1,
@@ -6151,7 +6151,7 @@ class _GhataBottomItem extends StatelessWidget {
 }
 
 class NewPasswordScreen extends StatefulWidget {
-  const NewPasswordScreen({super.key});
+  NewPasswordScreen({super.key});
 
   @override
   State<NewPasswordScreen> createState() => _NewPasswordScreenState();
@@ -6202,7 +6202,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => HomeScreen()),
         (route) => false,
       );
     } on AuthException catch (e) {
@@ -6233,23 +6233,23 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             children: [
-              const SizedBox(height: 30),
-              const Icon(
+              SizedBox(height: 30),
+              Icon(
                 Icons.password_rounded,
                 size: 76,
                 color: Colors.blue,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               TextField(
                 controller: passwordController,
                 obscureText: hidePassword,
                 decoration: InputDecoration(
                   labelText: ghataT(context, 'New Password'),
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  border: const OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_outline),
+                  border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     onPressed: () {
                       setState(() => hidePassword = !hidePassword);
@@ -6262,14 +6262,14 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               TextField(
                 controller: confirmPasswordController,
                 obscureText: hideConfirmPassword,
                 decoration: InputDecoration(
                   labelText: ghataT(context, 'Confirm New Password'),
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  border: const OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_outline),
+                  border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     onPressed: () {
                       setState(
@@ -6284,14 +6284,14 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: FilledButton(
                   onPressed: isLoading ? null : updatePassword,
                   child: isLoading
-                      ? const CircularProgressIndicator()
+                      ? CircularProgressIndicator()
                       : Text(ghataT(context, 'Change Password')),
                 ),
               ),
@@ -6304,7 +6304,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
 }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -6439,18 +6439,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: Text(ghataT(context, 'Profile')),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : SafeArea(
               child: ListView(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(24),
                 children: [
-                  const Center(
+                  Center(
                     child: CircleAvatar(
                       radius: 45,
                       child: Icon(Icons.person, size: 48),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
                   TextField(
                     controller: fullNameController,
                     decoration: InputDecoration(
@@ -6459,34 +6459,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   TextField(
                     controller: usernameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: ghataT(context, 'Username'),
                       prefixIcon: Icon(Icons.alternate_email),
                       border: OutlineInputBorder(),
                       helperText: ghataT(context, 'Username can be changed every 30 days'),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   TextField(
                     readOnly: true,
                     controller: TextEditingController(text: email),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: ghataT(context, 'Email'),
                       prefixIcon: Icon(Icons.email_outlined),
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  SizedBox(height: 28),
                   Text(ghataT(context, 'Business Profile'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   TextField(
                     controller: businessNameController,
                     decoration: InputDecoration(
@@ -6495,7 +6495,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   TextField(
                     controller: businessPhoneController,
                     keyboardType: TextInputType.phone,
@@ -6505,7 +6505,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   TextField(
                     controller: businessAddressController,
                     decoration: InputDecoration(
@@ -6514,7 +6514,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   TextField(
                     controller: receiptNoteController,
                     maxLines: 2,
@@ -6525,44 +6525,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
+                  SizedBox(height: 24),
                   SizedBox(
                     height: 52,
                     child: FilledButton(
                       onPressed: isSaving ? null : saveProfile,
                       child: isSaving
-                          ? const CircularProgressIndicator()
+                          ? CircularProgressIndicator()
                           : Text(ghataT(context, 'Save Changes')),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   SizedBox(
                     height: 52,
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.email_outlined),
+                      icon: Icon(Icons.email_outlined),
                       label: Text(ghataT(context, 'Change Email')),
                       onPressed: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ChangeEmailScreen(),
+                            builder: (_) => ChangeEmailScreen(),
                           ),
                         );
                       },
                     ),
                   ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     SizedBox(
                       height: 52,
                       child: OutlinedButton.icon(
-                        icon: const Icon(Icons.delete_outline),
+                        icon: Icon(Icons.delete_outline),
                         label: Text(ghataT(context, 'Recycle Bin')),
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const RecycleBinScreen(),
+                              builder: (_) => RecycleBinScreen(),
                             ),
                           );
                         },
@@ -6576,7 +6576,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class ChangeEmailScreen extends StatefulWidget {
-  const ChangeEmailScreen({super.key});
+  ChangeEmailScreen({super.key});
 
   @override
   State<ChangeEmailScreen> createState() => _ChangeEmailScreenState();
@@ -6643,13 +6643,13 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           children: [
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text(
               "${ghataT(context, 'New Email')}: $currentEmail",
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             TextField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
@@ -6660,13 +6660,13 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             SizedBox(
               height: 52,
               child: FilledButton(
                 onPressed: isLoading ? null : changeEmail,
                 child: isLoading
-                    ? const CircularProgressIndicator()
+                    ? CircularProgressIndicator()
                     : Text(ghataT(context, 'Change Email')),
               ),
             ),
@@ -6678,7 +6678,7 @@ class _ChangeEmailScreenState extends State<ChangeEmailScreen> {
 }
 
 class RecycleBinScreen extends StatefulWidget {
-  const RecycleBinScreen({super.key});
+  RecycleBinScreen({super.key});
 
   @override
   State<RecycleBinScreen> createState() => _RecycleBinScreenState();
@@ -6876,7 +6876,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     final deleted = DateTime.tryParse(deletedAt ?? '');
     if (deleted == null) return 30;
 
-    final expires = deleted.add(const Duration(days: 30));
+    final expires = deleted.add(Duration(days: 30));
     final remaining = expires.difference(DateTime.now().toUtc()).inDays + 1;
 
     if (remaining < 0) return 0;
@@ -7056,13 +7056,13 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
           ]),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(child: CircularProgressIndicator());
             }
 
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20),
                   child: Text("${ghataT(context, 'Unable to load Recycle Bin')}: ${snapshot.error}"),
                 ),
               );
@@ -7088,17 +7088,17 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
             }
 
             return ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               children: [
                 if (customers.isNotEmpty) ...[
-                  const Text(
+                  Text(
                     'Customers',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   ...customers.map((customer) {
                     final id = customer['id']?.toString() ?? '';
                     final name =
@@ -7109,7 +7109,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
 
                     return Card(
                       child: ListTile(
-                        leading: const CircleAvatar(
+                        leading: CircleAvatar(
                           child: Icon(Icons.person_outline),
                         ),
                         title: Text(name),
@@ -7142,17 +7142,17 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                 ],
 
                 if (customers.isNotEmpty && transactions.isNotEmpty)
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                 if (transactions.isNotEmpty) ...[
-                  const Text(
+                  Text(
                     'Transactions',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   ...transactions.map((transaction) {
                     final id = transaction['id']?.toString() ?? '';
                     final type =
@@ -7181,7 +7181,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
 
                     return Card(
                       child: ListTile(
-                        leading: const CircleAvatar(
+                        leading: CircleAvatar(
                           child: Icon(Icons.receipt_long_outlined),
                         ),
                         title: Text('$amount $currency'),
@@ -7214,15 +7214,15 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                   }),
                 ],
                 if (exchanges.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  const Text(
+                  SizedBox(height: 24),
+                  Text(
                     'Exchanges',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   ...exchanges.map((exchange) {
                     final id = exchange['id']?.toString() ?? '';
                     final type = exchange['exchange_type']?.toString() ?? '';
@@ -7245,7 +7245,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
 
                     return Card(
                       child: ListTile(
-                        leading: const CircleAvatar(
+                        leading: CircleAvatar(
                           child: Icon(Icons.currency_exchange),
                         ),
                         title: Text(typeLabel),
@@ -7289,7 +7289,7 @@ class LanguageScreen extends StatelessWidget {
   final void Function(String) onLanguageChanged;
   final String currentLanguage;
 
-  const LanguageScreen({
+  LanguageScreen({
     super.key,
     required this.onLanguageChanged,
     required this.currentLanguage,
@@ -7310,9 +7310,9 @@ class LanguageScreen extends StatelessWidget {
         title: Text(ghataT(context, 'Language')),
       ),
       body: ListView.separated(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         itemCount: languages.length,
-        separatorBuilder: (_, __) => const Divider(),
+        separatorBuilder: (_, __) => Divider(),
         itemBuilder: (context, index) {
           final language = languages[index];
           final selected = currentLanguage == language.$1;
@@ -7320,14 +7320,14 @@ class LanguageScreen extends StatelessWidget {
           return ListTile(
             leading: Text(
               language.$3,
-              style: const TextStyle(fontSize: 30),
+              style: TextStyle(fontSize: 30),
             ),
             title: Text(
               language.$2,
-              style: const TextStyle(fontSize: 18),
+              style: TextStyle(fontSize: 18),
             ),
             trailing: selected
-                ? const Icon(Icons.check_circle)
+                ? Icon(Icons.check_circle)
                 : null,
             onTap: () {
               onLanguageChanged(language.$1);
@@ -7346,7 +7346,7 @@ class DailyJournalScreen extends StatefulWidget {
   final String? initialTransactionType;
   final bool openAddForm;
 
-  const DailyJournalScreen({
+  DailyJournalScreen({
     super.key,
     this.initialCustomerId,
     this.initialCustomerName,
@@ -7443,7 +7443,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     return local;
   }
 
-  final currencies = const [
+  final currencies = [
     ('AFN', '🇦🇫', 'Afghan Afghani'),
     ('PKR', '🇵🇰', 'Pakistani Rupee'),
     ('USD', '🇺🇸', 'US Dollar'),
@@ -7460,7 +7460,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     ('IRR', '🇮🇷', 'Iranian Rial'),
   ];
 
-  final transactionTypes = const [
+  final transactionTypes = [
     ('money_in', 'Money In'),
     ('money_out', 'Money Out'),
     ('loan_given', 'Loan Given'),
@@ -7736,7 +7736,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
 
                     GhataCalculatorField(
                       controller: amountController,
@@ -7752,19 +7752,19 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     ),
 
                     if (calculatorResult != null) ...[
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           'Result: ${calculatorResult!.toStringAsFixed(calculatorResult! % 1 == 0 ? 0 : 2)} $currency',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ],
 
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
 
                     DropdownButtonFormField<String>(
                       initialValue: currency,
@@ -7793,12 +7793,12 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       },
                     ),
 
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
 
                     DropdownButtonFormField<String?>(
                       initialValue: selectedCustomerId,
                       isExpanded: true,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: ghataT(context, 'Customer (Optional)'),
                         prefixIcon:
                             Icon(Icons.person_outline),
@@ -7843,12 +7843,12 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       },
                     ),
 
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
 
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading:
-                          const Icon(Icons.calendar_today),
+                          Icon(Icons.calendar_today),
                       title: Text(ghataT(context, 'Date')),
                       subtitle: Text(
                         '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
@@ -7872,7 +7872,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     if (needsDueDate)
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
+                        leading: Icon(
                           Icons.event_available_outlined,
                         ),
                         title: Text(ghataT(context, 'Due Date')),
@@ -7892,7 +7892,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading:
-                          const Icon(Icons.access_time),
+                          Icon(Icons.access_time),
                       title: Text(ghataT(context, 'Time')),
                       subtitle:
                           Text(selectedTime.format(context)),
@@ -7910,7 +7910,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       },
                     ),
 
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
 
                     TextField(
                       controller: descriptionController,
@@ -7923,7 +7923,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
 
                     TextField(
                       controller: referenceController,
@@ -7961,7 +7961,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                           Navigator.pop(dialogContext);
                         }
                       },
-                icon: const Icon(Icons.check_rounded),
+                icon: Icon(Icons.check_rounded),
                 label: Text(ghataT(context, 'Save')),
               ),
             ],
@@ -8097,18 +8097,18 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                   },
                 ),
                 if (editCalculatorResult != null) ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Result / Balance: ${editCalculatorResult!.toStringAsFixed(editCalculatorResult! % 1 == 0 ? 0 : 2)} $editCurrency',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: editType,
                   decoration: InputDecoration(
@@ -8136,7 +8136,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: editCurrency,
                   decoration: InputDecoration(
@@ -8157,15 +8157,15 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_today_outlined),
+                  leading: Icon(Icons.calendar_today_outlined),
                   title: Text(ghataT(context, 'Date')),
                   subtitle: Text(
                     '${editDate.year}-${editDate.month.toString().padLeft(2, '0')}-${editDate.day.toString().padLeft(2, '0')}',
                   ),
-                  trailing: const Icon(Icons.edit_calendar_outlined),
+                  trailing: Icon(Icons.edit_calendar_outlined),
                   onTap: () async {
                     final picked = await showDatePicker(
                       context: context,
@@ -8189,14 +8189,14 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     editType == 'loan_received')
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.event_available),
+                    leading: Icon(Icons.event_available),
                     title: Text(ghataT(context, 'Due Date')),
                     subtitle: Text(
                       editDueDate == null
                           ? 'Not set'
                           : '${editDueDate!.year}-${editDueDate!.month.toString().padLeft(2, '0')}-${editDueDate!.day.toString().padLeft(2, '0')}',
                     ),
-                    trailing: const Icon(Icons.edit_calendar_outlined),
+                    trailing: Icon(Icons.edit_calendar_outlined),
                     onTap: () async {
                       final firstDueDate = DateTime(
                         editDate.year,
@@ -8221,10 +8221,10 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                   ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.access_time),
+                  leading: Icon(Icons.access_time),
                   title: Text(ghataT(context, 'Time')),
                   subtitle: Text(editTime.format(context)),
-                  trailing: const Icon(Icons.edit_outlined),
+                  trailing: Icon(Icons.edit_outlined),
                   onTap: () async {
                     final picked = await showTimePicker(
                       context: context,
@@ -8236,11 +8236,11 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: editCustomerId,
                   isExpanded: true,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Customer / Person (Optional)'),
                     border: OutlineInputBorder(),
                   ),
@@ -8273,7 +8273,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: descriptionEditController,
                   decoration: InputDecoration(
@@ -8281,7 +8281,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: referenceEditController,
                   decoration: InputDecoration(
@@ -8709,12 +8709,12 @@ Future<void> shareTransactionReceiptPdf(
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          padding: EdgeInsets.fromLTRB(20, 4, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'ګهته – Ghata',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -8722,18 +8722,18 @@ Future<void> shareTransactionReceiptPdf(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 4),
-              const Text(
+              SizedBox(height: 4),
+              Text(
                 'Transaction Receipt',
                 textAlign: TextAlign.center,
               ),
-              const Divider(height: 28),
+              Divider(height: 28),
               Text("${ghataT(context, 'Reference')}: $receiptNo"),
               if (customer.isNotEmpty) Text("${ghataT(context, 'Customer')}: $customer"),
               Text("${ghataT(context, 'Type')}: $typeLabel"),
               Text(
                 "${ghataT(context, 'Amount')}: $amount $currency",
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -8741,13 +8741,13 @@ Future<void> shareTransactionReceiptPdf(
               Text(time.isEmpty ? 'Date: $date' : 'Date: $date $time'),
               if (description.isNotEmpty)
                 Text("${ghataT(context, 'Description')}: $description"),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: () {
                   Navigator.pop(sheetContext);
                   shareTransactionReceiptPdf(transaction);
                 },
-                icon: const Icon(Icons.picture_as_pdf_outlined),
+                icon: Icon(Icons.picture_as_pdf_outlined),
                 label: Text(ghataT(context, 'Share PDF Receipt')),
               ),
             ],
@@ -8819,7 +8819,7 @@ Future<void> shareTransactionReceiptPdf(
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Daily Journal',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
@@ -8830,13 +8830,13 @@ Future<void> shareTransactionReceiptPdf(
             setState(() {});
           },
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             children: [
               TextField(
                 controller: journalSearchController,
                 decoration: InputDecoration(
                   hintText: ghataT(context, 'Search transactions...'),
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
                   ),
@@ -8844,7 +8844,7 @@ Future<void> shareTransactionReceiptPdf(
                 onChanged: (_) => setState(() {}),
               ),
 
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
 
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -8857,7 +8857,7 @@ Future<void> shareTransactionReceiptPdf(
                         setState(() => selectedFilter = 'all');
                       },
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     FilterChip(
                       label: Text(ghataT(context, 'Money In')),
                       selected: selectedFilter == 'money_in',
@@ -8865,7 +8865,7 @@ Future<void> shareTransactionReceiptPdf(
                         setState(() => selectedFilter = 'money_in');
                       },
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     FilterChip(
                       label: Text(ghataT(context, 'Money Out')),
                       selected: selectedFilter == 'money_out',
@@ -8873,7 +8873,7 @@ Future<void> shareTransactionReceiptPdf(
                         setState(() => selectedFilter = 'money_out');
                       },
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     FilterChip(
                       label: Text(ghataT(context, 'Loans')),
                       selected: selectedFilter == 'loan',
@@ -8881,7 +8881,7 @@ Future<void> shareTransactionReceiptPdf(
                         setState(() => selectedFilter = 'loan');
                       },
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     FilterChip(
                       label: Text(ghataT(context, 'Customer')),
                       selected: selectedFilter == 'customer',
@@ -8893,14 +8893,14 @@ Future<void> shareTransactionReceiptPdf(
                 ),
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: loadTransactions(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
-                    return const Padding(
+                    return Padding(
                       padding: EdgeInsets.all(40),
                       child: Center(
                         child: CircularProgressIndicator(),
@@ -8910,7 +8910,7 @@ Future<void> shareTransactionReceiptPdf(
 
                   if (snapshot.hasError) {
                     return Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(20),
                       child: Text(
                         "${ghataT(context, 'Unable to load transactions')}: ${snapshot.error}",
                       ),
@@ -8994,29 +8994,29 @@ Future<void> shareTransactionReceiptPdf(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (summary.isNotEmpty) ...[
-                        const Text(
+                        Text(
                           'Summary',
                           style: TextStyle(
                             fontSize: 19,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(height: 10),
                         SizedBox(
                           height: 105,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
+                            physics: BouncingScrollPhysics(),
                             itemCount: summary.length,
                             separatorBuilder: (_, __) =>
-                                const SizedBox(width: 10),
+                                SizedBox(width: 10),
                             itemBuilder: (context, index) {
                               final e =
                                   summary.entries.elementAt(index);
 
                               return Container(
                                 width: 175,
-                                padding: const EdgeInsets.all(14),
+                                padding: EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: Theme.of(context)
                                       .colorScheme
@@ -9035,11 +9035,11 @@ Future<void> shareTransactionReceiptPdf(
                                   children: [
                                     Text(
                                       e.key,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    SizedBox(height: 8),
                                     Text(
                                       'In: ${e.value['in']!.toStringAsFixed(2)}',
                                     ),
@@ -9052,17 +9052,17 @@ Future<void> shareTransactionReceiptPdf(
                             },
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: 18),
                       ],
 
-                      const Text(
+                      Text(
                         'Transactions',
                         style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
 
                       if (filtered.isEmpty)
                         Padding(
@@ -9109,7 +9109,7 @@ Future<void> shareTransactionReceiptPdf(
                           };
 
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 9),
+                            margin: EdgeInsets.only(bottom: 9),
                             child: ListTile(
                               leading: CircleAvatar(
                                 child: Icon(
@@ -9131,14 +9131,14 @@ Future<void> shareTransactionReceiptPdf(
                                           : customer,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
                                   Text(
                                     '$amount $currency',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -9164,7 +9164,7 @@ Future<void> shareTransactionReceiptPdf(
                           );
                         }),
 
-                      const SizedBox(height: 90),
+                      SizedBox(height: 90),
                     ],
                   );
                 },
@@ -9436,7 +9436,7 @@ Future<String?> showCustomerCountryCodePicker(
                         setModalState(() => search = value);
                       },
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Expanded(
                       child: filtered.isEmpty
                           ? Center(
@@ -9452,12 +9452,12 @@ Future<String?> showCustomerCountryCodePicker(
                                 return ListTile(
                                   leading: Text(
                                     country['flag']!,
-                                    style: const TextStyle(fontSize: 24),
+                                    style: TextStyle(fontSize: 24),
                                   ),
                                   title: Text(country['name']!),
                                   subtitle: Text(code),
                                   trailing: selected
-                                      ? const Icon(Icons.check)
+                                      ? Icon(Icons.check)
                                       : null,
                                   onTap: () {
                                     Navigator.pop(sheetContext, code);
@@ -9520,7 +9520,7 @@ String buildCustomerPhone(String code, String number) {
 }
 
 class CustomersScreen extends StatefulWidget {
-  const CustomersScreen({super.key});
+  CustomersScreen({super.key});
 
   @override
   State<CustomersScreen> createState() => _CustomersScreenState();
@@ -9668,7 +9668,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               StatefulBuilder(
                 builder: (context, setDialogState) {
                   final selectedCountry = customerCountryCodes.firstWhere(
@@ -9684,8 +9684,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         width: 115,
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(56),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: Size.fromHeight(56),
+                            padding: EdgeInsets.symmetric(horizontal: 8),
                           ),
                           onPressed: () async {
                             final code =
@@ -9705,7 +9705,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: phoneEditController,
@@ -9720,15 +9720,15 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: addressEditController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Address'),
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: notesEditController,
                 maxLines: 2,
@@ -9947,14 +9947,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Row(
                   children: [
                     SizedBox(
                       width: 112,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(56),
+                          minimumSize: Size.fromHeight(56),
                         ),
                         onPressed: () async {
                           final code =
@@ -9978,7 +9978,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         controller: phoneController,
@@ -9991,16 +9991,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: addressController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Address'),
                     prefixIcon: Icon(Icons.location_on_outlined),
                     border: OutlineInputBorder(),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: notesController,
                   maxLines: 2,
@@ -10038,7 +10038,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                         Navigator.pop(dialogContext);
                       }
                     },
-              icon: const Icon(Icons.person_add_alt_1),
+              icon: Icon(Icons.person_add_alt_1),
               label: Text(ghataT(context, 'Add Customer')),
             ),
           ],
@@ -10067,16 +10067,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Customers',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: EdgeInsets.only(right: 8),
             child: FilledButton.icon(
               onPressed: showAddCustomerDialog,
-              icon: const Icon(Icons.add),
+              icon: Icon(Icons.add),
               label: Text(ghataT(context, 'Add')),
             ),
           ),
@@ -10088,17 +10088,17 @@ class _CustomersScreenState extends State<CustomersScreen> {
             setState(() {});
           },
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             children: [
               TextField(
                 controller: searchController,
                 decoration: InputDecoration(
                   hintText: ghataT(context, 'Search customers...'),
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: Icon(Icons.search),
                   suffixIcon: searchController.text.isEmpty
                       ? null
                       : IconButton(
-                          icon: const Icon(Icons.close),
+                          icon: Icon(Icons.close),
                           onPressed: () {
                             searchController.clear();
                             setState(() {});
@@ -10110,14 +10110,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
                 ),
                 onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: loadCustomers(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
-                    return const Padding(
+                    return Padding(
                       padding: EdgeInsets.all(40),
                       child: Center(
                         child: CircularProgressIndicator(),
@@ -10127,7 +10127,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
                   if (snapshot.hasError) {
                     return Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(20),
                       child: Text(
                         "${ghataT(context, 'Unable to load customers')}: ${snapshot.error}",
                       ),
@@ -10160,7 +10160,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   }).toList();
 
                   if (customers.isEmpty) {
-                    return const Padding(
+                    return Padding(
                       padding: EdgeInsets.symmetric(vertical: 60),
                       child: Column(
                         children: [
@@ -10198,7 +10198,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           customer['address']?.toString() ?? '';
 
                       return Card(
-                        margin: const EdgeInsets.only(bottom: 10),
+                        margin: EdgeInsets.only(bottom: 10),
                         clipBehavior: Clip.antiAlias,
                         child: InkWell(
                           onTap: () async {
@@ -10216,7 +10216,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             if (mounted) setState(() {});
                           },
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 10,
                             ),
@@ -10226,12 +10226,12 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                   radius: 27,
                                   child: Text(
                                     customerInitial(name),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 13),
+                                SizedBox(width: 13),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -10239,13 +10239,13 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                     children: [
                                       Text(
                                         name,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 17,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       if (phone.isNotEmpty) ...[
-                                        const SizedBox(height: 3),
+                                        SizedBox(height: 3),
                                         Text(
                                           phone,
                                           maxLines: 1,
@@ -10254,14 +10254,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                         ),
                                       ],
                                       if (address.isNotEmpty) ...[
-                                        const SizedBox(height: 2),
+                                        SizedBox(height: 2),
                                         Row(
                                           children: [
-                                            const Icon(
+                                            Icon(
                                               Icons.location_on_outlined,
                                               size: 15,
                                             ),
-                                            const SizedBox(width: 3),
+                                            SizedBox(width: 3),
                                             Expanded(
                                               child: Text(
                                                 address,
@@ -10307,7 +10307,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                     ),
                                   ],
                                 ),
-                                const Icon(Icons.chevron_right),
+                                Icon(Icons.chevron_right),
                               ],
                             ),
                           ),
@@ -10317,7 +10317,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 80),
+              SizedBox(height: 80),
             ],
           ),
         ),
@@ -10335,7 +10335,7 @@ class CustomerLedgerScreen extends StatefulWidget {
   final String customerId;
   final String customerName;
 
-  const CustomerLedgerScreen({
+  CustomerLedgerScreen({
     super.key,
     required this.customerId,
     required this.customerName,
@@ -10509,7 +10509,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               StatefulBuilder(
                 builder: (context, setDialogState) {
                   final selectedCountry = customerCountryCodes.firstWhere(
@@ -10525,8 +10525,8 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                         width: 115,
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(56),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: Size.fromHeight(56),
+                            padding: EdgeInsets.symmetric(horizontal: 8),
                           ),
                           onPressed: () async {
                             final code =
@@ -10546,7 +10546,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: phoneController,
@@ -10561,15 +10561,15 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: addressController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: ghataT(context, 'Address'),
                   border: OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: notesController,
                 maxLines: 2,
@@ -10916,12 +10916,12 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
           final rect = RRect.fromRectAndRadius(
             Rect.fromLTWH(60, top, width - 120, 88),
-            const Radius.circular(18),
+            Radius.circular(18),
           );
 
           canvas.drawRRect(
             rect,
-            Paint()..color = const Color(0xFFF3F5F7),
+            Paint()..color = Color(0xFFF3F5F7),
           );
 
           drawText(
@@ -10939,7 +10939,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           final amountPainter = TextPainter(
             text: TextSpan(
               text: amountText,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -10983,7 +10983,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
 
     final designCreditPainter = TextPainter(
-      text: const TextSpan(
+      text: TextSpan(
         children: [
           TextSpan(
             text: 'Design by MRS\n',
@@ -11196,7 +11196,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             pw.SizedBox(height: 8),
 
             pw.Table.fromTextArray(
-              headers: const [
+              headers: [
                 'Date',
                 'Type',
                 'Amount',
@@ -11324,7 +11324,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                   profileAddress,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.normal,
                   ),
@@ -11372,7 +11372,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           builder: (context, snapshot) {
             if (snapshot.connectionState ==
                 ConnectionState.waiting) {
-              return const Center(
+              return Center(
                 child: CircularProgressIndicator(),
               );
             }
@@ -11380,7 +11380,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20),
                   child: Text(
                     "${ghataT(context, 'Unable to load ledger')}: ${snapshot.error}",
                   ),
@@ -11400,7 +11400,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             );
 
             return ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               children: [
                 Row(
                   children: [
@@ -11408,40 +11408,40 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       child: FilledButton.icon(
                         onPressed: () =>
                             openCustomerMoneyEntry('money_in'),
-                        icon: const Icon(Icons.south_west),
+                        icon: Icon(Icons.south_west),
                         label: Text(ghataT(context, 'Money In')),
                         style: FilledButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
-                            minimumSize: const Size.fromHeight(54),
+                            minimumSize: Size.fromHeight(54),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () =>
                             openCustomerMoneyEntry('money_out'),
-                        icon: const Icon(Icons.north_east),
+                        icon: Icon(Icons.north_east),
                         label: Text(ghataT(context, 'Money Out')),
                         style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            minimumSize: const Size.fromHeight(54),
+                            side: BorderSide(color: Colors.red),
+                            minimumSize: Size.fromHeight(54),
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                  const Text(
+                SizedBox(height: 24),
+                  Text(
                     'Balances',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
 
                   if (balances.isEmpty)
                     Card(
@@ -11467,7 +11467,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           ),
                           title: Text(
                             youReceive ? 'You Receive' : 'You Pay',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -11476,7 +11476,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           ),
                           trailing: Text(
                             amount.abs().toStringAsFixed(2),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
@@ -11485,18 +11485,18 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       );
                     }),
 
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 8),
+                SizedBox(height: 24),
+                Divider(),
+                SizedBox(height: 8),
 
-                const Text(
+                Text(
                   'Transactions',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
 
                 if (transactions.isEmpty)
                   Padding(
@@ -11546,7 +11546,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           ),
                           title: Text(
                             '$amount $currency',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -11571,7 +11571,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 }
 
 class LoansScreen extends StatefulWidget {
-  const LoansScreen({super.key});
+  LoansScreen({super.key});
 
   @override
   State<LoansScreen> createState() => _LoansScreenState();
@@ -11799,7 +11799,7 @@ class _LoansScreenState extends State<LoansScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState ==
               ConnectionState.waiting) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(),
             );
           }
@@ -11807,7 +11807,7 @@ class _LoansScreenState extends State<LoansScreen> {
           if (snapshot.hasError) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20),
                 child: Text(
                   "${ghataT(context, 'Unable to load loans')}: ${snapshot.error}",
                 ),
@@ -11927,7 +11927,7 @@ class _LoansScreenState extends State<LoansScreen> {
                 ),
                 title: Text(
                   customer,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -11945,7 +11945,7 @@ class _LoansScreenState extends State<LoansScreen> {
                 ),
                 trailing: Text(
                   '${balance.abs().toStringAsFixed(2)} $currency',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -12023,7 +12023,7 @@ class _LoansScreenState extends State<LoansScreen> {
                 subtitle: Text(details.join(' • ')),
                 trailing: Text(
                   '${amount.toStringAsFixed(2)} $currency',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -12046,28 +12046,28 @@ class _LoansScreenState extends State<LoansScreen> {
           }).toList();
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             children: [
               TextField(
                 controller: loanSearchController,
                 decoration: InputDecoration(
                   labelText: ghataT(context, 'Search loans'),
                   hintText: ghataT(context, 'Customer, currency, type, due date...'),
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: Icon(Icons.search),
                   suffixIcon: loanSearchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear),
+                          icon: Icon(Icons.clear),
                           onPressed: () {
                             loanSearchController.clear();
                             setState(() {});
                           },
                         )
                       : null,
-                  border: const OutlineInputBorder(),
+                  border: OutlineInputBorder(),
                 ),
                 onChanged: (_) => setState(() {}),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -12099,7 +12099,7 @@ class _LoansScreenState extends State<LoansScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               if (balanceCards.isEmpty)
                 Padding(
                   padding: EdgeInsets.only(bottom: 12),
@@ -12107,15 +12107,15 @@ class _LoansScreenState extends State<LoansScreen> {
                 )
               else
                 ...balanceCards,
-              const SizedBox(height: 12),
-              const Text(
+              SizedBox(height: 12),
+              Text(
                 'History',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               if (historyCards.isEmpty)
                 Text(ghataT(context, 'No loan history yet.'))
               else
@@ -12129,7 +12129,7 @@ class _LoansScreenState extends State<LoansScreen> {
 }
 
 class CashboxScreen extends StatefulWidget {
-  const CashboxScreen({super.key});
+  CashboxScreen({super.key});
 
   @override
   State<CashboxScreen> createState() => _CashboxScreenState();
@@ -12224,7 +12224,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState ==
               ConnectionState.waiting) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(),
             );
           }
@@ -12265,7 +12265,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 ),
                 trailing: Text(
                   '${entry.value.toStringAsFixed(2)} ${entry.key}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -12361,7 +12361,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 subtitle: Text(details.join(' • ')),
                 trailing: Text(
                   '${isIn ? '+' : '-'}${amount.toStringAsFixed(2)} $currency',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -12370,7 +12370,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
           }).toList();
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             children: [
               if (balanceCards.isEmpty)
                 Padding(
@@ -12379,15 +12379,15 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 )
               else
                 ...balanceCards,
-              const SizedBox(height: 12),
-              const Text(
+              SizedBox(height: 12),
+              Text(
                 'History',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               if (historyCards.isEmpty)
                 Text(ghataT(context, 'No cashbox history yet.'))
               else
@@ -12402,7 +12402,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
 }
 
 class ExchangeScreen extends StatefulWidget {
-  const ExchangeScreen({super.key});
+  ExchangeScreen({super.key});
 
   @override
   State<ExchangeScreen> createState() => _ExchangeScreenState();
@@ -12479,7 +12479,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     });
   }
 
-  final currencies = const [
+  final currencies = [
     ('AFN', '🇦🇫', 'Afghan Afghani'),
     ('PKR', '🇵🇰', 'Pakistani Rupee'),
     ('USD', '🇺🇸', 'US Dollar'),
@@ -12678,7 +12678,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(ghataT(context, 'Move to Recycle Bin?')),
-        content: const Text(
+        content: Text(
           'This exchange will be hidden from reports and cashbox. You can restore it from Recycle Bin within 30 days.',
         ),
         actions: [
@@ -12791,7 +12791,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               children: [
                 DropdownButtonFormField<String>(
                   initialValue: editExchangeType,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: ghataT(context, 'Type'),
               prefixIcon: Icon(Icons.swap_horiz_rounded),
                     border: OutlineInputBorder(),
@@ -12812,7 +12812,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
 
                 DropdownButtonFormField<String>(
                   initialValue: editFromCurrency,
@@ -12835,7 +12835,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 GhataCalculatorField(
                   controller: fromController,
                   label: ghataT(context, 'Amount You Give'),
@@ -12859,7 +12859,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     setDialogState(() {});
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: editToCurrency,
                   decoration: InputDecoration(
@@ -12881,7 +12881,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 GhataCalculatorField(
                   controller: toController,
                   label: ghataT(context, 'Amount You Receive'),
@@ -12905,7 +12905,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     setDialogState(() {});
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 GhataCalculatorField(
                   controller: editRateController,
                   label: ghataT(context, 'Exchange Rate (optional)'),
@@ -12931,7 +12931,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     setDialogState(() {});
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 DropdownButtonFormField<String?>(
                   value: editCustomerId,
                   isExpanded: true,
@@ -12974,10 +12974,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_today_outlined),
+                  leading: Icon(Icons.calendar_today_outlined),
                   title: Text(ghataT(context, 'Date')),
                   subtitle: Text(
                     '${editDate.year}-${editDate.month.toString().padLeft(2, '0')}-${editDate.day.toString().padLeft(2, '0')}',
@@ -12997,7 +12997,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.access_time),
+                  leading: Icon(Icons.access_time),
                   title: Text(ghataT(context, 'Time')),
                   subtitle: Text(editTime.format(context)),
                   onTap: () async {
@@ -13011,7 +13011,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextField(
                   controller: editNotesController,
                   maxLines: 3,
@@ -13368,7 +13368,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         title: Text(ghataT(context, 'Exchange')),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
           DropdownButtonFormField<String>(
             value: exchangeType,
@@ -13392,7 +13392,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               }
             },
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           DropdownButtonFormField<String>(
             value: fromCurrency,
@@ -13412,7 +13412,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               }
             },
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           GhataCalculatorField(
             controller: fromAmountController,
@@ -13421,16 +13421,16 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 updateExchangeCalculatorResults(changed: 'from'),
           ),
           if (fromCalculatorResult != null) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Result: ${fromCalculatorResult!.toStringAsFixed(fromCalculatorResult! % 1 == 0 ? 0 : 2)} $fromCurrency',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           DropdownButtonFormField<String>(
             value: toCurrency,
@@ -13450,7 +13450,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               }
             },
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           GhataCalculatorField(
             controller: toAmountController,
@@ -13459,16 +13459,16 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 updateExchangeCalculatorResults(changed: 'to'),
           ),
           if (toCalculatorResult != null) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Result: ${toCalculatorResult!.toStringAsFixed(toCalculatorResult! % 1 == 0 ? 0 : 2)} $toCurrency',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           GhataCalculatorField(
             controller: rateController,
@@ -13477,16 +13477,16 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                 updateExchangeCalculatorResults(changed: 'rate'),
           ),
           if (rateCalculatorResult != null) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 '1 $fromCurrency = ${rateCalculatorResult!.toStringAsFixed(6).replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '')} $toCurrency',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           FutureBuilder<List<Map<String, dynamic>>>(
             future: loadCustomers(),
@@ -13539,13 +13539,13 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               );
             },
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.calendar_month),
+                  icon: Icon(Icons.calendar_month),
                   label: Text(
                     '${selectedExchangeDate.year}-${selectedExchangeDate.month.toString().padLeft(2, '0')}-${selectedExchangeDate.day.toString().padLeft(2, '0')}',
                   ),
@@ -13563,10 +13563,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                   },
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.access_time),
+                  icon: Icon(Icons.access_time),
                   label: Text(selectedExchangeTime.format(context)),
                   onPressed: () async {
                     final picked = await showTimePicker(
@@ -13583,7 +13583,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
             ],
           ),
 
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           TextField(
             controller: notesController,
@@ -13593,26 +13593,26 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               border: OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
             onPressed: isSaving ? null : saveExchange,
-            icon: const Icon(Icons.currency_exchange_rounded),
+            icon: Icon(Icons.currency_exchange_rounded),
             label: Text(
               isSaving ? 'Saving...' : 'Record Exchange',
             ),
           ),
           ),
 
-          const SizedBox(height: 28),
+          SizedBox(height: 28),
 
           FutureBuilder<List<Map<String, dynamic>>>(
             future: loadExchangeHistory(),
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const SizedBox.shrink();
+                return SizedBox.shrink();
               }
 
               final profitLoss =
@@ -13626,7 +13626,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               }).toList();
 
               if (visible.isEmpty) {
-                return const SizedBox.shrink();
+                return SizedBox.shrink();
               }
 
               return Column(
@@ -13638,7 +13638,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   ...visible.map((item) {
                     final asset =
                         item['asset_currency']?.toString() ?? '';
@@ -13668,23 +13668,23 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                         subtitle: Text(text),
                         trailing: Text(
                           '${profit.abs().toStringAsFixed(2)} $settlement',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     );
                   }),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                 ],
               );
             },
           ),
 
-          const Divider(),
-          const SizedBox(height: 12),
+          Divider(),
+          SizedBox(height: 12),
 
-          const Row(
+          Row(
             children: [
               Icon(Icons.history_rounded),
               SizedBox(width: 8),
@@ -13697,14 +13697,14 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
 
           FutureBuilder<List<Map<String, dynamic>>>(
             future: loadExchangeHistory(),
             builder: (context, snapshot) {
               if (snapshot.connectionState ==
                   ConnectionState.waiting) {
-                return const Padding(
+                return Padding(
                   padding: EdgeInsets.all(20),
                   child: Center(
                     child: CircularProgressIndicator(),
@@ -13791,7 +13791,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
                   return Card(
                     child: ListTile(
-                      leading: const Icon(
+                      leading: Icon(
                         Icons.currency_exchange_outlined,
                       ),
                       title: Text('$outText → $inText'),
@@ -13801,12 +13801,12 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                         children: [
                           IconButton(
                             tooltip: ghataT(context, 'Edit Exchange'),
-                            icon: const Icon(Icons.edit_outlined),
+                            icon: Icon(Icons.edit_outlined),
                             onPressed: () => editExchange(exchange),
                           ),
                           IconButton(
                             tooltip: ghataT(context, 'Delete Exchange'),
-                            icon: const Icon(Icons.delete_outline),
+                            icon: Icon(Icons.delete_outline),
                             onPressed: () => deleteExchange(exchange),
                           ),
                         ],
@@ -13833,7 +13833,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 }
 
 class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({super.key});
+  ReportsScreen({super.key});
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -13845,7 +13845,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String? selectedCurrency;
   String? selectedCustomerId;
 
-  final reportCurrencies = const [
+  final reportCurrencies = [
     'AFN',
     'PKR',
     'USD',
@@ -14008,12 +14008,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: const Icon(Icons.date_range),
+                    icon: Icon(Icons.date_range),
                     label: Text(
                       fromDate == null
                           ? 'From date'
@@ -14032,10 +14032,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    icon: const Icon(Icons.event),
+                    icon: Icon(Icons.event),
                     label: Text(
                       toDate == null
                           ? 'To date'
@@ -14061,7 +14061,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 if (fromDate != null || toDate != null)
                   IconButton(
                     tooltip: ghataT(context, 'Clear dates'),
-                    icon: const Icon(Icons.clear),
+                    icon: Icon(Icons.clear),
                     onPressed: () {
                       setState(() {
                         fromDate = null;
@@ -14073,7 +14073,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: DropdownButtonFormField<String?>(
               value: selectedCurrency,
               decoration: InputDecoration(
@@ -14098,7 +14098,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: loadCustomers(),
               builder: (context, snapshot) {
@@ -14136,11 +14136,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
               selectedCurrency != null ||
               selectedCustomerId != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
-                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  icon: Icon(Icons.filter_alt_off_outlined),
                   label: Text(ghataT(context, 'Clear All Filters')),
                   onPressed: () {
                     setState(() {
@@ -14159,7 +14159,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         builder: (context, snapshot) {
           if (snapshot.connectionState ==
               ConnectionState.waiting) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(),
             );
           }
@@ -14167,7 +14167,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           if (snapshot.hasError) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20),
                 child: Text(
                   "${ghataT(context, 'Unable to load reports')}: ${snapshot.error}",
                 ),
@@ -14185,25 +14185,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
           }
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             children: [
-              const Text(
+              Text(
                 'Currency Summary',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
 
               SizedBox(
                 height: 150,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
+                  physics: BouncingScrollPhysics(),
                   itemCount: report.length,
                   separatorBuilder: (_, __) =>
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                   itemBuilder: (context, index) {
                     final entry = report.entries.elementAt(index);
                     final currency = entry.key;
@@ -14211,7 +14211,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                     return Container(
                       width: 210,
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Theme.of(context)
                             .colorScheme
@@ -14229,22 +14229,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         children: [
                           Text(
                             '${flagForCurrency(currency)} $currency',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           Text(
                             'Money In: ${data['money_in']!.toStringAsFixed(2)}',
                           ),
                           Text(
                             'Money Out: ${data['money_out']!.toStringAsFixed(2)}',
                           ),
-                          const Spacer(),
+                          Spacer(),
                           Text(
                             'Net: ${data['net_cash_flow']!.toStringAsFixed(2)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -14255,16 +14255,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ),
 
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
 
-              const Text(
+              Text(
                 'Detailed Report',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
 
               ...report.entries.map((entry) {
                 final currency = entry.key;
@@ -14273,13 +14273,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 Widget row(String title, String key) {
                   return Padding(
                     padding:
-                        const EdgeInsets.symmetric(vertical: 5),
+                        EdgeInsets.symmetric(vertical: 5),
                     child: Row(
                       children: [
                         Expanded(child: Text(title)),
                         Text(
                           data[key]!.toStringAsFixed(2),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -14289,14 +14289,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 }
 
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
+                  margin: EdgeInsets.only(bottom: 10),
                   child: ExpansionTile(
                     leading: CircleAvatar(
                       child: Text(flagForCurrency(currency)),
                     ),
                     title: Text(
                       currency,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -14304,7 +14304,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       'Net Cash Flow: ${data['net_cash_flow']!.toStringAsFixed(2)}',
                     ),
                     childrenPadding:
-                        const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        EdgeInsets.fromLTRB(16, 0, 16, 16),
                     children: [
                       row('Money In', 'money_in'),
                       row('Money Out', 'money_out'),
@@ -14327,7 +14327,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 );
               }),
 
-              const SizedBox(height: 80),
+              SizedBox(height: 80),
             ],
           );
         },
