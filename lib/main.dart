@@ -1312,6 +1312,13 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'PIN کی تصدیق',
     'ar': 'تأكيد الرمز',
   },
+  'All Currencies': {
+    'en': 'All Currencies',
+    'ps': 'ټولې کرنسۍ',
+    'fa': 'همه ارزها',
+    'ur': 'تمام کرنسیاں',
+    'ar': 'جميع العملات',
+  },
   'No Customer': {
     'en': 'No Customer',
     'ps': 'پېرودونکی نشته',
@@ -1557,19 +1564,19 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'ڈیش بورڈ آپ کے کاروبار کا فوری خلاصہ دکھاتا ہے۔ کیش باکس، رقم وصول، رقم ادائیگی، آپ کو وصول ہونا ہے اور آپ کو ادا کرنا ہے ہر کرنسی کے لیے الگ دکھائے جاتے ہیں۔ گھتہ مختلف کرنسیوں کو تبدیل کرکے ایک مجموعی رقم میں شامل نہیں کرتا۔',
     'ar': 'تعرض لوحة التحكم ملخصًا سريعًا لنشاطك. ويظهر الصندوق والأموال الداخلة والخارجة والمبالغ المستحقة لك وعليك بشكل منفصل لكل عملة. ولا تقوم غهته بدمج العملات المختلفة في إجمالي محوّل واحد.',
   },
-  'Use Customers to create and manage customer accounts. Open a customer profile to see their transaction history and separate balances for every currency. You can also edit customer information and create customer transactions.': {
-    'en': 'Use Customers to create and manage customer accounts. Open a customer profile to see their transaction history and separate balances for every currency. You can also edit customer information and create customer transactions.',
-    'ps': 'د پېرودونکو برخه د پېرودونکو حسابونو د جوړولو او مدیریت لپاره وکاروئ. د پېرودونکي پروفایل خلاص کړئ ترڅو د هغه د معاملو تاریخ او د هر اسعار جلا بیلانس وګورئ. د پېرودونکي معلومات هم سمولای او نوې معاملې ورته جوړولای شئ.',
-    'fa': 'از بخش مشتریان برای ایجاد و مدیریت حساب‌های مشتری استفاده کنید. پروفایل مشتری را باز کنید تا تاریخچه معاملات و موجودی جداگانه هر ارز را ببینید. همچنین می‌توانید اطلاعات مشتری را ویرایش و برای او معامله ثبت کنید.',
-    'ur': 'گاہکوں کے اکاؤنٹس بنانے اور منظم کرنے کے لیے Customers استعمال کریں۔ گاہک کا پروفائل کھول کر لین دین کی تاریخ اور ہر کرنسی کا الگ بیلنس دیکھیں۔ آپ گاہک کی معلومات میں ترمیم اور اس کے لیے نئی ٹرانزیکشن بھی بنا سکتے ہیں۔',
-    'ar': 'استخدم قسم العملاء لإنشاء حسابات العملاء وإدارتها. افتح ملف العميل لعرض سجل معاملاته وأرصدته المنفصلة لكل عملة. ويمكنك أيضًا تعديل معلومات العميل وإنشاء معاملات له.',
+  'Use Customers to create and manage customer accounts. Each currency has its own independent running balance. Money In increases the customer balance, Money Out decreases it, and Exchange updates both related currencies. Open a customer to view the dated running ledger and current balances.': {
+    'en': 'Use Customers to create and manage customer accounts. Every currency is calculated separately and has its own independent running balance. Money In increases that currency balance and Money Out decreases it. Exchange updates both related currencies separately. Newest transactions are shown at the top while the running balance is calculated in chronological order. Press and hold a customer transaction to open Edit and Delete. If an older transaction is edited or deleted, the running balance is automatically recalculated.',
+    'ps': 'د پېرودونکو برخه د پېرودونکو د حسابونو د جوړولو او مدیریت لپاره وکاروئ. د هر پېرودونکي هره کرنسي جلا حسابېږي او خپل مستقل روان بیلانس لري. Money In د هماغې کرنسۍ بیلانس زیاتوي او Money Out یې کموي. Exchange دواړه اړوندې کرنسۍ جلا جلا بدلوي. نوې معامله د لست په سر کې ښودل کېږي، خو روان بیلانس د پخوانۍ معاملې څخه تر نوې معاملې پورې حسابېږي. د یوې معاملې د اصلاح یا ړنګولو لپاره پرې اوږد فشار ورکړئ؛ Edit او Delete به ښکاره شي. که پخوانۍ معامله اصلاح یا ړنګه شي، روان بیلانس په اتومات ډول له سره حسابېږي.',
+    'fa': 'از بخش مشتریان برای ایجاد و مدیریت حساب‌های مشتری استفاده کنید. هر ارز مشتری جداگانه محاسبه می‌شود و موجودی جاری مستقل خود را دارد. Money In موجودی همان ارز را افزایش می‌دهد و Money Out آن را کاهش می‌دهد. Exchange هر دو ارز مرتبط را جداگانه تغییر می‌دهد. جدیدترین معاملات در بالای فهرست نمایش داده می‌شوند، اما موجودی جاری به ترتیب زمانی از قدیمی‌ترین معامله محاسبه می‌شود. برای ویرایش یا حذف یک معامله، روی آن لمس طولانی کنید تا Edit و Delete نمایش داده شود. اگر معامله قدیمی ویرایش یا حذف شود، موجودی جاری به‌صورت خودکار دوباره محاسبه می‌شود.',
+    'ur': 'گاہکوں کے اکاؤنٹس بنانے اور منظم کرنے کے لیے Customers استعمال کریں۔ ہر گاہک کی ہر کرنسی الگ حساب ہوتی ہے اور اس کا اپنا مستقل رننگ بیلنس ہوتا ہے۔ Money In اسی کرنسی کا بیلنس بڑھاتا ہے اور Money Out کم کرتا ہے۔ Exchange دونوں متعلقہ کرنسیوں کو الگ الگ تبدیل کرتا ہے۔ نئی ٹرانزیکشن اوپر دکھائی جاتی ہے، لیکن رننگ بیلنس پرانی سے نئی ٹرانزیکشن تک حساب ہوتا ہے۔ کسی ٹرانزیکشن کو Edit یا Delete کرنے کے لیے اسے دیر تک دبائیں۔ اگر پرانی ٹرانزیکشن میں ترمیم یا حذف کیا جائے تو رننگ بیلنس خودکار طور پر دوبارہ حساب ہوتا ہے۔',
+    'ar': 'استخدم قسم العملاء لإنشاء حسابات العملاء وإدارتها. يتم حساب كل عملة للعميل بشكل منفصل ولكل عملة رصيد جارٍ مستقل. تزيد Money In رصيد العملة نفسها وتخفضه Money Out. ويحدّث Exchange العملتين المرتبطتين بشكل منفصل. تظهر أحدث المعاملات في أعلى القائمة، بينما يتم حساب الرصيد الجاري زمنياً من أقدم معاملة إلى أحدثها. اضغط مطولاً على أي معاملة لإظهار Edit وDelete. وإذا تم تعديل أو حذف معاملة قديمة، تتم إعادة حساب الرصيد الجاري تلقائياً.',
   },
-  'Use the Add button to record Money In, Money Out, loans, loan repayments and adjustments. Select the correct currency, date, time and customer when required. You can also add a description and reference number.': {
-    'en': 'Use the Add button to record Money In, Money Out, loans, loan repayments and adjustments. Select the correct currency, date, time and customer when required. You can also add a description and reference number.',
-    'ps': 'د Add تڼۍ په وسیله داخلې پیسې، وتلې پیسې، پورونه، د پور تادیات او سمونونه ثبت کړئ. اړین اسعار، نېټه، وخت او پېرودونکی په سمه توګه وټاکئ. تشریح او د حوالې شمېره هم اضافه کولای شئ.',
-    'fa': 'با دکمه افزودن، پول ورودی، پول خروجی، قرض‌ها، بازپرداخت قرض و اصلاحات را ثبت کنید. در صورت نیاز ارز، تاریخ، زمان و مشتری درست را انتخاب کنید. توضیحات و شماره مرجع نیز قابل افزودن است.',
-    'ur': 'Add بٹن سے رقم وصول، رقم ادائیگی، قرض، قرض کی واپسی اور ایڈجسٹمنٹ درج کریں۔ ضرورت کے مطابق درست کرنسی، تاریخ، وقت اور گاہک منتخب کریں۔ تفصیل اور حوالہ نمبر بھی شامل کیا جا سکتا ہے۔',
-    'ar': 'استخدم زر الإضافة لتسجيل الأموال الداخلة والخارجة والقروض وسداد القروض والتعديلات. اختر العملة والتاريخ والوقت والعميل الصحيح عند الحاجة. ويمكنك أيضًا إضافة وصف ورقم مرجعي.',
+  'Use the Add button to record Money In, Money Out and adjustments. Select the correct currency, date and time, and choose a customer when needed. Add a clear description so the reason for every transaction remains recorded.': {
+    'en': 'Use the Add button to record Money In, Money Out and adjustments. Select the correct currency, date and time, and choose a customer when needed. Add a clear description so the reason for every transaction remains recorded.',
+    'ps': 'د Add تڼۍ په وسیله Money In، Money Out او سمونونه ثبت کړئ. سم اسعار، نېټه او وخت وټاکئ، او د اړتیا پر مهال پېرودونکی انتخاب کړئ. روښانه تشریح ولیکئ ترڅو د هرې معاملې دلیل ثبت پاتې شي.',
+    'fa': 'با دکمه Add، Money In، Money Out و اصلاحات را ثبت کنید. ارز، تاریخ و زمان درست را انتخاب کنید و در صورت نیاز مشتری را مشخص کنید. توضیح روشنی وارد کنید تا دلیل هر معامله ثبت بماند.',
+    'ur': 'Add بٹن سے Money In، Money Out اور ایڈجسٹمنٹ درج کریں۔ درست کرنسی، تاریخ اور وقت منتخب کریں اور ضرورت کے مطابق گاہک منتخب کریں۔ واضح تفصیل لکھیں تاکہ ہر لین دین کی وجہ محفوظ رہے۔',
+    'ar': 'استخدم زر Add لتسجيل Money In وMoney Out والتعديلات. اختر العملة والتاريخ والوقت الصحيح، وحدد العميل عند الحاجة. أضف وصفًا واضحًا حتى يبقى سبب كل معاملة مسجلًا.',
   },
   'The Daily Journal keeps your transaction history. Use search and filters to find transactions. Transactions can be reviewed with their amount, currency, customer, date, time and description.': {
     'en': 'The Daily Journal keeps your transaction history. Use search and filters to find transactions. Transactions can be reviewed with their amount, currency, customer, date, time and description.',
@@ -1578,12 +1585,12 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'روزانہ جرنل آپ کے لین دین کی تاریخ محفوظ رکھتا ہے۔ ٹرانزیکشن تلاش کرنے کے لیے سرچ اور فلٹر استعمال کریں۔ ہر لین دین کو رقم، کرنسی، گاہک، تاریخ، وقت اور تفصیل کے ساتھ دیکھا جا سکتا ہے۔',
     'ar': 'يحتفظ السجل اليومي بتاريخ معاملاتك. استخدم البحث وعوامل التصفية للعثور على المعاملات. ويمكن مراجعة كل معاملة مع المبلغ والعملة والعميل والتاريخ والوقت والوصف.',
   },
-  'Ghata tracks money customers owe you and money you owe them. Loan repayments reduce the related balance while keeping the accounting history available.': {
-    'en': 'Ghata tracks money customers owe you and money you owe them. Loan repayments reduce the related balance while keeping the accounting history available.',
-    'ps': 'ګهته هغه پیسې ثبتوي چې پېرودونکي یې تاسو ته پوروړي دي او هغه پیسې چې تاسو یې هغوی ته پوروړي یاست. د پور تادیات اړوند بیلانس کموي، خو د حسابدارۍ تاریخ خوندي ساتي.',
-    'fa': 'گِهته مبالغی را که مشتریان به شما بدهکارند و مبالغی را که شما به آنان بدهکارید پیگیری می‌کند. بازپرداخت قرض، موجودی مربوط را کاهش می‌دهد و تاریخچه حسابداری را حفظ می‌کند.',
-    'ur': 'گھتہ وہ رقم ریکارڈ کرتا ہے جو گاہکوں نے آپ کو دینی ہے اور وہ رقم جو آپ نے انہیں دینی ہے۔ قرض کی واپسی متعلقہ بیلنس کم کرتی ہے جبکہ اکاؤنٹنگ تاریخ محفوظ رہتی ہے۔',
-    'ar': 'تتابع غهته الأموال التي يدين بها العملاء لك والأموال التي تدين بها لهم. ويؤدي سداد القروض إلى خفض الرصيد المرتبط مع الحفاظ على السجل المحاسبي.',
+  'Customer balances automatically show the financial position for each currency. A positive balance is shown in green, a negative balance in red, and zero is neutral. Backdated transactions are placed at their actual date and time and the running balance is recalculated.': {
+    'en': 'Customer balances automatically show the financial position for each currency. A positive balance is shown in green, a negative balance in red, and zero is neutral. Backdated transactions are placed at their actual date and time and the running balance is recalculated.',
+    'ps': 'د پېرودونکي بیلانس د هر اسعار مالي حالت په اتومات ډول ښيي. مثبت بیلانس په شین، منفي بیلانس په سور او صفر په عادي رنګ ښودل کېږي. که پخوانۍ نېټه او وخت وټاکئ، معامله خپل اصلي ځای ته ځي او ورپسې روان بیلانسونه بیا محاسبه کېږي.',
+    'fa': 'موجودی مشتری وضعیت مالی هر ارز را به‌صورت خودکار نشان می‌دهد. موجودی مثبت سبز، موجودی منفی قرمز و صفر خنثی نمایش داده می‌شود. معاملات با تاریخ گذشته در تاریخ و زمان واقعی خود قرار می‌گیرند و موجودی‌های جاری بعدی دوباره محاسبه می‌شوند.',
+    'ur': 'گاہک کا بیلنس ہر کرنسی کی مالی حالت خودکار طور پر دکھاتا ہے۔ مثبت بیلنس سبز، منفی سرخ اور صفر غیر جانبدار دکھایا جاتا ہے۔ پچھلی تاریخ کی ٹرانزیکشن اپنے اصل تاریخ اور وقت پر رکھی جاتی ہے اور بعد کے رننگ بیلنس دوبارہ حساب ہوتے ہیں۔',
+    'ar': 'يعرض رصيد العميل الوضع المالي لكل عملة تلقائيًا. يظهر الرصيد الموجب بالأخضر والسالب بالأحمر والصفر بلون محايد. توضع المعاملات المؤرخة بتاريخ سابق في تاريخها ووقتها الفعليين وتُعاد حساب الأرصدة الجارية اللاحقة.',
   },
   'Use Exchange for currency buy and sell operations. Select the From and To currencies, enter the amounts and exchange rate, and optionally select a customer. Each currency remains independently recorded.': {
     'en': 'Use Exchange for currency buy and sell operations. Select the From and To currencies, enter the amounts and exchange rate, and optionally select a customer. Each currency remains independently recorded.',
@@ -1599,12 +1606,12 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'کیش باکس کاروبار کی ریکارڈ شدہ نقدی نقل و حرکت دکھاتا ہے۔ بیلنس ہر کرنسی کے لیے الگ رکھا جاتا ہے اور معاون ٹرانزیکشنز اور ایکسچینج شامل ہوتے ہیں۔',
     'ar': 'يمثل الصندوق حركة النقد المسجلة للنشاط. ويتم الاحتفاظ بالأرصدة بشكل منفصل لكل عملة وتشمل المعاملات وحركات الصرف المدعومة.',
   },
-  'Reports summarize Money In, Money Out, exchanges, loans, repayments and adjustments. Reports can be filtered by date, currency and customer. Currency totals are never automatically converted into another currency.': {
-    'en': 'Reports summarize Money In, Money Out, exchanges, loans, repayments and adjustments. Reports can be filtered by date, currency and customer. Currency totals are never automatically converted into another currency.',
-    'ps': 'راپورونه داخلې پیسې، وتلې پیسې، تبادلې، پورونه، تادیات او سمونونه لنډیز کوي. راپورونه د نېټې، اسعار او پېرودونکي له مخې فلټر کېدای شي. د اسعارو مجموعې هېڅکله په اتومات ډول بل اسعار ته نه بدلېږي.',
-    'fa': 'گزارش‌ها پول ورودی، پول خروجی، تبادلات، قرض‌ها، بازپرداخت‌ها و اصلاحات را خلاصه می‌کنند. گزارش‌ها بر اساس تاریخ، ارز و مشتری قابل فیلتر هستند. مجموع ارزها هرگز به صورت خودکار به ارز دیگری تبدیل نمی‌شود.',
-    'ur': 'رپورٹس رقم وصول، رقم ادائیگی، ایکسچینج، قرض، واپسی اور ایڈجسٹمنٹ کا خلاصہ دکھاتی ہیں۔ تاریخ، کرنسی اور گاہک کے مطابق فلٹر کیا جا سکتا ہے۔ کرنسی کے مجموعے خودکار طور پر دوسری کرنسی میں تبدیل نہیں کیے جاتے۔',
-    'ar': 'تلخص التقارير الأموال الداخلة والخارجة وعمليات الصرف والقروض والسداد والتعديلات. ويمكن تصفية التقارير حسب التاريخ والعملة والعميل. ولا يتم تحويل إجماليات العملات تلقائيًا إلى عملة أخرى.',
+  'Reports summarize Money In, Money Out, exchanges and adjustments. Reports can be filtered by date, currency and customer. Each currency is reported separately and is never automatically converted into another currency.': {
+    'en': 'Reports summarize Money In, Money Out, exchanges and adjustments. Reports can be filtered by date, currency and customer. Each currency is reported separately and is never automatically converted into another currency.',
+    'ps': 'راپورونه Money In، Money Out، تبادلې او سمونونه لنډیز کوي. راپورونه د نېټې، اسعار او پېرودونکي له مخې فلټر کېدای شي. هر اسعار جلا راپور کېږي او هېڅکله په اتومات ډول بل اسعار ته نه بدلېږي.',
+    'fa': 'گزارش‌ها Money In، Money Out، تبادلات و اصلاحات را خلاصه می‌کنند. گزارش‌ها بر اساس تاریخ، ارز و مشتری قابل فیلتر هستند. هر ارز جداگانه گزارش می‌شود و هرگز به‌صورت خودکار به ارز دیگری تبدیل نمی‌شود.',
+    'ur': 'رپورٹس Money In، Money Out، ایکسچینج اور ایڈجسٹمنٹ کا خلاصہ دکھاتی ہیں۔ تاریخ، کرنسی اور گاہک کے مطابق فلٹر کیا جا سکتا ہے۔ ہر کرنسی الگ رپورٹ ہوتی ہے اور خودکار طور پر دوسری کرنسی میں تبدیل نہیں کی جاتی۔',
+    'ar': 'تلخص التقارير Money In وMoney Out وعمليات الصرف والتعديلات. ويمكن تصفية التقارير حسب التاريخ والعملة والعميل. يتم عرض كل عملة بشكل منفصل ولا يتم تحويلها تلقائيًا إلى عملة أخرى.',
   },
   'Ghata can prepare transaction receipts, customer statements and customer balance images for sharing. Always review the information before sending a document to another person.': {
     'en': 'Ghata can prepare transaction receipts, customer statements and customer balance images for sharing. Always review the information before sending a document to another person.',
@@ -1963,6 +1970,13 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'دستیاب بیلنس',
     'ar': 'الرصيد المتاح',
   },
+  'Negative Balance': {
+    'en': 'Negative Balance',
+    'ps': 'منفي بیلانس',
+    'fa': 'موجودی منفی',
+    'ur': 'منفی بیلنس',
+    'ar': 'الرصيد السالب',
+  },
   'Exchange moved to Recycle Bin. You can restore it within 30 days.': {
     'en': 'Exchange moved to Recycle Bin. You can restore it within 30 days.',
     'ps': 'تبادله حذف شوو معلوماتو ته انتقال شوه. تر ۳۰ ورځو پورې یې بېرته راګرځولای شئ.',
@@ -2131,7 +2145,28 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'کرنسی خلاصہ',
     'ar': 'ملخص العملات',
   },
-  'Customer Balance': {
+  'Customer currencies are calculated separately.': {
+  'en': 'Each customer currency is calculated separately. AFN, PKR, USD and every other currency keep their own independent running balance.',
+  'ps': 'د هر پېرودونکي هره کرنسي جلا حسابېږي. افغانۍ، پاکستانۍ کلدارې، ډالر او نورې ټولې کرنسۍ خپل مستقل روان بیلانس لري.',
+  'fa': 'هر ارز مشتری به‌صورت جداگانه محاسبه می‌شود. افغانی، روپیه پاکستان، دالر و سایر ارزها هرکدام موجودی جاری مستقل دارند.',
+  'ur': 'ہر گاہک کی ہر کرنسی الگ حساب ہوتی ہے۔ افغانی، پاکستانی روپیہ، ڈالر اور دوسری تمام کرنسیاں اپنا الگ چلتا ہوا بیلنس رکھتی ہیں۔',
+  'ar': 'يتم حساب كل عملة للعميل بشكل منفصل. الأفغاني والروبية الباكستانية والدولار وباقي العملات لكل منها رصيد جارٍ مستقل.',
+},
+'Customer transactions can be edited or deleted by long press.': {
+  'en': 'Press and hold a customer transaction to open Edit and Delete. After editing or deleting an older transaction, the running balance is recalculated automatically.',
+  'ps': 'د پېرودونکي پر معاملې اوږد فشار ورکړئ، Edit او Delete به ښکاره شي. که پخوانۍ معامله اصلاح یا ړنګه شي، روان بیلانس په اتومات ډول له سره حسابېږي.',
+  'fa': 'روی معامله مشتری لمس طولانی کنید تا Edit و Delete نمایش داده شود. پس از ویرایش یا حذف معامله قبلی، موجودی جاری به‌صورت خودکار دوباره محاسبه می‌شود.',
+  'ur': 'گاہک کی ٹرانزیکشن کو دیر تک دبائیں تو Edit اور Delete ظاہر ہوں گے۔ پرانی ٹرانزیکشن میں ترمیم یا حذف کے بعد چلتا ہوا بیلنس خودکار طور پر دوبارہ حساب ہوتا ہے۔',
+  'ar': 'اضغط مطولاً على معاملة العميل لإظهار Edit وDelete. بعد تعديل أو حذف معاملة قديمة، تتم إعادة حساب الرصيد الجاري تلقائياً.',
+},
+'Customer exchange affects each currency separately.': {
+  'en': 'Customer Exchange updates both currencies separately. The outgoing currency is reduced and the incoming currency is increased without mixing their balances.',
+  'ps': 'د پېرودونکي Exchange دواړه کرنسۍ جلا بدلوي. وتلې کرنسي کمېږي او راغلې کرنسي زیاتېږي، خو د دواړو بیلانسونه سره نه ګډېږي.',
+  'fa': 'Exchange مشتری هر دو ارز را جداگانه تغییر می‌دهد. ارز خروجی کم و ارز ورودی زیاد می‌شود و موجودی‌ها با هم مخلوط نمی‌شوند.',
+  'ur': 'گاہک کا Exchange دونوں کرنسیوں کو الگ الگ تبدیل کرتا ہے۔ جانے والی کرنسی کم اور آنے والی کرنسی زیادہ ہوتی ہے، دونوں بیلنس آپس میں نہیں ملتے۔',
+  'ar': 'يحدّث Exchange الخاص بالعميل كلتا العملتين بشكل منفصل. تنخفض العملة الخارجة وتزداد العملة الداخلة دون خلط الأرصدة.',
+},
+'Customer Balance': {
     'en': 'Customer Balance',
     'ps': 'د پېرودونکي بیلانس',
     'fa': 'موجودی مشتری',
@@ -2713,6 +2748,20 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'مجوزهای کارمند ذخیره شد.',
     'ur': 'عملے کی اجازتیں محفوظ ہوگئیں۔',
     'ar': 'تم حفظ صلاحيات الموظف.',
+  },
+  'Cash received / reason': {
+    'en': 'Cash received / reason',
+    'ps': 'ترلاسه شوې پیسې / دلیل',
+    'fa': 'پول دریافت‌شده / دلیل',
+    'ur': 'وصول شدہ رقم / وجہ',
+    'ar': 'المبلغ المستلم / السبب',
+  },
+  'Cash given / reason': {
+    'en': 'Cash given / reason',
+    'ps': 'ورکړل شوې پیسې / دلیل',
+    'fa': 'پول پرداخت‌شده / دلیل',
+    'ur': 'دی گئی رقم / وجہ',
+    'ar': 'المبلغ المدفوع / السبب',
   },
   'Please fill in all fields': {
     'en': 'Please fill in all fields',
@@ -5532,62 +5581,76 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? (constraints.maxWidth < 380 ? 92.0 : 105.0)
                     : (constraints.maxWidth < 180 ? 66.0 : 78.0);
 
-                return Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: currencies.map((code) {
-                    final value = data[code]?[key] ?? 0;
-                    final c = dashboardCurrencyColor(code);
+                return SizedBox(
+                  height: isCashbox ? 92 : 78,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: BouncingScrollPhysics(),
+                    itemCount: currencies.length,
+                    separatorBuilder: (_, __) => SizedBox(width: 6),
+                    itemBuilder: (context, index) {
+                      final code = currencies[index];
+                      final value = data[code]?[key] ?? 0;
+                      final c = dashboardCurrencyColor(code);
 
-                    return Container(
-                      width: itemWidth,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: isCashbox ? 8 : 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isCashbox
-                            ? c.withValues(alpha: 0.08)
-                            : Theme.of(context)
-                                .colorScheme
-                                .surface
-                                .withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(11),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            dashboardFlag(code),
-                            style: TextStyle(
-                              fontSize: isCashbox ? 19 : 15,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            code,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              amountText(value),
-                              maxLines: 1,
+                      return Container(
+                        width: itemWidth,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: isCashbox ? 8 : 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isCashbox
+                              ? c.withValues(alpha: 0.08)
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surface
+                                  .withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              dashboardFlag(code),
                               style: TextStyle(
-                                fontSize: isCashbox ? 15 : 12,
-                                fontWeight: FontWeight.bold,
-                                color: isCashbox ? c : accent,
+                                fontSize: isCashbox ? 19 : 15,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                            SizedBox(height: 2),
+                            Text(
+                              code,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                amountText(value),
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: isCashbox ? 15 : 12,
+                                  fontWeight: FontWeight.bold,
+                                    color: isCashbox
+                                        ? (value > 0
+                                            ? Colors.green
+                                            : value < 0
+                                                ? Colors.red
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant)
+                                        : accent,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 );
               },
             ),
@@ -6518,14 +6581,14 @@ class AboutGhataScreen extends StatelessWidget {
               context,
               Icons.people_outline,
               ghataT(context, 'Customers'),
-              ghataT(context, 'Use Customers to create and manage customer accounts. Open a customer profile to see their transaction history and separate balances for every currency. You can also edit customer information and create customer transactions.'),
+              ghataT(context, 'Use Customers to create and manage customer accounts. Each currency has its own independent running balance. Money In increases the customer balance, Money Out decreases it, and Exchange updates both related currencies. Open a customer to view the dated running ledger and current balances.'),
             ),
 
             guideSection(
               context,
               Icons.add_circle_outline,
               ghataT(context, 'Add Transaction'),
-              ghataT(context, 'Use the Add button to record Money In, Money Out, loans, loan repayments and adjustments. Select the correct currency, date, time and customer when required. You can also add a description and reference number.'),
+              ghataT(context, 'Use the Add button to record Money In, Money Out and adjustments. Select the correct currency, date and time, and choose a customer when needed. Add a clear description so the reason for every transaction remains recorded.'),
             ),
 
             guideSection(
@@ -6538,8 +6601,8 @@ class AboutGhataScreen extends StatelessWidget {
             guideSection(
               context,
               Icons.handshake_outlined,
-              ghataT(context, 'Loans & Debts'),
-              ghataT(context, 'Ghata tracks money customers owe you and money you owe them. Loan repayments reduce the related balance while keeping the accounting history available.'),
+              ghataT(context, 'Customer Balance'),
+              ghataT(context, 'Customer balances automatically show the financial position for each currency. A positive balance is shown in green, a negative balance in red, and zero is neutral. Backdated transactions are placed at their actual date and time and the running balance is recalculated.'),
             ),
 
             guideSection(
@@ -6560,7 +6623,7 @@ class AboutGhataScreen extends StatelessWidget {
               context,
               Icons.bar_chart_outlined,
               ghataT(context, 'Reports'),
-              ghataT(context, 'Reports summarize Money In, Money Out, exchanges, loans, repayments and adjustments. Reports can be filtered by date, currency and customer. Currency totals are never automatically converted into another currency.'),
+              ghataT(context, 'Reports summarize Money In, Money Out, exchanges and adjustments. Reports can be filtered by date, currency and customer. Each currency is reported separately and is never automatically converted into another currency.'),
             ),
 
             guideSection(
@@ -8205,10 +8268,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   final transactionTypes = [
     ('money_in', 'Money In'),
     ('money_out', 'Money Out'),
-    ('loan_given', 'Loan Given'),
-    ('loan_received', 'Loan Received'),
-    ('loan_repayment_received', 'Loan Repayment Received'),
-    ('loan_repayment_paid', 'Loan Repayment Paid'),
     ('adjustment_in', 'Adjustment In'),
     ('adjustment_out', 'Adjustment Out'),
   ];
@@ -10146,14 +10205,6 @@ Future<void> shareTransactionReceiptPdf(
                     ),
                     SizedBox(width: 8),
                     FilterChip(
-                      label: Text(ghataT(context, 'Loans')),
-                      selected: selectedFilter == 'loan',
-                      onSelected: (_) {
-                        setState(() => selectedFilter = 'loan');
-                      },
-                    ),
-                    SizedBox(width: 8),
-                    FilterChip(
                       label: Text(ghataT(context, 'Adjustments')),
                       selected: selectedFilter == 'adjustment',
                       onSelected: (_) {
@@ -12047,6 +12098,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
   Map<String, dynamic>? customerProfile;
   String? customerPhotoPath;
+  String selectedLedgerCurrency = 'ALL';
 
   @override
   void initState() {
@@ -12083,38 +12135,165 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 }
 
   Future<List<Map<String, dynamic>>> loadCustomerTransactions() async {
-  await ghataRefreshOfflineCache();
+    await ghataRefreshOfflineCache();
 
-  final local =
-      await OfflineDatabase.instance.getRecords('transactions');
+    final local =
+        await OfflineDatabase.instance.getRecords('transactions');
 
-  final allowed = {
-    'money_in',
-    'money_out',
-    'loan_given',
-    'loan_received',
-    'loan_repayment_received',
-    'loan_repayment_paid',
-  };
+    final allowed = {
+      'money_in',
+      'money_out',
+      'loan_given',
+      'loan_received',
+      'loan_repayment_received',
+      'loan_repayment_paid',
+    };
 
-  final rows = local.where((row) {
-    return row['customer_id']?.toString() == customerId &&
-        allowed.contains(
-          row['transaction_type']?.toString() ?? '',
-        );
-  }).toList();
+    final rows = local.where((row) {
+      return row['customer_id']?.toString() == customerId &&
+          allowed.contains(
+            row['transaction_type']?.toString() ?? '',
+          );
+    }).map((row) => Map<String, dynamic>.from(row)).toList();
 
-  rows.sort((a, b) {
-    final ad =
-        '${a['transaction_date'] ?? ''} ${a['transaction_time'] ?? ''} ${a['created_at'] ?? ''}';
-    final bd =
-        '${b['transaction_date'] ?? ''} ${b['transaction_time'] ?? ''} ${b['created_at'] ?? ''}';
+    // --------------------------------------------------
+    // Add customer-linked Exchange as virtual ledger rows.
+    // We DO NOT create duplicate transaction records.
+    // Cashbox continues to use the original exchange entries.
+    // --------------------------------------------------
+    final exchanges =
+        await OfflineDatabase.instance.getRecords('exchanges');
 
-    return bd.compareTo(ad);
-  });
+    final exchangeEntries =
+        await OfflineDatabase.instance.getRecords('exchange_entries');
 
-  return rows;
-}
+    final customerExchanges = exchanges.where((exchange) {
+      final deletedAt = exchange['deleted_at']?.toString() ?? '';
+
+      return exchange['customer_id']?.toString() == customerId &&
+          deletedAt.isEmpty;
+    }).toList();
+
+    for (final exchange in customerExchanges) {
+      final exchangeId = exchange['id']?.toString() ?? '';
+      if (exchangeId.isEmpty) continue;
+
+      final entries = exchangeEntries.where((entry) {
+        return entry['exchange_id']?.toString() == exchangeId;
+      }).toList();
+
+      Map<String, dynamic>? outEntry;
+      Map<String, dynamic>? inEntry;
+
+      for (final entry in entries) {
+        final entryType = entry['entry_type']?.toString() ?? '';
+
+        if (entryType == 'money_out' && outEntry == null) {
+          outEntry = entry;
+        }
+
+        if (entryType == 'money_in' && inEntry == null) {
+          inEntry = entry;
+        }
+      }
+
+      final outAmount =
+          double.tryParse(outEntry?['amount']?.toString() ?? '') ?? 0;
+
+      final inAmount =
+          double.tryParse(inEntry?['amount']?.toString() ?? '') ?? 0;
+
+      final outCurrency =
+          outEntry?['currency']?.toString().toUpperCase() ?? '';
+
+      final inCurrency =
+          inEntry?['currency']?.toString().toUpperCase() ?? '';
+
+      final exchangeDate =
+          exchange['exchange_date']?.toString() ?? '';
+
+      final exchangeTime =
+          exchange['exchange_time']?.toString() ?? '';
+
+      final createdAt =
+          exchange['created_at']?.toString() ?? '';
+
+      final notes =
+          exchange['notes']?.toString().trim() ?? '';
+
+      final exchangeDescription =
+          outAmount > 0 &&
+                  inAmount > 0 &&
+                  outCurrency.isNotEmpty &&
+                  inCurrency.isNotEmpty
+              ? 'Exchange (${outAmount % 1 == 0 ? outAmount.toStringAsFixed(0) : outAmount.toStringAsFixed(2)} $outCurrency → ${inAmount % 1 == 0 ? inAmount.toStringAsFixed(0) : inAmount.toStringAsFixed(2)} $inCurrency)'
+              : 'Exchange';
+
+      final description = notes.isEmpty
+          ? exchangeDescription
+          : '$exchangeDescription • $notes';
+
+      if (outEntry != null &&
+          outAmount > 0 &&
+          outCurrency.isNotEmpty) {
+        rows.add({
+          'id': 'exchange_out_$exchangeId',
+          'exchange_id': exchangeId,
+          'customer_id': customerId,
+          'customer_name':
+              exchange['customer_name']?.toString() ?? customerName,
+          'transaction_date': exchangeDate,
+          'transaction_time': exchangeTime,
+          'transaction_type': 'money_out',
+          'amount': outAmount,
+          'currency': outCurrency,
+          'description': description,
+          'reference_no': 'Exchange',
+          'created_at': createdAt,
+          '_is_exchange': true,
+          '_exchange_leg': 'out',
+        });
+      }
+
+      if (inEntry != null &&
+          inAmount > 0 &&
+          inCurrency.isNotEmpty) {
+        rows.add({
+          'id': 'exchange_in_$exchangeId',
+          'exchange_id': exchangeId,
+          'customer_id': customerId,
+          'customer_name':
+              exchange['customer_name']?.toString() ?? customerName,
+          'transaction_date': exchangeDate,
+          'transaction_time': exchangeTime,
+          'transaction_type': 'money_in',
+          'amount': inAmount,
+          'currency': inCurrency,
+          'description': description,
+          'reference_no': 'Exchange',
+          'created_at': createdAt,
+          '_is_exchange': true,
+          '_exchange_leg': 'in',
+        });
+      }
+    }
+
+    rows.sort((a, b) {
+      final ad =
+          '${a['transaction_date'] ?? ''} '
+          '${a['transaction_time'] ?? ''} '
+          '${a['created_at'] ?? ''}';
+
+      final bd =
+          '${b['transaction_date'] ?? ''} '
+          '${b['transaction_time'] ?? ''} '
+          '${b['created_at'] ?? ''}';
+
+      return bd.compareTo(ad);
+    });
+
+    return rows;
+  }
 
   Map<String, double> calculateBalances(
     List<Map<String, dynamic>> transactions,
@@ -12122,8 +12301,10 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     final balances = <String, double>{};
 
     for (final transaction in transactions) {
-      final currency = transaction['currency']?.toString() ?? '';
-      final type = transaction['transaction_type']?.toString() ?? '';
+      final currency =
+          transaction['currency']?.toString().toUpperCase() ?? '';
+      final type =
+          transaction['transaction_type']?.toString() ?? '';
       final amount =
           double.tryParse(transaction['amount']?.toString() ?? '0') ?? 0;
 
@@ -12132,15 +12313,22 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       balances.putIfAbsent(currency, () => 0);
 
       switch (type) {
-        case 'money_out':
-        case 'loan_given':
-        case 'loan_repayment_paid':
+        case 'money_in':
           balances[currency] = balances[currency]! + amount;
           break;
 
-        case 'money_in':
+        case 'money_out':
+          balances[currency] = balances[currency]! - amount;
+          break;
+
+        // Keep old loan records readable for existing users.
         case 'loan_received':
         case 'loan_repayment_received':
+          balances[currency] = balances[currency]! + amount;
+          break;
+
+        case 'loan_given':
+        case 'loan_repayment_paid':
           balances[currency] = balances[currency]! - amount;
           break;
 
@@ -12150,6 +12338,414 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     }
 
     return balances;
+  }
+
+  Future<void> showCustomerTransactionActions(
+    Map<String, dynamic> transaction,
+  ) async {
+    if (transaction['_is_exchange'] == true) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(ghataT(context, 'Exchange')),
+          content: Text(
+            ghataT(
+              context,
+              'Open Exchange to edit this transaction.',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(ghataT(context, 'Cancel')),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                openCustomerExchange();
+              },
+              child: Text(ghataT(context, 'Exchange')),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.edit_outlined),
+              title: Text(ghataT(context, 'Edit')),
+              onTap: () => Navigator.pop(sheetContext, 'edit'),
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline, color: Colors.red),
+              title: Text(
+                ghataT(context, 'Delete'),
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () => Navigator.pop(sheetContext, 'delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || action == null) return;
+
+    if (action == 'delete') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(ghataT(context, 'Delete')),
+          content: Text(
+            ghataT(
+              context,
+              'Are you sure you want to delete this transaction?',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(ghataT(context, 'Cancel')),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(ghataT(context, 'Delete')),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true || !mounted) return;
+
+      final updated = Map<String, dynamic>.from(transaction)
+        ..remove('_ledger_in')
+        ..remove('_ledger_out')
+        ..remove('_ledger_balance');
+
+      updated['deleted_at'] = DateTime.now().toIso8601String();
+
+      await ghataSaveLocal('transactions', updated);
+      ghataTrySync();
+
+      if (!mounted) return;
+      setState(() {});
+      return;
+    }
+
+    if (action != 'edit') return;
+
+    final amountController = TextEditingController(
+      text: transaction['amount']?.toString() ?? '',
+    );
+    final descriptionController = TextEditingController(
+      text: transaction['description']?.toString() ?? '',
+    );
+    final noteController = TextEditingController(
+      text: transaction['reference_no']?.toString() ?? '',
+    );
+
+    const currencies = [
+      'AFN',
+      'PKR',
+      'USD',
+      'EUR',
+      'GBP',
+      'AED',
+      'SAR',
+      'KWD',
+      'QAR',
+      'OMR',
+      'TRY',
+      'CNY',
+      'INR',
+      'IRR',
+    ];
+
+    var currency =
+        transaction['currency']?.toString().toUpperCase() ?? 'AFN';
+
+    if (!currencies.contains(currency)) {
+      currency = 'AFN';
+    }
+
+    var selectedDate = DateTime.tryParse(
+          transaction['transaction_date']?.toString() ?? '',
+        ) ??
+        DateTime.now();
+
+    final rawTime =
+        transaction['transaction_time']?.toString() ?? '';
+
+    var selectedTime = TimeOfDay.now();
+
+    if (rawTime.length >= 5) {
+      final parts = rawTime.substring(0, 5).split(':');
+      final hour =
+          parts.isNotEmpty ? int.tryParse(parts[0]) : null;
+      final minute =
+          parts.length > 1 ? int.tryParse(parts[1]) : null;
+
+      if (hour != null && minute != null) {
+        selectedTime = TimeOfDay(
+          hour: hour,
+          minute: minute,
+        );
+      }
+    }
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(ghataT(context, 'Edit')),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: amountController,
+                  keyboardType:
+                      TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: ghataT(context, 'Amount'),
+                  ),
+                ),
+                SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: currency,
+                  decoration: InputDecoration(
+                    labelText: ghataT(context, 'Currency'),
+                  ),
+                  items: currencies
+                      .map(
+                        (code) => DropdownMenuItem<String>(
+                          value: code,
+                          child: Text(
+                            '${flagForCurrency(code)} $code',
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setDialogState(() {
+                      currency = value;
+                    });
+                  },
+                ),
+                SizedBox(height: 12),
+                TextField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(
+                    labelText:
+                        ghataT(context, 'Description'),
+                  ),
+                ),
+                SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  decoration: InputDecoration(
+                    labelText: ghataT(context, 'Note'),
+                  ),
+                ),
+                SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading:
+                      Icon(Icons.calendar_today_outlined),
+                  title: Text(
+                    '${selectedDate.year.toString().padLeft(4, '0')}-'
+                    '${selectedDate.month.toString().padLeft(2, '0')}-'
+                    '${selectedDate.day.toString().padLeft(2, '0')}',
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+
+                    if (picked != null) {
+                      setDialogState(() {
+                        selectedDate = picked;
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.access_time),
+                  title: Text(
+                    '${selectedTime.hour.toString().padLeft(2, '0')}:'
+                    '${selectedTime.minute.toString().padLeft(2, '0')}',
+                  ),
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: selectedTime,
+                    );
+
+                    if (picked != null) {
+                      setDialogState(() {
+                        selectedTime = picked;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, false),
+              child: Text(ghataT(context, 'Cancel')),
+            ),
+            FilledButton(
+              onPressed: () {
+                final amount = double.tryParse(
+                  amountController.text.trim(),
+                );
+
+                if (amount == null ||
+                    amount <= 0 ||
+                    descriptionController.text
+                        .trim()
+                        .isEmpty) {
+                  return;
+                }
+
+                Navigator.pop(dialogContext, true);
+              },
+              child: Text(ghataT(context, 'Save')),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (saved != true || !mounted) {
+      amountController.dispose();
+      descriptionController.dispose();
+      noteController.dispose();
+      return;
+    }
+
+    final updated = Map<String, dynamic>.from(transaction)
+      ..remove('_ledger_in')
+      ..remove('_ledger_out')
+      ..remove('_ledger_balance');
+
+    updated['amount'] =
+        double.parse(amountController.text.trim());
+    updated['currency'] = currency;
+    updated['description'] =
+        descriptionController.text.trim();
+    updated['reference_no'] =
+        noteController.text.trim();
+
+    updated['transaction_date'] =
+        '${selectedDate.year.toString().padLeft(4, '0')}-'
+        '${selectedDate.month.toString().padLeft(2, '0')}-'
+        '${selectedDate.day.toString().padLeft(2, '0')}';
+
+    updated['transaction_time'] =
+        '${selectedTime.hour.toString().padLeft(2, '0')}:'
+        '${selectedTime.minute.toString().padLeft(2, '0')}:00';
+
+    await ghataSaveLocal('transactions', updated);
+    ghataTrySync();
+
+    amountController.dispose();
+    descriptionController.dispose();
+    noteController.dispose();
+
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  List<Map<String, dynamic>> buildCustomerRunningLedger(
+    List<Map<String, dynamic>> transactions,
+  ) {
+    final ordered =
+        List<Map<String, dynamic>>.from(transactions);
+
+    // Oldest first so backdated transactions recalculate
+    // every balance that follows them.
+    ordered.sort((a, b) {
+      final ad =
+          '${a['transaction_date'] ?? ''} '
+          '${a['transaction_time'] ?? ''} '
+          '${a['created_at'] ?? ''}';
+      final bd =
+          '${b['transaction_date'] ?? ''} '
+          '${b['transaction_time'] ?? ''} '
+          '${b['created_at'] ?? ''}';
+
+      return ad.compareTo(bd);
+    });
+
+    final running = <String, double>{};
+    final rows = <Map<String, dynamic>>[];
+
+    for (final transaction in ordered) {
+      final currency =
+          transaction['currency']?.toString().toUpperCase() ?? '';
+      final type =
+          transaction['transaction_type']?.toString() ?? '';
+      final amount =
+          double.tryParse(transaction['amount']?.toString() ?? '0') ?? 0;
+
+      if (currency.isEmpty) continue;
+
+      running.putIfAbsent(currency, () => 0);
+
+      double moneyIn = 0;
+      double moneyOut = 0;
+
+      switch (type) {
+        case 'money_in':
+        case 'loan_received':
+        case 'loan_repayment_received':
+          moneyIn = amount;
+          running[currency] = running[currency]! + amount;
+          break;
+
+        case 'money_out':
+        case 'loan_given':
+        case 'loan_repayment_paid':
+          moneyOut = amount;
+          running[currency] = running[currency]! - amount;
+          break;
+
+        default:
+          continue;
+      }
+
+      rows.add({
+        ...transaction,
+        '_ledger_in': moneyIn,
+        '_ledger_out': moneyOut,
+        '_ledger_balance': running[currency],
+      });
+    }
+
+    // Display newest first, but balances were calculated oldest first.
+    return rows.reversed.toList();
   }
 
   Future<void> openCustomerWhatsApp() async {
@@ -12213,14 +12809,356 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             ? customerProfile!['full_name'].toString()
             : customerName;
 
+    final amountController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final noteController = TextEditingController();
+
+    const currencies = [
+      ('AFN', '🇦🇫'),
+      ('PKR', '🇵🇰'),
+      ('USD', '🇺🇸'),
+      ('EUR', '🇪🇺'),
+      ('GBP', '🇬🇧'),
+      ('AED', '🇦🇪'),
+      ('SAR', '🇸🇦'),
+      ('KWD', '🇰🇼'),
+      ('QAR', '🇶🇦'),
+      ('OMR', '🇴🇲'),
+      ('TRY', '🇹🇷'),
+      ('CNY', '🇨🇳'),
+      ('INR', '🇮🇳'),
+      ('IRR', '🇮🇷'),
+    ];
+
+    var selectedCurrency = 'AFN';
+    var selectedDate = DateTime.now();
+    var selectedTime = TimeOfDay.now();
+    var saving = false;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          String dateText(DateTime date) =>
+              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  type == 'money_in'
+                      ? Icons.south_west_rounded
+                      : Icons.north_east_rounded,
+                  color: type == 'money_in'
+                      ? Colors.green
+                      : Colors.red,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    ghataT(
+                      context,
+                      type == 'money_in' ? 'Money In' : 'Money Out',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 460,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.person_outline),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              profileName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 14),
+
+                    GhataCalculatorField(
+                      controller: amountController,
+                      label: ghataT(context, 'Amount'),
+                      onChanged: () {},
+                    ),
+                    SizedBox(height: 12),
+
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedCurrency,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: ghataT(context, 'Currency'),
+                        prefixIcon: Icon(Icons.payments_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: currencies
+                          .map(
+                            (item) => DropdownMenuItem<String>(
+                              value: item.$1,
+                              child: Text('${item.$2} ${item.$1}'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setDialogState(() {
+                          selectedCurrency = value;
+                        });
+                      },
+                    ),
+                    SizedBox(height: 12),
+
+                    TextField(
+                      controller: descriptionController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: ghataT(context, 'Description'),
+                        hintText: type == 'money_in'
+                            ? ghataT(context, 'Cash received / reason')
+                            : ghataT(context, 'Cash given / reason'),
+                        prefixIcon: Icon(Icons.notes_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    SizedBox(height: 12),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: Icon(Icons.calendar_today_outlined),
+                            label: Text(dateText(selectedDate)),
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                              );
+
+                              if (picked != null) {
+                                setDialogState(() {
+                                  selectedDate = picked;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: Icon(Icons.access_time),
+                            label: Text(selectedTime.format(context)),
+                            onPressed: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: selectedTime,
+                              );
+
+                              if (picked != null) {
+                                setDialogState(() {
+                                  selectedTime = picked;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+
+                    TextField(
+                      controller: noteController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: ghataT(context, 'Notes'),
+                        prefixIcon: Icon(Icons.edit_note_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed:
+                    saving ? null : () => Navigator.pop(dialogContext, false),
+                child: Text(ghataT(context, 'Cancel')),
+              ),
+              FilledButton.icon(
+                onPressed: saving
+                    ? null
+                    : () async {
+                        final amount = evaluateCalculatorExpression(
+                          amountController.text.trim(),
+                        );
+
+                        if (amount == null || amount <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ghataT(
+                                  context,
+                                  'Please enter a valid amount.',
+                                ),
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final description =
+                            descriptionController.text.trim();
+
+                        if (description.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ghataT(
+                                  context,
+                                  'Please fill in all fields',
+                                ),
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        final user =
+                            Supabase.instance.client.auth.currentUser;
+
+                        if (user == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ghataT(
+                                  context,
+                                  'You are not logged in.',
+                                ),
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setDialogState(() {
+                          saving = true;
+                        });
+
+                        try {
+                          final id = _ghataUuid.v4();
+                          final note = noteController.text.trim();
+
+                          await ghataSaveLocal(
+                            'transactions',
+                            {
+                              'id': id,
+                              'user_id': user.id,
+                              'transaction_date':
+                                  dateText(selectedDate),
+                              'transaction_time':
+                                  '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00',
+                              'transaction_type': type,
+                              'due_date': null,
+                              'amount': amount,
+                              'currency': selectedCurrency,
+                              'customer_id': customerId,
+                              'customer_name': profileName,
+                              'description': description,
+                              'reference_no':
+                                  note.isEmpty ? null : note,
+                              'deleted_at': null,
+                              'created_at':
+                                  DateTime.now().toUtc().toIso8601String(),
+                            },
+                          );
+
+                          ghataTrySync();
+
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext, true);
+                        } catch (e) {
+                          if (!dialogContext.mounted) return;
+
+                          setDialogState(() {
+                            saving = false;
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "${ghataT(context, 'Unable to save transaction')}: $e",
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                icon: saving
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Icon(Icons.check_rounded),
+                label: Text(ghataT(context, 'Save')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    amountController.dispose();
+    descriptionController.dispose();
+    noteController.dispose();
+
+    if (saved == true && mounted) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ghataT(context, 'Transaction saved successfully.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> openCustomerExchange() async {
+    final profileName =
+        customerProfile?['full_name']?.toString().trim().isNotEmpty == true
+            ? customerProfile!['full_name'].toString()
+            : customerName;
+
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => DailyJournalScreen(
+        builder: (_) => ExchangeScreen(
           initialCustomerId: customerId,
           initialCustomerName: profileName,
-          initialTransactionType: type,
-          openAddForm: true,
         ),
       ),
     );
@@ -12794,15 +13732,15 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       } else {
         for (final entry in balances.entries) {
           final value = entry.value;
-          final youReceive = value > 0;
+            final isPositive = value > 0;
 
-          final accent = youReceive
-              ? const Color(0xFF16A34A)
-              : const Color(0xFFDC2626);
+            final accent = isPositive
+                ? const Color(0xFF16A34A)
+                : const Color(0xFFDC2626);
 
-          final background = youReceive
-              ? const Color(0xFFF0FDF4)
-              : const Color(0xFFFEF2F2);
+            final background = isPositive
+                ? const Color(0xFFF0FDF4)
+                : const Color(0xFFFEF2F2);
 
           final rect = RRect.fromRectAndRadius(
             Rect.fromLTWH(55, top, width - 110, 108),
@@ -12822,9 +13760,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             Paint()..color = accent,
           );
 
-          final label = youReceive
-              ? ghataT(context, 'You Receive')
-              : ghataT(context, 'You Pay');
+            final label = ghataT(context, 'Balance');
 
           drawText(
             '${flagForCurrency(entry.key)}  ${entry.key}',
@@ -12843,7 +13779,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             color: accent,
           );
 
-          final amountText = value.abs().toStringAsFixed(2);
+            final amountText = '${value > 0 ? '+' : ''}${value.toStringAsFixed(2)}';
 
           final amountPainter = TextPainter(
             text: TextSpan(
@@ -13216,9 +14152,9 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 runSpacing: 8,
                 children: balances.entries.map((entry) {
                   final value = entry.value;
-                  final receive = value > 0;
-                  final accent = receive ? green : red;
-                  final bg = receive ? paleGreen : paleRed;
+                    final isPositive = value > 0;
+                    final accent = isPositive ? green : red;
+                    final bg = isPositive ? paleGreen : paleRed;
                   final code = entry.key.toUpperCase();
 
                   return pw.Container(
@@ -13249,9 +14185,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                 ),
                               ),
                               pw.Text(
-                                receive
-                                    ? ghataT(context, 'You Receive')
-                                    : ghataT(context, 'You Pay'),
+                                  ghataT(context, 'Balance'),
                                 style: pw.TextStyle(
                                   fontSize: 8,
                                   color: accent,
@@ -13261,7 +14195,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           ),
                         ),
                         pw.Text(
-                          value.abs().toStringAsFixed(2),
+                            '${value > 0 ? '+' : ''}${value.toStringAsFixed(2)}',
                           style: pw.TextStyle(
                             fontSize: 13,
                             color: accent,
@@ -13336,12 +14270,14 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
                   return [
                     time.isEmpty ? date : '$date $time',
-                    ghataT(
-                      context,
-                      typeLabel(
-                        transaction['transaction_type']?.toString() ?? '',
-                      ),
-                    ),
+                    transaction['_is_exchange'] == true
+                        ? ghataT(context, 'Exchange')
+                        : ghataT(
+                            context,
+                            typeLabel(
+                              transaction['transaction_type']?.toString() ?? '',
+                            ),
+                          ),
                     transaction['amount']?.toString() ?? '0',
                     '${flagForCurrency(code)} $code',
                     transaction['description']?.toString() ?? '',
@@ -13565,6 +14501,36 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             }
 
             final transactions = snapshot.data ?? [];
+
+            final ledgerCurrencies = transactions
+                .map(
+                  (transaction) =>
+                      transaction['currency']?.toString().toUpperCase() ?? '',
+                )
+                .where((currency) => currency.isNotEmpty)
+                .toSet()
+                .toList()
+              ..sort();
+
+            final effectiveLedgerCurrency =
+                selectedLedgerCurrency == 'ALL' ||
+                        ledgerCurrencies.contains(selectedLedgerCurrency)
+                    ? selectedLedgerCurrency
+                    : 'ALL';
+
+            final filteredTransactions =
+                effectiveLedgerCurrency == 'ALL'
+                    ? transactions
+                    : transactions
+                        .where(
+                          (transaction) =>
+                              transaction['currency']
+                                  ?.toString()
+                                  .toUpperCase() ==
+                              effectiveLedgerCurrency,
+                        )
+                        .toList();
+
             final allBalances = calculateBalances(transactions);
 
             // Show only currencies with a remaining balance.
@@ -13670,34 +14636,89 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: FilledButton.icon(
+                      child: FilledButton(
                         onPressed: () =>
                             openCustomerMoneyEntry('money_in'),
-                        icon: Icon(Icons.south_west),
-                        label: Text(ghataT(context, 'Money In')),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.south_west, size: 18),
+                            SizedBox(height: 3),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                ghataT(context, 'Money In'),
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
                         style: FilledButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            minimumSize: Size.fromHeight(54),
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          minimumSize: Size.fromHeight(54),
+                          padding: EdgeInsets.symmetric(horizontal: 6),
                         ),
                       ),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: 6),
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: OutlinedButton(
                         onPressed: () =>
                             openCustomerMoneyEntry('money_out'),
-                        icon: Icon(Icons.north_east),
-                        label: Text(ghataT(context, 'Money Out')),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.north_east, size: 18),
+                            SizedBox(height: 3),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                ghataT(context, 'Money Out'),
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
                         style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: BorderSide(color: Colors.red),
-                            minimumSize: Size.fromHeight(54),
+                          foregroundColor: Colors.red,
+                          side: BorderSide(color: Colors.red),
+                          minimumSize: Size.fromHeight(54),
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: openCustomerExchange,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.currency_exchange_rounded,
+                              size: 18,
+                            ),
+                            SizedBox(height: 3),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                ghataT(context, 'Exchange'),
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.purple,
+                          side: BorderSide(color: Colors.purple),
+                          minimumSize: Size.fromHeight(54),
+                          padding: EdgeInsets.symmetric(horizontal: 6),
                         ),
                       ),
                     ),
                   ],
-                ),
+                )
                 SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
@@ -13744,31 +14765,37 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     ...balances.entries.map((entry) {
                       final amount = entry.value;
                       final code = entry.key;
-                      final youReceive = amount > 0;
+                      final balanceColor = amount > 0
+                          ? Colors.green
+                          : amount < 0
+                              ? Colors.red
+                              : Theme.of(context).colorScheme.onSurfaceVariant;
+
+                      final balanceSign = amount > 0 ? '+' : '';
 
                       return Card(
                         child: ListTile(
                           leading: CircleAvatar(
-                            child: Icon(
-                              youReceive
-                                  ? Icons.handshake_outlined
-                                  : Icons.volunteer_activism_outlined,
+                            child: Text(
+                              flagForCurrency(code),
+                              style: TextStyle(fontSize: 20),
                             ),
                           ),
                           title: Text(
-                            youReceive ? 'You Receive' : 'You Pay',
+                            code,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           subtitle: Text(
-                            '${flagForCurrency(code)} $code',
+                            ghataT(context, 'Balance'),
                           ),
                           trailing: Text(
-                            amount.abs().toStringAsFixed(2),
+                            '$balanceSign${amount.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
+                              color: balanceColor,
                             ),
                           ),
                         ),
@@ -13779,12 +14806,47 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 Divider(),
                 SizedBox(height: 8),
 
-                Text(
-                  ghataT(context, 'Transactions'),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        ghataT(context, 'Transactions'),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: effectiveLedgerCurrency,
+                        borderRadius: BorderRadius.circular(14),
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: 'ALL',
+                            child: Text(
+                              ghataT(context, 'All Currencies'),
+                            ),
+                          ),
+                          ...ledgerCurrencies.map(
+                            (currency) => DropdownMenuItem<String>(
+                              value: currency,
+                              child: Text(
+                                '${flagForCurrency(currency)} $currency',
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() {
+                            selectedLedgerCurrency = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 SizedBox(height: 8),
 
@@ -13796,61 +14858,278 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     ),
                   )
                 else
-                  ...transactions.map((transaction) {
-                    final type =
-                        transaction['transaction_type']?.toString() ?? '';
-                    final amount =
-                        transaction['amount']?.toString() ?? '0';
-                    final currency =
-                        transaction['currency']?.toString() ?? '';
-                    final date =
-                        transaction['transaction_date']?.toString() ?? '';
-                    final rawTime =
-                        transaction['transaction_time']?.toString() ?? '';
-                    final time = rawTime.length >= 5
-                        ? rawTime.substring(0, 5)
-                        : '';
-                    final description =
-                        transaction['description']?.toString() ?? '';
+                  Builder(
+                    builder: (context) {
+                      final ledger =
+                          buildCustomerRunningLedger(
+                            filteredTransactions,
+                          );
 
-                      final typeLabel = switch (type) {
-                        'money_in' => 'Money In',
-                        'money_out' => 'Money Out',
-                        'loan_given' => 'Loan Given',
-                        'loan_received' => 'Loan Received',
-                        'loan_repayment_received' => 'Repayment Received',
-                        'loan_repayment_paid' => 'Repayment Paid',
-                        _ => type,
-                      };
+                      String amountText(dynamic value) {
+                        final number =
+                            double.tryParse(value.toString()) ?? 0;
 
-                      final cashIn = type == 'money_in' ||
-                          type == 'loan_received' ||
-                          type == 'loan_repayment_received';
+                        if (number.abs() <= 0.000001) return '—';
 
-                      return Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: Icon(
-                              cashIn ? Icons.south_west : Icons.north_east,
+                        return number % 1 == 0
+                            ? number.toStringAsFixed(0)
+                            : number.toStringAsFixed(2);
+                      }
+
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: BouncingScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minWidth: 620),
+                          child: SizedBox(
+                            width: 620,
+                            child: Column(
+                              children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 82,
+                                  child: Text(
+                                    ghataT(context, 'Date'),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 3,
+                                  child: Text(
+                                    ghataT(context, 'Description'),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    ghataT(context, 'Money In'),
+                                    textAlign: TextAlign.end,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    ghataT(context, 'Money Out'),
+                                    textAlign: TextAlign.end,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    ghataT(context, 'Balance'),
+                                    textAlign: TextAlign.end,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          title: Text(
-                            '$amount $currency',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                          SizedBox(height: 4),
+                          ...ledger.map((transaction) {
+                            final currency =
+                                transaction['currency']
+                                        ?.toString()
+                                        .toUpperCase() ??
+                                    '';
+
+                            final date =
+                                transaction['transaction_date']
+                                        ?.toString() ??
+                                    '';
+
+                            final rawTime =
+                                transaction['transaction_time']
+                                        ?.toString() ??
+                                    '';
+
+                            final time = rawTime.length >= 5
+                                ? rawTime.substring(0, 5)
+                                : rawTime;
+
+                            final description =
+                                transaction['description']
+                                        ?.toString()
+                                        .trim() ??
+                                    '';
+
+                            final moneyIn =
+                                transaction['_ledger_in'] ?? 0.0;
+                            final moneyOut =
+                                transaction['_ledger_out'] ?? 0.0;
+
+                            final balance = double.tryParse(
+                                  transaction['_ledger_balance']
+                                      .toString(),
+                                ) ??
+                                0;
+
+                            final balanceColor = balance > 0
+                                ? Colors.green
+                                : balance < 0
+                                    ? Colors.red
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant;
+
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onLongPress: () =>
+                                  showCustomerTransactionActions(
+                                transaction,
+                              ),
+                              child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Theme.of(context)
+                                        .dividerColor
+                                        .withValues(alpha: 0.45),
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 82,
+                                    child: Text(
+                                      time.isEmpty
+                                          ? date
+                                          : '$date\n$time',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          description.isEmpty
+                                              ? '—'
+                                              : description,
+                                          maxLines: 2,
+                                          overflow:
+                                              TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight:
+                                                FontWeight.w500,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          '${flagForCurrency(currency)} $currency',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      amountText(moneyIn),
+                                      textAlign: TextAlign.end,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: (double.tryParse(
+                                                      moneyIn.toString(),
+                                                    ) ??
+                                                    0) >
+                                                0
+                                            ? Colors.green
+                                            : null,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      amountText(moneyOut),
+                                      textAlign: TextAlign.end,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: (double.tryParse(
+                                                      moneyOut.toString(),
+                                                    ) ??
+                                                    0) >
+                                                0
+                                            ? Colors.red
+                                            : null,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      amountText(balance),
+                                      textAlign: TextAlign.end,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: balanceColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              ),
+                            );
+                          }),
+                              ],
                             ),
-                          ),
-                          subtitle: Text(
-                            [
-                              typeLabel,
-                              '${flagForCurrency(currency)} $currency',
-                              if (time.isEmpty) date else '$date $time',
-                              if (description.isNotEmpty) description,
-                            ].join(' • '),
                           ),
                         ),
                       );
-                  }),
+                    },
+                  )
               ],
             );
           },
@@ -14399,7 +15678,7 @@ class _LoansScreenState extends State<LoansScreen> {
                 ...balanceCards,
               SizedBox(height: 12),
               Text(
-                'History',
+                ghataT(context, 'History'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -14549,15 +15828,22 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 ),
                 title: Text(entry.key),
                 subtitle: Text(
-                  entry.value >= 0
-                      ? 'Available Balance'
-                      : 'Negative Balance',
+                  entry.value > 0
+                      ? ghataT(context, 'Available Balance')
+                      : entry.value < 0
+                          ? ghataT(context, 'Negative Balance')
+                          : ghataT(context, 'Balance'),
                 ),
                 trailing: Text(
-                  '${entry.value.toStringAsFixed(2)} ${entry.key}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
+                    '${entry.value > 0 ? '+' : ''}${entry.value.toStringAsFixed(2)} ${entry.key}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: entry.value > 0
+                          ? Colors.green
+                          : entry.value < 0
+                              ? Colors.red
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                 ),
               ),
             );
@@ -14653,6 +15939,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                   '${isIn ? '+' : '-'}${amount.toStringAsFixed(2)} $currency',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
+                      color: isIn ? Colors.green : Colors.red,
                   ),
                 ),
               ),
@@ -14671,7 +15958,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 ...balanceCards,
               SizedBox(height: 12),
               Text(
-                'History',
+                ghataT(context, 'History'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -14692,7 +15979,14 @@ class _CashboxScreenState extends State<CashboxScreen> {
 }
 
 class ExchangeScreen extends StatefulWidget {
-  ExchangeScreen({super.key});
+  final String? initialCustomerId;
+  final String? initialCustomerName;
+
+  ExchangeScreen({
+    super.key,
+    this.initialCustomerId,
+    this.initialCustomerName,
+  });
 
   @override
   State<ExchangeScreen> createState() => _ExchangeScreenState();
@@ -14719,6 +16013,13 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
   String? lastExchangeInput;
   bool exchangeRateManuallySet = false;
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCustomerId = widget.initialCustomerId;
+    selectedCustomerName = widget.initialCustomerName;
+  }
 
   void updateExchangeCalculatorResults({String? changed}) {
     if (changed != null) {
@@ -15957,9 +17258,16 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                         ),
                         subtitle: Text(text),
                         trailing: Text(
-                          '${profit.abs().toStringAsFixed(2)} $settlement',
+                          '${profit > 0 ? '+' : ''}${profit.toStringAsFixed(2)} $settlement',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
+                            color: profit > 0
+                                ? Colors.green
+                                : profit < 0
+                                    ? Colors.red
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -16611,9 +17919,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: net >= 0
+                                  color: net > 0
                                       ? Colors.green.shade800
-                                      : Colors.red.shade800,
+                                      : net < 0
+                                          ? Colors.red.shade800
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
                                 ),
                               ),
                             ],
