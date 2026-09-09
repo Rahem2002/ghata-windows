@@ -236,9 +236,17 @@ Future<void> ghataSoftDeleteLocal(
 }
 
 
+bool _ghataOfflineCacheRefreshRunning = false;
+
 Future<void> ghataRefreshOfflineCache() async {
+  if (_ghataOfflineCacheRefreshRunning) return;
+
   final user = Supabase.instance.client.auth.currentUser;
   if (user == null) return;
+
+  _ghataOfflineCacheRefreshRunning = true;
+
+  try {
 
   try {
     final customers =
@@ -279,6 +287,9 @@ Future<void> ghataRefreshOfflineCache() async {
       List<Map<String, dynamic>>.from(entries),
     );
   } catch (_) {}
+  } finally {
+    _ghataOfflineCacheRefreshRunning = false;
+  }
 }
 
 Future<List<Map<String, dynamic>>>
@@ -319,7 +330,8 @@ Future<List<Map<String, dynamic>>>
 }
 
 Future<List<Map<String, dynamic>>> ghataLocalFinancialRows() async {
-  await ghataRefreshOfflineCache();
+  // Offline-first: never block local data while waiting for internet.
+  ghataRefreshOfflineCache();
 
   final transactionData =
       await OfflineDatabase.instance.getRecords('transactions');
@@ -5052,72 +5064,80 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return false;
 
-    try {
-      final value =
-          await Supabase.instance.client.rpc('can_staff_edit');
+    final cached = await OfflineDatabase.instance.getRecord(
+      'permission_cache',
+      user.id,
+      includeDeleted: true,
+    );
 
-      final cached = await OfflineDatabase.instance.getRecord(
-            'permission_cache',
-            user.id,
-            includeDeleted: true,
-          ) ??
-          <String, dynamic>{};
+    final localValue = cached?['can_edit'] == true;
 
-      await OfflineDatabase.instance.saveRecord(
-        'permission_cache',
-        {
-          ...cached,
-          'id': user.id,
-          'can_edit': value == true,
-        },
-        synced: true,
-      );
+    () async {
+      try {
+        final value =
+            await Supabase.instance.client.rpc('can_staff_edit');
 
-      return value == true;
-    } catch (_) {
-      final cached = await OfflineDatabase.instance.getRecord(
-        'permission_cache',
-        user.id,
-        includeDeleted: true,
-      );
-      return cached?['can_edit'] == true;
-    }
+        final latest =
+            await OfflineDatabase.instance.getRecord(
+                  'permission_cache',
+                  user.id,
+                  includeDeleted: true,
+                ) ??
+                <String, dynamic>{};
+
+        await OfflineDatabase.instance.saveRecord(
+          'permission_cache',
+          {
+            ...latest,
+            'id': user.id,
+            'can_edit': value == true,
+          },
+          synced: true,
+        );
+      } catch (_) {}
+    }();
+
+    return localValue;
   }
 
   Future<bool> loadCanViewReports() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return false;
 
-    try {
-      final value =
-          await Supabase.instance.client.rpc('can_staff_view_reports');
+    final cached = await OfflineDatabase.instance.getRecord(
+      'permission_cache',
+      user.id,
+      includeDeleted: true,
+    );
 
-      final cached = await OfflineDatabase.instance.getRecord(
-            'permission_cache',
-            user.id,
-            includeDeleted: true,
-          ) ??
-          <String, dynamic>{};
+    final localValue = cached?['can_view_reports'] == true;
 
-      await OfflineDatabase.instance.saveRecord(
-        'permission_cache',
-        {
-          ...cached,
-          'id': user.id,
-          'can_view_reports': value == true,
-        },
-        synced: true,
-      );
+    () async {
+      try {
+        final value =
+            await Supabase.instance.client.rpc('can_staff_view_reports');
 
-      return value == true;
-    } catch (_) {
-      final cached = await OfflineDatabase.instance.getRecord(
-        'permission_cache',
-        user.id,
-        includeDeleted: true,
-      );
-      return cached?['can_view_reports'] == true;
-    }
+        final latest =
+            await OfflineDatabase.instance.getRecord(
+                  'permission_cache',
+                  user.id,
+                  includeDeleted: true,
+                ) ??
+                <String, dynamic>{};
+
+        await OfflineDatabase.instance.saveRecord(
+          'permission_cache',
+          {
+            ...latest,
+            'id': user.id,
+            'can_view_reports': value == true,
+          },
+          synced: true,
+        );
+      } catch (_) {}
+    }();
+
+    return localValue;
   }
 
   void refreshPermissions() {
@@ -5126,6 +5146,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   late Future<Map<String, Map<String, double>>> dashboardFuture;
+  String selectedDashboardCurrency = 'ALL';
 
   @override
   void initState() {
@@ -5135,7 +5156,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<Map<String, Map<String, double>>> loadDashboardSummary() async {
-    await ghataRefreshOfflineCache();
+    ghataRefreshOfflineCache();
 
     final transactions =
         await OfflineDatabase.instance.getRecords('transactions');
@@ -5146,8 +5167,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final result = <String, Map<String, double>>{};
 
     Map<String, double> values(String currency) {
+      final code = currency.toUpperCase();
       return result.putIfAbsent(
-        currency,
+        code,
         () => {
           'today_in': 0,
           'today_out': 0,
@@ -5158,12 +5180,35 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    final receivableByCustomer = <String, double>{};
-    final payableByCustomer = <String, double>{};
+    // Customer Ledger balance:
+    // Money In  = positive
+    // Money Out = negative
+    // Therefore:
+    // negative customer balance -> You Receive
+    // positive customer balance -> You Pay
+    final customerBalances = <String, double>{};
+
+    void changeCustomerBalance(
+      String customerId,
+      String currency,
+      double delta,
+    ) {
+      if (customerId.isEmpty || currency.isEmpty || delta == 0) return;
+
+      final code = currency.toUpperCase();
+      final key = '$customerId|$code';
+
+      customerBalances[key] =
+          (customerBalances[key] ?? 0) + delta;
+    }
 
     for (final raw in transactions) {
       final row = Map<String, dynamic>.from(raw);
-      final currency = (row['currency'] ?? '').toString();
+
+      if (row['deleted_at'] != null) continue;
+
+      final currency =
+          (row['currency'] ?? '').toString().toUpperCase();
       if (currency.isEmpty) continue;
 
       final amount =
@@ -5171,10 +5216,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (amount <= 0) continue;
 
       final type = (row['transaction_type'] ?? '').toString();
-      final date = (row['transaction_date'] ?? '').toString();
       final customerId = (row['customer_id'] ?? '').toString();
       final data = values(currency);
 
+      // Dashboard Money In / Money Out cards keep their existing
+      // business-level behavior and do not duplicate customer entries.
       if (customerId.isEmpty) {
         if (type == 'money_in') {
           data['today_in'] = data['today_in']! + amount;
@@ -5183,40 +5229,47 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
-      final loanKey = '$customerId|$currency';
+      // Customer balance uses exactly the same sign convention
+      // as calculateBalances() in Customer Details.
+      if (customerId.isNotEmpty) {
+        switch (type) {
+          case 'money_in':
+          case 'loan_received':
+          case 'loan_repayment_received':
+            changeCustomerBalance(
+              customerId,
+              currency,
+              amount,
+            );
+            break;
 
+          case 'money_out':
+          case 'loan_given':
+          case 'loan_repayment_paid':
+            changeCustomerBalance(
+              customerId,
+              currency,
+              -amount,
+            );
+            break;
+        }
+      }
+
+      // Cashbox accounting remains unchanged.
       switch (type) {
         case 'loan_given':
-          if (customerId.isNotEmpty) {
-            receivableByCustomer[loanKey] =
-                (receivableByCustomer[loanKey] ?? 0) + amount;
-          }
           data['cashbox'] = data['cashbox']! - amount;
           break;
 
         case 'loan_repayment_received':
-          if (customerId.isNotEmpty) {
-            final current = receivableByCustomer[loanKey] ?? 0;
-            receivableByCustomer[loanKey] =
-                (current - amount).clamp(0, double.infinity).toDouble();
-          }
           data['cashbox'] = data['cashbox']! + amount;
           break;
 
         case 'loan_received':
-          if (customerId.isNotEmpty) {
-            payableByCustomer[loanKey] =
-                (payableByCustomer[loanKey] ?? 0) + amount;
-          }
           data['cashbox'] = data['cashbox']! + amount;
           break;
 
         case 'loan_repayment_paid':
-          if (customerId.isNotEmpty) {
-            final current = payableByCustomer[loanKey] ?? 0;
-            payableByCustomer[loanKey] =
-                (current - amount).clamp(0, double.infinity).toDouble();
-          }
           data['cashbox'] = data['cashbox']! - amount;
           break;
 
@@ -5232,32 +5285,31 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    for (final entry in receivableByCustomer.entries) {
-      final currency = entry.key.split('|').last;
-      values(currency)['receive'] =
-          values(currency)['receive']! + entry.value;
-    }
-
-    for (final entry in payableByCustomer.entries) {
-      final currency = entry.key.split('|').last;
-      values(currency)['pay'] =
-          values(currency)['pay']! + entry.value;
-    }
-
+    // Exchange affects both Cashbox and the selected customer's
+    // independent currency balances.
     for (final raw in exchangeEntries) {
       final row = Map<String, dynamic>.from(raw);
-      final exchange = row['exchanges'];
+      final exchangeRaw = row['exchanges'];
 
-      if (exchange == null ||
-          (exchange is Map && exchange['deleted_at'] != null)) {
+      if (exchangeRaw == null) continue;
+
+      Map<String, dynamic>? exchange;
+      if (exchangeRaw is Map) {
+        exchange = Map<String, dynamic>.from(exchangeRaw);
+      }
+
+      if (exchange == null || exchange['deleted_at'] != null) {
         continue;
       }
 
-      final currency = (row['currency'] ?? '').toString();
+      final currency =
+          (row['currency'] ?? '').toString().toUpperCase();
       if (currency.isEmpty) continue;
 
       final amount =
           double.tryParse((row['amount'] ?? 0).toString()) ?? 0;
+      if (amount <= 0) continue;
+
       final type = (row['entry_type'] ?? '').toString();
       final data = values(currency);
 
@@ -5266,19 +5318,49 @@ class _HomeScreenState extends State<HomeScreen> {
       } else if (type == 'money_out') {
         data['cashbox'] = data['cashbox']! - amount;
       }
+
+      final customerId =
+          (exchange['customer_id'] ?? '').toString();
+
+      if (customerId.isNotEmpty) {
+        if (type == 'money_in') {
+          changeCustomerBalance(
+            customerId,
+            currency,
+            amount,
+          );
+        } else if (type == 'money_out') {
+          changeCustomerBalance(
+            customerId,
+            currency,
+            -amount,
+          );
+        }
+      }
     }
 
-    for (final data in result.values) {
-      if ((data['receive'] ?? 0) < 0) data['receive'] = 0;
-      if ((data['pay'] ?? 0) < 0) data['pay'] = 0;
+    // Split every customer's FINAL currency balance separately.
+    // Do not net different customers against each other.
+    for (final entry in customerBalances.entries) {
+      final parts = entry.key.split('|');
+      if (parts.length < 2) continue;
+
+      final currency = parts.last;
+      final balance = entry.value;
+      final data = values(currency);
+
+      if (balance < -0.000001) {
+        data['receive'] = data['receive']! + balance.abs();
+      } else if (balance > 0.000001) {
+        data['pay'] = data['pay']! + balance;
+      }
     }
 
     return result;
   }
 
-
   Future<List<Map<String, dynamic>>> loadRecentTransactions() async {
-  await ghataRefreshOfflineCache();
+  ghataRefreshOfflineCache();
 
   final local =
       await OfflineDatabase.instance.getRecords('transactions');
@@ -5320,10 +5402,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> showHomeMenu() async {
     final choice = await showModalBottomSheet<String>(
+      isScrollControlled: true,
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(
-        child: Column(
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
@@ -5374,6 +5458,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 8),
           ],
         ),
+      ),
       ),
     );
 
@@ -5489,9 +5574,36 @@ class _HomeScreenState extends State<HomeScreen> {
     String title,
     IconData icon,
   ) {
+    final availableDashboardCurrencies = data.entries
+        .where((e) {
+          final row = e.value;
+          return (row['cashbox'] ?? 0).abs() > 0.000001 ||
+              (row['today_in'] ?? 0).abs() > 0.000001 ||
+              (row['today_out'] ?? 0).abs() > 0.000001 ||
+              (row['receive'] ?? 0).abs() > 0.000001 ||
+              (row['pay'] ?? 0).abs() > 0.000001;
+        })
+        .map((e) => e.key.toUpperCase())
+        .toSet()
+        .toList()
+      ..sort();
+
+    final effectiveDashboardCurrency =
+        selectedDashboardCurrency == 'ALL' ||
+                availableDashboardCurrencies.contains(
+                  selectedDashboardCurrency,
+                )
+            ? selectedDashboardCurrency
+            : 'ALL';
+
     final currencies = data.entries
         .where((e) => (e.value[key] ?? 0).abs() > 0.000001)
         .map((e) => e.key.toUpperCase())
+        .where(
+          (code) =>
+              effectiveDashboardCurrency == 'ALL' ||
+              code == effectiveDashboardCurrency,
+        )
         .toList()
       ..sort();
 
@@ -5514,7 +5626,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Container(
       margin: EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.all(isCashbox ? 13 : 11),
+      padding: EdgeInsets.all(isCashbox ? 13 : 9),
       decoration: BoxDecoration(
         color: isCashbox
             ? Theme.of(context).colorScheme.surface
@@ -5552,15 +5664,52 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              if (!isCashbox)
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 21,
-                  color: accent,
-                ),
+              if (isCashbox)
+                  SizedBox(
+                    width: 140,
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: effectiveDashboardCurrency,
+                        isExpanded: true,
+                        isDense: true,
+                        borderRadius: BorderRadius.circular(14),
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: 'ALL',
+                            child: Text(
+                              ghataT(context, 'All Currencies'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          ...availableDashboardCurrencies.map(
+                            (code) => DropdownMenuItem<String>(
+                              value: code,
+                              child: Text(
+                                '${dashboardFlag(code)} $code',
+                                maxLines: 1,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() {
+                            selectedDashboardCurrency = value;
+                          });
+                        },
+                      ),
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 21,
+                    color: accent,
+                  ),
             ],
           ),
-          SizedBox(height: 9),
+          SizedBox(height: isCashbox ? 9 : 6),
 
           if (currencies.isEmpty)
             Padding(
@@ -5582,7 +5731,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     : (constraints.maxWidth < 180 ? 66.0 : 78.0);
 
                 return SizedBox(
-                  height: isCashbox ? 92 : 78,
+                  height: isCashbox ? 92 : 66,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     physics: BouncingScrollPhysics(),
@@ -5597,7 +5746,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: itemWidth,
                         padding: EdgeInsets.symmetric(
                           horizontal: 5,
-                          vertical: isCashbox ? 8 : 6,
+                          vertical: isCashbox ? 8 : 4,
                         ),
                         decoration: BoxDecoration(
                           color: isCashbox
@@ -7492,7 +7641,7 @@ class RecycleBinScreen extends StatefulWidget {
 
 class _RecycleBinScreenState extends State<RecycleBinScreen> {
   Future<List<Map<String, dynamic>>> loadDeletedCustomers() async {
-  await ghataRefreshOfflineCache();
+  ghataRefreshOfflineCache();
 
   final local = await OfflineDatabase.instance.getRecords(
     'customers',
@@ -7513,7 +7662,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
 }
 
   Future<List<Map<String, dynamic>>> loadDeletedTransactions() async {
-  await ghataRefreshOfflineCache();
+  ghataRefreshOfflineCache();
 
   final local = await OfflineDatabase.instance.getRecords(
     'transactions',
@@ -7563,7 +7712,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
 }
 
   Future<List<Map<String, dynamic>>> loadDeletedExchanges() async {
-  await ghataRefreshOfflineCache();
+  ghataRefreshOfflineCache();
 
   final local = await OfflineDatabase.instance.getRecords(
     'exchanges',
@@ -10473,11 +10622,46 @@ Future<void> shareTransactionReceiptPdf(
                                 ),
                               ),
                             ),
-                            Icon(
-                              Icons.bar_chart_rounded,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary,
+                            SizedBox(width: 8),
+                            SizedBox(
+                              width: 150,
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String?>(
+                                  value: journalCurrencyFilter,
+                                  isExpanded: true,
+                                  isDense: true,
+                                  borderRadius: BorderRadius.circular(14),
+                                  hint: Text(
+                                    ghataT(context, 'All Currencies'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  items: [
+                                    DropdownMenuItem<String?>(
+                                      value: null,
+                                      child: Text(
+                                        ghataT(context, 'All Currencies'),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    ...currencies.map(
+                                      (item) => DropdownMenuItem<String?>(
+                                        value: item.$1,
+                                        child: Text(
+                                          '${item.$2} ${item.$1}',
+                                          maxLines: 1,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      journalCurrencyFilter = value;
+                                    });
+                                  },
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -12119,7 +12303,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   }
 
   Future<Map<String, dynamic>?> loadCustomerProfile() async {
-  await ghataRefreshOfflineCache();
+  ghataRefreshOfflineCache();
 
   final customers = await OfflineDatabase.instance.getRecords(
     'customers',
@@ -12135,7 +12319,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 }
 
   Future<List<Map<String, dynamic>>> loadCustomerTransactions() async {
-    await ghataRefreshOfflineCache();
+    ghataRefreshOfflineCache();
 
     final local =
         await OfflineDatabase.instance.getRecords('transactions');
@@ -14544,95 +14728,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             return ListView(
               padding: EdgeInsets.all(16),
               children: [
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(14),
-                  margin: EdgeInsets.only(bottom: 14),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () async {
-                          final path =
-                              await ghataPickCustomerPhoto(context);
-
-                          if (path != null) {
-                            await ghataSaveCustomerPhoto(
-                              customerId,
-                              path,
-                            );
-                            await refreshCustomerProfile();
-                          }
-                        },
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            CircleAvatar(
-                              radius: 38,
-                              backgroundImage:
-                                  customerPhotoPath != null
-                                      ? FileImage(
-                                          File(customerPhotoPath!),
-                                        )
-                                      : null,
-                              child: customerPhotoPath == null
-                                  ? Icon(
-                                      Icons.person_outline,
-                                      size: 36,
-                                    )
-                                  : null,
-                            ),
-                            Positioned(
-                              right: -2,
-                              bottom: -2,
-                              child: CircleAvatar(
-                                radius: 14,
-                                child: Icon(
-                                  Icons.camera_alt_rounded,
-                                  size: 15,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 13),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              profileName,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (profileAddress.isNotEmpty) ...[
-                              SizedBox(height: 4),
-                              Text(
-                                profileAddress,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
                 Row(
                   children: [
                     Expanded(
@@ -14744,68 +14839,115 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 24),
-                  Text(
-                    ghataT(context, 'Balances'),
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                SizedBox(height: 14),
+                Text(
+                  ghataT(context, 'Balances'),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                  SizedBox(height: 10),
-
-                  if (balances.isEmpty)
-                    Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(18),
-                        child: Text(ghataT(context, 'No balance yet.')),
-                      ),
-                    )
-                  else
-                    ...balances.entries.map((entry) {
-                      final amount = entry.value;
-                      final code = entry.key;
-                      final balanceColor = amount > 0
-                          ? Colors.green
-                          : amount < 0
-                              ? Colors.red
-                              : Theme.of(context).colorScheme.onSurfaceVariant;
-
-                      final balanceSign = amount > 0 ? '+' : '';
-
-                      return Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: Text(
-                              flagForCurrency(code),
-                              style: TextStyle(fontSize: 20),
-                            ),
-                          ),
-                          title: Text(
-                            code,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(
-                            ghataT(context, 'Balance'),
-                          ),
-                          trailing: Text(
-                            '$balanceSign${amount.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: balanceColor,
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-
-                SizedBox(height: 24),
-                Divider(),
+                ),
                 SizedBox(height: 8),
 
+                if (balances.isEmpty)
+                  Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(14),
+                      child: Text(
+                        ghataT(context, 'No balance yet.'),
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 90,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: BouncingScrollPhysics(),
+                      itemCount: balances.length,
+                      separatorBuilder: (_, __) => SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final entry =
+                            balances.entries.elementAt(index);
+                        final amount = entry.value;
+                        final code = entry.key;
+
+                        final balanceColor = amount > 0
+                            ? Colors.green
+                            : amount < 0
+                                ? Colors.red
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant;
+
+                        final balanceSign = amount > 0 ? '+' : '';
+
+                        return Container(
+                          width: 150,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                child: Text(
+                                  flagForCurrency(code),
+                                  style: TextStyle(fontSize: 18),
+                                ),
+                              ),
+                              SizedBox(width: 9),
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      code,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    SizedBox(height: 3),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        '$balanceSign${amount.toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: balanceColor,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                SizedBox(height: 12),
+                Divider(height: 1),
+                SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
@@ -15157,7 +15299,7 @@ class _LoansScreenState extends State<LoansScreen> {
   }
 
   Future<List<Map<String, dynamic>>> loadLoans() async {
-  await ghataRefreshOfflineCache();
+  ghataRefreshOfflineCache();
 
   final local =
       await OfflineDatabase.instance.getRecords('transactions');
@@ -16217,7 +16359,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
 
   Future<List<Map<String, dynamic>>> loadExchangeHistory() async {
-  await ghataRefreshOfflineCache();
+  ghataRefreshOfflineCache();
 
   final exchanges =
       await OfflineDatabase.instance.getRecords('exchanges');
@@ -17795,149 +17937,220 @@ class _ReportsScreenState extends State<ReportsScreen> {
               SizedBox(height: 12),
 
               Builder(
-                builder: (context) {
-                  final visibleSummary = report.entries.where((entry) {
-                    final data = entry.value;
-                    return (data['money_in'] ?? 0).abs() > 0.000001 ||
-                        (data['money_out'] ?? 0).abs() > 0.000001 ||
-                        (data['net_cash_flow'] ?? 0).abs() > 0.000001;
-                  }).toList();
+                                                  builder: (context) {
+                                                    final visibleSummary =
+                                                        report.entries.where((entry) {
+                                                      final data = entry.value;
+                                                      return (data['money_in'] ?? 0).abs() >
+                                                              0.000001 ||
+                                                          (data['money_out'] ?? 0).abs() >
+                                                              0.000001 ||
+                                                          (data['net_cash_flow'] ?? 0).abs() >
+                                                              0.000001;
+                                                    }).toList();
 
-                  if (visibleSummary.isEmpty) {
-                    return SizedBox.shrink();
-                  }
+                                                    if (visibleSummary.isEmpty) {
+                                                      return SizedBox.shrink();
+                                                    }
 
-                  const cardColors = [
-                    Color(0xFFEAF3FF),
-                    Color(0xFFECF8F0),
-                    Color(0xFFFFF4E5),
-                    Color(0xFFF2ECFF),
-                    Color(0xFFFFECEC),
-                    Color(0xFFE9F8F8),
-                  ];
+                                                    const cardColors = [
+                                                      Color(0xFFEAF3FF),
+                                                      Color(0xFFECF8F0),
+                                                      Color(0xFFFFF4E5),
+                                                      Color(0xFFF2ECFF),
+                                                      Color(0xFFFFECEC),
+                                                      Color(0xFFE9F8F8),
+                                                    ];
 
-                  return Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: List.generate(
-                      visibleSummary.length,
-                      (index) {
-                        final entry = visibleSummary[index];
-                        final currency = entry.key;
-                        final data = entry.value;
+                                                    return SizedBox(
+                                                      height: 165,
+                                                      child: ListView.separated(
+                                                        scrollDirection:
+                                                            Axis.horizontal,
+                                                        physics:
+                                                            BouncingScrollPhysics(),
+                                                        itemCount:
+                                                            visibleSummary.length,
+                                                        separatorBuilder:
+                                                            (_, __) =>
+                                                                SizedBox(width: 10),
+                                                        itemBuilder:
+                                                            (context, index) {
+                                                          final entry =
+                                                              visibleSummary[index];
+                                                          final currency =
+                                                              entry.key;
+                                                          final data =
+                                                              entry.value;
 
-                        final moneyIn =
-                            (data['money_in'] ?? 0).toDouble();
-                        final moneyOut =
-                            (data['money_out'] ?? 0).toDouble();
-                        final net =
-                            (data['net_cash_flow'] ?? 0).toDouble();
+                                                          final moneyIn =
+                                                              (data['money_in'] ??
+                                                                      0)
+                                                                  .toDouble();
+                                                          final moneyOut =
+                                                              (data['money_out'] ??
+                                                                      0)
+                                                                  .toDouble();
+                                                          final net =
+                                                              (data['net_cash_flow'] ??
+                                                                      0)
+                                                                  .toDouble();
 
-                        final width =
-                            (MediaQuery.sizeOf(context).width - 42) / 2;
+                                                          return Container(
+                                                            width: 190,
+                                                            padding:
+                                                                EdgeInsets.all(14),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: cardColors[
+                                                                  index %
+                                                                      cardColors
+                                                                          .length],
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(18),
+                                                              border: Border.all(
+                                                                color: Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .outlineVariant
+                                                                    .withValues(
+                                                                        alpha:
+                                                                            0.55),
+                                                              ),
+                                                            ),
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                Row(
+                                                                  children: [
+                                                                    Text(
+                                                                      flagForCurrency(
+                                                                          currency),
+                                                                      style: TextStyle(
+                                                                          fontSize:
+                                                                              25),
+                                                                    ),
+                                                                    SizedBox(
+                                                                        width:
+                                                                            8),
+                                                                    Expanded(
+                                                                      child:
+                                                                          Text(
+                                                                        currency,
+                                                                        style:
+                                                                            TextStyle(
+                                                                          fontSize:
+                                                                              18,
+                                                                          fontWeight:
+                                                                              FontWeight.bold,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                SizedBox(
+                                                                    height: 12),
+                                                                Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .south_west_rounded,
+                                                                      size: 17,
+                                                                      color: Colors
+                                                                          .green
+                                                                          .shade700,
+                                                                    ),
+                                                                    SizedBox(
+                                                                        width:
+                                                                            5),
+                                                                    Expanded(
+                                                                      child:
+                                                                          Text(
+                                                                        '${ghataT(context, 'Money In')}: ${moneyIn.toStringAsFixed(2)}',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          color: Colors
+                                                                              .green
+                                                                              .shade700,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                SizedBox(
+                                                                    height: 5),
+                                                                Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .north_east_rounded,
+                                                                      size: 17,
+                                                                      color: Colors
+                                                                          .red
+                                                                          .shade700,
+                                                                    ),
+                                                                    SizedBox(
+                                                                        width:
+                                                                            5),
+                                                                    Expanded(
+                                                                      child:
+                                                                          Text(
+                                                                        '${ghataT(context, 'Money Out')}: ${moneyOut.toStringAsFixed(2)}',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          color: Colors
+                                                                              .red
+                                                                              .shade700,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                SizedBox(
+                                                                    height: 10),
+                                                                Divider(height: 1),
+                                                                SizedBox(
+                                                                    height: 9),
+                                                                Text(
+                                                                  'Net: ${net.toStringAsFixed(2)}',
+                                                                  style:
+                                                                      TextStyle(
+                                                                    fontSize: 16,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color: net >
+                                                                            0
+                                                                        ? Colors
+                                                                            .green
+                                                                            .shade800
+                                                                        : net <
+                                                                                0
+                                                                            ? Colors
+                                                                                .red
+                                                                                .shade800
+                                                                            : Theme.of(context)
+                                                                                .colorScheme
+                                                                                .onSurfaceVariant,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
 
-                        return Container(
-                          width: width,
-                          constraints: BoxConstraints(minHeight: 145),
-                          padding: EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: cardColors[index % cardColors.length],
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .outlineVariant
-                                  .withValues(alpha: 0.55),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    flagForCurrency(currency),
-                                    style: TextStyle(fontSize: 25),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      currency,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.south_west_rounded,
-                                    size: 17,
-                                    color: Colors.green.shade700,
-                                  ),
-                                  SizedBox(width: 5),
-                                  Expanded(
-                                    child: Text(
-                                      '${ghataT(context, 'Money In')}: ${moneyIn.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        color: Colors.green.shade700,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 5),
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.north_east_rounded,
-                                    size: 17,
-                                    color: Colors.red.shade700,
-                                  ),
-                                  SizedBox(width: 5),
-                                  Expanded(
-                                    child: Text(
-                                      '${ghataT(context, 'Money Out')}: ${moneyOut.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        color: Colors.red.shade700,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 10),
-                              Divider(height: 1),
-                              SizedBox(height: 9),
-                              Text(
-                                'Net: ${net.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: net > 0
-                                      ? Colors.green.shade800
-                                      : net < 0
-                                          ? Colors.red.shade800
-                                          : Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-
-              SizedBox(height: 22),
+                                                SizedBox(height: 22),
 
               Text(
                 'Detailed Report',
