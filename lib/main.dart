@@ -14718,7 +14718,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       ),
                     ),
                   ],
-                )
+                ),
                 SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
