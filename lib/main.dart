@@ -5349,10 +5349,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final balance = entry.value;
       final data = values(currency);
 
-      if (balance < -0.000001) {
-        data['receive'] = data['receive']! + balance.abs();
-      } else if (balance > 0.000001) {
-        data['pay'] = data['pay']! + balance;
+      if (balance > 0.000001) {
+        data['receive'] = data['receive']! + balance;
+      } else if (balance < -0.000001) {
+        data['pay'] = data['pay']! + balance.abs();
       }
     }
 
