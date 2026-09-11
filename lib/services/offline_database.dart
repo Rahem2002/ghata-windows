@@ -399,6 +399,22 @@ class OfflineDatabase {
 
       if (id == null || id.isEmpty) continue;
 
+      // If this record was permanently deleted locally but the delete
+      // operation has not reached the server yet, do not resurrect it
+      // from an older server cache refresh.
+      final pendingDelete = await db.query(
+        'offline_operations',
+        columns: ['operation_id'],
+        where:
+            'operation_type = ? AND table_name = ? AND record_id = ?',
+        whereArgs: ['delete', table, id],
+        limit: 1,
+      );
+
+      if (pendingDelete.isNotEmpty) {
+        continue;
+      }
+
       final existing = await db.query(
         'offline_records',
         columns: ['sync_status'],
@@ -419,6 +435,14 @@ class OfflineDatabase {
         synced: true,
       );
     }
+  }
+
+  Future<void> clearAllLocalData() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('offline_operations');
+      await txn.delete('offline_records');
+    });
   }
 
   Future<int> pendingOperationCount() async {

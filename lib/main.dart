@@ -168,40 +168,38 @@ Future<Map<String, dynamic>?> ghataLoadBusinessProfile() async {
   final user = Supabase.instance.client.auth.currentUser;
   if (user == null) return null;
 
-  // Online refresh when possible.
-  try {
-    final data = await Supabase.instance.client
-        .from('profiles')
-        .select(
-          'full_name, username, business_name, business_phone, business_address, receipt_note',
-        )
-        .eq('id', user.id)
-        .maybeSingle();
-
-    if (data != null) {
-      final record = <String, dynamic>{
-        ...Map<String, dynamic>.from(data),
-        'id': user.id,
-      };
-
-      // Cache only. Do NOT queue a profile sync operation here.
-      await OfflineDatabase.instance.saveRecord(
-        'profiles',
-        record,
-        synced: true,
-      );
-
-      return record;
-    }
-  } catch (_) {
-    // Offline: continue to local cache.
-  }
-
-  return OfflineDatabase.instance.getRecord(
+  final local = await OfflineDatabase.instance.getRecord(
     'profiles',
     user.id,
     includeDeleted: true,
   );
+
+  () async {
+    try {
+      final data = await Supabase.instance.client
+          .from('profiles')
+          .select(
+            'full_name, username, business_name, business_phone, business_address, receipt_note',
+          )
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (data != null) {
+        final record = <String, dynamic>{
+          ...Map<String, dynamic>.from(data),
+          'id': user.id,
+        };
+
+        await OfflineDatabase.instance.saveRecord(
+          'profiles',
+          record,
+          synced: true,
+        );
+      }
+    } catch (_) {}
+  }();
+
+  return local;
 }
 
 
@@ -1534,6 +1532,55 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'ایپ لاک آزمائیں',
     'ar': 'اختبار قفل التطبيق',
   },
+  'App Lock': {
+    'en': 'App Lock',
+    'ps': 'د اپ قلف',
+    'fa': 'قفل برنامه',
+    'ur': 'ایپ لاک',
+    'ar': 'قفل التطبيق',
+  },
+  'Please enable a screen lock, fingerprint, Face ID or device passcode first.': {
+    'en': 'Please enable a screen lock, fingerprint, Face ID or device passcode first.',
+    'ps': 'لومړی په خپل موبایل کې د سکرین قلف، د ګوتې نښه، Face ID یا د وسیلې پاسکوډ فعال کړئ.',
+    'fa': 'ابتدا قفل صفحه، اثر انگشت، Face ID یا رمز دستگاه را فعال کنید.',
+    'ur': 'پہلے اپنے فون پر اسکرین لاک، فنگر پرنٹ، Face ID یا ڈیوائس پاس کوڈ فعال کریں۔',
+    'ar': 'فعّل أولاً قفل الشاشة أو بصمة الإصبع أو Face ID أو رمز مرور الجهاز.',
+  },
+  'Enable App Lock first.': {
+    'en': 'Enable App Lock first.',
+    'ps': 'لومړی د اپ قلف فعال کړئ.',
+    'fa': 'ابتدا قفل برنامه را فعال کنید.',
+    'ur': 'پہلے ایپ لاک فعال کریں۔',
+    'ar': 'فعّل قفل التطبيق أولاً.',
+  },
+  'Device authentication was cancelled.': {
+    'en': ghataT(context, 'Device authentication was cancelled.'),
+    'ps': 'د وسیلې تصدیق لغوه شو.',
+    'fa': 'تأیید هویت دستگاه لغو شد.',
+    'ur': 'ڈیوائس کی تصدیق منسوخ کر دی گئی۔',
+    'ar': 'تم إلغاء مصادقة الجهاز.',
+  },
+  'Use fingerprint, Face ID, or your phone screen lock to open Ghata.': {
+    'en': 'Use fingerprint, Face ID, or your phone screen lock to open Ghata.',
+    'ps': 'د ګهته د خلاصولو لپاره د ګوتې نښه، Face ID یا د موبایل د سکرین قلف وکاروئ.',
+    'fa': 'برای باز کردن گِهته از اثر انگشت، Face ID یا قفل صفحه تلفن استفاده کنید.',
+    'ur': 'گھتہ کھولنے کے لیے فنگر پرنٹ، Face ID یا فون اسکرین لاک استعمال کریں۔',
+    'ar': 'استخدم بصمة الإصبع أو Face ID أو قفل شاشة الهاتف لفتح غهته.',
+  },
+  'Set up a phone screen lock first.': {
+    'en': 'Set up a phone screen lock first.',
+    'ps': 'لومړی د موبایل د سکرین قلف فعال کړئ.',
+    'fa': 'ابتدا قفل صفحه تلفن را تنظیم کنید.',
+    'ur': 'پہلے فون کا اسکرین لاک فعال کریں۔',
+    'ar': 'قم بإعداد قفل شاشة الهاتف أولاً.',
+  },
+  'Fingerprint / Face ID / Screen Lock': {
+    'en': 'Fingerprint / Face ID / Screen Lock',
+    'ps': 'د ګوتې نښه / Face ID / د سکرین قلف',
+    'fa': 'اثر انگشت / Face ID / قفل صفحه',
+    'ur': 'فنگر پرنٹ / Face ID / اسکرین لاک',
+    'ar': 'البصمة / Face ID / قفل الشاشة',
+  },
   'All currencies': {
     'en': 'All currencies',
     'ps': 'ټول اسعار',
@@ -1590,12 +1637,12 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'Add بٹن سے Money In، Money Out اور ایڈجسٹمنٹ درج کریں۔ درست کرنسی، تاریخ اور وقت منتخب کریں اور ضرورت کے مطابق گاہک منتخب کریں۔ واضح تفصیل لکھیں تاکہ ہر لین دین کی وجہ محفوظ رہے۔',
     'ar': 'استخدم زر Add لتسجيل Money In وMoney Out والتعديلات. اختر العملة والتاريخ والوقت الصحيح، وحدد العميل عند الحاجة. أضف وصفًا واضحًا حتى يبقى سبب كل معاملة مسجلًا.',
   },
-  'The Daily Journal keeps your transaction history. Use search and filters to find transactions. Transactions can be reviewed with their amount, currency, customer, date, time and description.': {
-    'en': 'The Daily Journal keeps your transaction history. Use search and filters to find transactions. Transactions can be reviewed with their amount, currency, customer, date, time and description.',
-    'ps': 'ورځنی ژورنال ستاسو د معاملو تاریخ ساتي. د معاملې موندلو لپاره لټون او فلټرونه وکاروئ. هره معامله د مبلغ، اسعار، پېرودونکي، نېټې، وخت او تشریح سره کتلای شئ.',
-    'fa': 'دفتر روزانه تاریخچه معاملات شما را نگهداری می‌کند. برای یافتن معاملات از جستجو و فیلترها استفاده کنید. هر معامله با مبلغ، ارز، مشتری، تاریخ، زمان و توضیحات قابل مشاهده است.',
-    'ur': 'روزانہ جرنل آپ کے لین دین کی تاریخ محفوظ رکھتا ہے۔ ٹرانزیکشن تلاش کرنے کے لیے سرچ اور فلٹر استعمال کریں۔ ہر لین دین کو رقم، کرنسی، گاہک، تاریخ، وقت اور تفصیل کے ساتھ دیکھا جا سکتا ہے۔',
-    'ar': 'يحتفظ السجل اليومي بتاريخ معاملاتك. استخدم البحث وعوامل التصفية للعثور على المعاملات. ويمكن مراجعة كل معاملة مع المبلغ والعملة والعميل والتاريخ والوقت والوصف.',
+  'The Daily Journal shows general business transactions and exchange movements. Use search and filters by type, currency, date and time. Amounts and running balances remain separate for each currency.': {
+    'en': 'The Daily Journal shows general business transactions and exchange movements. Use search and filters by type, currency, date and time. Amounts and running balances remain separate for each currency.',
+    'ps': 'ورځنی ژورنال د کاروبار عمومي معاملې او د اسعارو د تبادلې حرکتونه ښيي. د ډول، اسعار، نېټې او وخت له مخې لټون او فلټرونه وکاروئ. مبلغونه او روان بیلانسونه د هرې کرنسۍ لپاره جلا ساتل کېږي.',
+    'fa': 'دفتر روزانه معاملات عمومی تجارت و حرکات تبادل ارز را نشان می‌دهد. از جستجو و فیلتر بر اساس نوع، ارز، تاریخ و زمان استفاده کنید. مبالغ و موجودی‌های جاری برای هر ارز جداگانه نگهداری می‌شوند.',
+    'ur': 'روزانہ جرنل کاروبار کی عمومی ٹرانزیکشنز اور کرنسی ایکسچینج کی نقل و حرکت دکھاتا ہے۔ قسم، کرنسی، تاریخ اور وقت کے مطابق سرچ اور فلٹر استعمال کریں۔ رقم اور رننگ بیلنس ہر کرنسی کے لیے الگ رہتے ہیں۔',
+    'ar': 'يعرض السجل اليومي المعاملات العامة للنشاط وحركات صرف العملات. استخدم البحث والتصفية حسب النوع والعملة والتاريخ والوقت. وتبقى المبالغ والأرصدة الجارية منفصلة لكل عملة.',
   },
   'Customer balances automatically show the financial position for each currency. A positive balance is shown in green, a negative balance in red, and zero is neutral. Backdated transactions are placed at their actual date and time and the running balance is recalculated.': {
     'en': 'Customer balances automatically show the financial position for each currency. A positive balance is shown in green, a negative balance in red, and zero is neutral. Backdated transactions are placed at their actual date and time and the running balance is recalculated.',
@@ -1639,19 +1686,19 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'کاروبار کا مالک عملے کی رسائی منظم کر سکتا ہے۔ اجازتیں طے کرتی ہیں کہ عملے کا رکن ریکارڈ شامل یا ترمیم کر سکتا ہے اور اسے رپورٹس دستیاب ہوں گی یا نہیں۔',
     'ar': 'يمكن لمالك النشاط إدارة وصول الموظفين. وتحدد صلاحيات الموظف ما إذا كان يستطيع إضافة السجلات أو تعديلها وما إذا كانت التقارير متاحة له.',
   },
-  'Use Security to protect access to Ghata with the available PIN and biometric options. Keep your account password and security information private.': {
-    'en': 'Use Security to protect access to Ghata with the available PIN and biometric options. Keep your account password and security information private.',
-    'ps': 'د PIN او بایومتریک شته انتخابونو په وسیله ګهته خوندي کړئ. د خپل حساب پاسورډ او امنیتي معلومات له نورو پټ وساتئ.',
-    'fa': 'با استفاده از PIN و گزینه‌های بیومتریک موجود، دسترسی به گِهته را محافظت کنید. رمز حساب و اطلاعات امنیتی خود را محرمانه نگه دارید.',
-    'ur': 'دستیاب PIN اور بایومیٹرک آپشنز سے گھتہ تک رسائی محفوظ کریں۔ اپنے اکاؤنٹ کا پاس ورڈ اور سیکیورٹی معلومات نجی رکھیں۔',
-    'ar': 'استخدم خيارات PIN والقياسات الحيوية المتاحة لحماية الوصول إلى غهته. حافظ على خصوصية كلمة مرور حسابك ومعلومات الأمان.',
+  'Use App Lock to protect Ghata with fingerprint, Face ID or your phone screen lock where supported. Ghata does not read or store your phone PIN, pattern or passcode. Keep your account password private.': {
+    'en': 'Use App Lock to protect Ghata with fingerprint, Face ID or your phone screen lock where supported. Ghata does not read or store your phone PIN, pattern or passcode. Keep your account password private.',
+    'ps': 'د App Lock په وسیله، په ملاتړ شوو وسیلو کې ګهته د ګوتې نښې، Face ID یا د موبایل د سکرین لاک په وسیله خوندي کړئ. ګهته ستاسو د موبایل PIN، Pattern یا Passcode نه لولي او نه یې ذخیره کوي. د خپل حساب پاسورډ خوندي وساتئ.',
+    'fa': 'با App Lock می‌توانید در دستگاه‌های پشتیبانی‌شده از اثر انگشت، Face ID یا قفل صفحه تلفن برای محافظت از گِهته استفاده کنید. گِهته PIN، الگو یا رمز عبور دستگاه شما را نمی‌خواند و ذخیره نمی‌کند. رمز حساب خود را محرمانه نگه دارید.',
+    'ur': 'App Lock کے ذریعے معاون ڈیوائسز پر فنگرپرنٹ، Face ID یا فون اسکرین لاک سے گھتہ محفوظ کریں۔ گھتہ آپ کے فون کا PIN، پیٹرن یا پاس کوڈ نہ پڑھتا ہے اور نہ محفوظ کرتا ہے۔ اپنے اکاؤنٹ کا پاس ورڈ نجی رکھیں۔',
+    'ar': 'استخدم App Lock لحماية غهته ببصمة الإصبع أو Face ID أو قفل شاشة الهاتف على الأجهزة المدعومة. لا يقرأ غهته رقم PIN أو النمط أو رمز مرور الهاتف ولا يخزنه. حافظ على خصوصية كلمة مرور حسابك.',
   },
-  'Your Supabase account is the main cloud data source. Backup features can also be used to export supported business information. Keep exported backup files in a safe place.': {
-    'en': 'Your Supabase account is the main cloud data source. Backup features can also be used to export supported business information. Keep exported backup files in a safe place.',
-    'ps': 'ستاسو Supabase حساب د کلاوډ معلوماتو اصلي سرچینه ده. د بیک اپ له لارې ملاتړ شوي کاروباري معلومات صادرولای شئ. صادر شوي بیک اپ فایلونه په خوندي ځای کې وساتئ.',
-    'fa': 'حساب Supabase شما منبع اصلی داده‌های ابری است. از امکانات پشتیبان‌گیری می‌توان برای صدور اطلاعات پشتیبانی‌شده تجارت نیز استفاده کرد. فایل‌های پشتیبان صادرشده را در محل امن نگهداری کنید.',
-    'ur': 'آپ کا Supabase اکاؤنٹ کلاؤڈ ڈیٹا کا بنیادی ذریعہ ہے۔ بیک اپ فیچر سے معاون کاروباری معلومات ایکسپورٹ بھی کی جا سکتی ہیں۔ ایکسپورٹ شدہ بیک اپ فائلیں محفوظ جگہ رکھیں۔',
-    'ar': 'حساب Supabase الخاص بك هو مصدر البيانات السحابية الرئيسي. ويمكن استخدام ميزات النسخ الاحتياطي لتصدير معلومات النشاط المدعومة. احتفظ بملفات النسخ الاحتياطي المصدرة في مكان آمن.',
+  'Your Ghata account keeps supported business data synchronized when internet access is available. Signing in with the same account on another supported Android or iPhone device can restore synchronized account data. Exported backup files should be kept in a safe place.': {
+    'en': 'Your Ghata account keeps supported business data synchronized when internet access is available. Signing in with the same account on another supported Android or iPhone device can restore synchronized account data. Exported backup files should be kept in a safe place.',
+    'ps': 'ستاسو د ګهته حساب، د انټرنېټ د شتون پر مهال، ملاتړ شوي کاروباري معلومات همغږي کوي. په بل ملاتړ شوي Android یا iPhone وسیله کې د همدې حساب په وسیله ننوتل کولای شي همغږي شوي حسابي معلومات بېرته راولي. صادر شوي بیک اپ فایلونه په خوندي ځای کې وساتئ.',
+    'fa': 'حساب گِهته شما هنگام دسترسی به اینترنت، اطلاعات پشتیبانی‌شده تجارت را همگام‌سازی می‌کند. ورود با همان حساب در یک دستگاه Android یا iPhone پشتیبانی‌شده دیگر می‌تواند داده‌های همگام‌شده حساب را بازیابی کند. فایل‌های پشتیبان صادرشده را در جای امن نگهداری کنید.',
+    'ur': 'آپ کا گھتہ اکاؤنٹ انٹرنیٹ دستیاب ہونے پر معاون کاروباری ڈیٹا کو ہم آہنگ رکھتا ہے۔ کسی دوسرے معاون Android یا iPhone ڈیوائس پر اسی اکاؤنٹ سے سائن اِن کرنے پر ہم آہنگ شدہ اکاؤنٹ ڈیٹا بحال کیا جا سکتا ہے۔ ایکسپورٹ شدہ بیک اپ فائلیں محفوظ جگہ رکھیں۔',
+    'ar': 'يحافظ حساب غهته على مزامنة بيانات النشاط المدعومة عند توفر الإنترنت. ويمكن لتسجيل الدخول بالحساب نفسه على جهاز Android أو iPhone مدعوم آخر استعادة بيانات الحساب التي تمت مزامنتها. احتفظ بملفات النسخ الاحتياطي المصدرة في مكان آمن.',
   },
   'Deleted accounting records are moved to the Recycle Bin. Eligible records can be restored during the retention period. Ghata protects accounting history instead of silently destroying important financial records.': {
     'en': 'Deleted accounting records are moved to the Recycle Bin. Eligible records can be restored during the retention period. Ghata protects accounting history instead of silently destroying important financial records.',
@@ -3415,10 +3462,28 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => isLoading = true);
 
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
+      final response =
+          await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
+
+      final user = response.user;
+      if (user == null) {
+        throw StateError('Login succeeded without a user.');
+      }
+
+      final localOwner = await GhataSecurity.localAccountOwner();
+
+      if (localOwner != null && localOwner != user.id) {
+        await OfflineDatabase.instance.clearAllLocalData();
+      }
+
+      await GhataSecurity.setLocalAccountOwner(user.id);
+
+      // Upload any offline changes first, then restore the account cache.
+      await OfflineSyncService.instance.syncPending();
+      await ghataRefreshOfflineCache();
 
       if (!mounted) return;
 
@@ -3914,26 +3979,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
 class GhataSecurity {
   static const _storage = FlutterSecureStorage();
-  static const _pinKey = 'ghata_app_pin';
   static const _biometricKey = 'ghata_biometric_enabled';
+  static const _localAccountOwnerKey = 'ghata_local_account_owner';
 
-  static Future<bool> hasPin() async {
-    final value = await _storage.read(key: _pinKey);
-    return value != null && value.length >= 4;
+  static Future<String?> localAccountOwner() async {
+    return _storage.read(key: _localAccountOwnerKey);
   }
 
-  static Future<void> savePin(String pin) async {
-    await _storage.write(key: _pinKey, value: pin);
-  }
-
-  static Future<bool> verifyPin(String pin) async {
-    final saved = await _storage.read(key: _pinKey);
-    return saved != null && saved == pin;
-  }
-
-  static Future<void> removePin() async {
-    await _storage.delete(key: _pinKey);
-    await setBiometricEnabled(false);
+  static Future<void> setLocalAccountOwner(String userId) async {
+    await _storage.write(
+      key: _localAccountOwnerKey,
+      value: userId,
+    );
   }
 
   static Future<bool> biometricEnabled() async {
@@ -3950,8 +4007,7 @@ class GhataSecurity {
   static Future<bool> canUseBiometrics() async {
     try {
       final auth = LocalAuthentication();
-      return await auth.isDeviceSupported() &&
-          (await auth.canCheckBiometrics);
+      return await auth.isDeviceSupported();
     } catch (_) {
       return false;
     }
@@ -3963,7 +4019,7 @@ class GhataSecurity {
       return await auth.authenticate(
         localizedReason: 'Unlock Ghata',
         options: AuthenticationOptions(
-          biometricOnly: true,
+          biometricOnly: false,
           stickyAuth: true,
         ),
       );
@@ -4276,34 +4332,30 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     setState(() => busy = true);
 
     try {
-      final client = Supabase.instance.client;
-      final user = client.auth.currentUser;
+        final user = Supabase.instance.client.auth.currentUser;
 
-      if (user == null) {
-        throw Exception('You are not signed in.');
-      }
+        if (user == null) {
+          throw Exception('You are not signed in.');
+        }
 
-      final customers = await client
-          .from('customers')
-          .select();
+        // Backup is local-first so it also works without internet.
+        final customers =
+            await OfflineDatabase.instance.getRecords('customers');
 
-      final transactions = await client
-          .from('transactions')
-          .select();
+        final transactions =
+            await OfflineDatabase.instance.getRecords('transactions');
 
-      final exchanges = await client
-          .from('exchanges')
-          .select();
+        final exchanges =
+            await OfflineDatabase.instance.getRecords('exchanges');
 
-      final exchangeEntries = await client
-          .from('exchange_entries')
-          .select();
+        final exchangeEntries =
+            await OfflineDatabase.instance.getRecords('exchange_entries');
 
-      final profile = await client
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .maybeSingle();
+        final profile = await OfflineDatabase.instance.getRecord(
+          'profiles',
+          user.id,
+          includeDeleted: true,
+        );
 
       final backup = <String, dynamic>{
         'app': 'Ghata',
@@ -4451,9 +4503,8 @@ class SecurityScreen extends StatefulWidget {
 
 class _SecurityScreenState extends State<SecurityScreen> {
   bool loading = true;
-  bool hasPin = false;
-  bool biometricAvailable = false;
-  bool biometricEnabled = false;
+  bool deviceAuthAvailable = false;
+  bool appLockEnabled = false;
 
   @override
   void initState() {
@@ -4462,176 +4513,25 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   Future<void> loadSecurityState() async {
-    final pin = await GhataSecurity.hasPin();
     final available = await GhataSecurity.canUseBiometrics();
     final enabled = await GhataSecurity.biometricEnabled();
 
     if (!mounted) return;
 
     setState(() {
-      hasPin = pin;
-      biometricAvailable = available;
-      biometricEnabled = enabled && pin;
+      deviceAuthAvailable = available;
+      appLockEnabled = enabled && available;
       loading = false;
     });
   }
 
-  Future<String?> requestPin({
-    required String title,
-    bool confirm = false,
-  }) async {
-    final firstController = TextEditingController();
-    final secondController = TextEditingController();
-
-    final result = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: firstController,
-              autofocus: true,
-              obscureText: true,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              decoration: InputDecoration(
-                labelText: ghataT(context, 'PIN (4-6 digits)'),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            if (confirm) ...[
-              SizedBox(height: 12),
-              TextField(
-                controller: secondController,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                decoration: InputDecoration(
-                  labelText: ghataT(context, 'Confirm PIN'),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(ghataT(context, 'Cancel')),
-          ),
-          FilledButton(
-            onPressed: () {
-              final first = firstController.text.trim();
-              final valid =
-                  RegExp(r'^\d{4,6}$').hasMatch(first);
-
-              if (!valid) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ghataT(context, 'PIN must be 4 to 6 digits.')),
-                  ),
-                );
-                return;
-              }
-
-              if (confirm && first != secondController.text.trim()) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ghataT(context, 'PINs do not match.')),
-                  ),
-                );
-                return;
-              }
-
-              Navigator.pop(dialogContext, first);
-            },
-            child: Text(ghataT(context, 'Save')),
-          ),
-        ],
-      ),
-    );
-
-    firstController.dispose();
-    secondController.dispose();
-    return result;
-  }
-
-  Future<void> createOrChangePin() async {
-    if (hasPin) {
-      final current = await requestPin(title: ghataT(context, 'Enter Current PIN'));
-      if (current == null) return;
-
-      if (!await GhataSecurity.verifyPin(current)) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ghataT(context, 'Incorrect PIN.'))),
-        );
-        return;
-      }
-    }
-
-    if (!mounted) return;
-
-    final pin = await requestPin(
-      title: hasPin ? ghataT(context, 'Change App PIN') : ghataT(context, 'Create App PIN'),
-      confirm: true,
-    );
-
-    if (pin == null) return;
-
-    await GhataSecurity.savePin(pin);
-    await loadSecurityState();
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          hasPin ? ghataT(context, 'App PIN saved.') : ghataT(context, 'App PIN created.'),
-        ),
-      ),
-    );
-  }
-
-  Future<void> removePin() async {
-    final current = await requestPin(title: ghataT(context, 'Enter Current PIN'));
-    if (current == null) return;
-
-    if (!await GhataSecurity.verifyPin(current)) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ghataT(context, 'Incorrect PIN.'))),
-      );
-      return;
-    }
-
-    await GhataSecurity.removePin();
-    await loadSecurityState();
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(ghataT(context, 'App PIN removed.'))),
-    );
-  }
-
-  Future<void> changeBiometric(bool enabled) async {
+  Future<void> changeDeviceLock(bool enabled) async {
     if (enabled) {
-      if (!hasPin) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(ghataT(context, 'Create an App PIN first.')),
-          ),
-        );
-        return;
-      }
-
-      if (!biometricAvailable) {
+      if (!deviceAuthAvailable) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              ghataT(context, 'Fingerprint or Face ID is not available on this device.'),
+              ghataT(context, 'Please enable a screen lock, fingerprint, Face ID or device passcode first.'),
             ),
           ),
         );
@@ -4684,7 +4584,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            ghataT(context, 'Other devices have been logged out successfully.'),
+            ghataT(
+              context,
+              'Other devices have been logged out successfully.',
+            ),
           ),
         ),
       );
@@ -4694,7 +4597,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            ghataT(context, 'Unable to log out other devices. Check your internet connection.'),
+            ghataT(
+              context,
+              'Unable to log out other devices. Check your internet connection.',
+            ),
           ),
         ),
       );
@@ -4702,36 +4608,23 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   Future<void> testLock() async {
-    if (!hasPin) {
+    if (!appLockEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ghataT(context, 'Create an App PIN first.'))),
+        SnackBar(content: Text(ghataT(context, 'Enable App Lock first.'))),
       );
       return;
     }
 
-    if (biometricEnabled) {
-      final success = await GhataSecurity.authenticateBiometric();
-      if (success) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(ghataT(context, 'Ghata unlocked successfully.'))),
-        );
-        return;
-      }
-    }
+    final success = await GhataSecurity.authenticateBiometric();
 
     if (!mounted) return;
 
-    final pin = await requestPin(title: ghataT(context, 'Unlock Ghata'));
-    if (pin == null) return;
-
-    final valid = await GhataSecurity.verifyPin(pin);
-
-    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          valid ? ghataT(context, 'Ghata unlocked successfully.') : ghataT(context, 'Incorrect PIN.'),
+          success
+              ? ghataT(context, 'Ghata unlocked successfully.')
+              : 'Device authentication was cancelled.',
         ),
       ),
     );
@@ -4749,41 +4642,17 @@ class _SecurityScreenState extends State<SecurityScreen> {
               padding: EdgeInsets.all(16),
               children: [
                 Card(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: Icon(Icons.pin_outlined),
-                        title: Text(
-                          hasPin ? ghataT(context, 'Change App PIN') : ghataT(context, 'Create App PIN'),
-                        ),
-                        subtitle: Text(
-                          'Use a 4 to 6 digit PIN to protect Ghata.',
-                        ),
-                        trailing: Icon(Icons.chevron_right),
-                        onTap: createOrChangePin,
-                      ),
-                      if (hasPin)
-                        ListTile(
-                          leading: Icon(Icons.lock_open_outlined),
-                          title: Text(ghataT(context, 'Remove App PIN')),
-                          onTap: removePin,
-                        ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 12),
-                Card(
                   child: SwitchListTile(
                     secondary: Icon(Icons.fingerprint),
-                    title: Text(ghataT(context, 'Fingerprint / Face ID')),
+                    title: Text(ghataT(context, 'App Lock')),
                     subtitle: Text(
-                      biometricAvailable
-                          ? ghataT(context, 'Use device biometrics to unlock Ghata.')
-                          : ghataT(context, 'Biometrics are not available on this device.'),
+                      deviceAuthAvailable
+                          ? ghataT(context, 'Use fingerprint, Face ID, or your phone screen lock to open Ghata.')
+                          : ghataT(context, 'Set up a phone screen lock first.'),
                     ),
-                    value: biometricEnabled,
+                    value: appLockEnabled,
                     onChanged:
-                        biometricAvailable ? changeBiometric : null,
+                        deviceAuthAvailable ? changeDeviceLock : null,
                   ),
                 ),
                 SizedBox(height: 12),
@@ -4805,23 +4674,15 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 ),
                 SizedBox(height: 12),
                 FilledButton.icon(
-                  onPressed: testLock,
+                  onPressed: appLockEnabled ? testLock : null,
                   icon: Icon(Icons.lock_outline),
                   label: Text(ghataT(context, 'Test App Lock')),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  '',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
                 ),
               ],
             ),
     );
   }
 }
-
-
 
 class GhataStartupGate extends StatefulWidget {
   GhataStartupGate({super.key});
@@ -4831,13 +4692,10 @@ class GhataStartupGate extends StatefulWidget {
 }
 
 class _GhataStartupGateState extends State<GhataStartupGate> {
-  final pinController = TextEditingController();
-
   bool loading = true;
   bool unlocked = false;
-  bool biometricEnabled = false;
-  bool checkingBiometric = false;
-  String? errorText;
+  bool appLockEnabled = false;
+  bool checkingAuthentication = false;
 
   @override
   void initState() {
@@ -4846,16 +4704,38 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
   }
 
   Future<void> prepareLock() async {
-    try {
-      await Supabase.instance.client.rpc('link_my_staff_account');
-    } catch (_) {
-      // Owner accounts or accounts without a staff invitation continue normally.
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user != null) {
+      final localOwner = await GhataSecurity.localAccountOwner();
+      final accountChanged =
+          localOwner != null && localOwner != user.id;
+
+      if (accountChanged) {
+        await OfflineDatabase.instance.clearAllLocalData();
+      }
+
+      await GhataSecurity.setLocalAccountOwner(user.id);
+
+      if (accountChanged) {
+        await ghataRefreshOfflineCache();
+      } else {
+        ghataTrySync();
+        ghataRefreshOfflineCache();
+      }
     }
 
-    final hasPin = await GhataSecurity.hasPin();
+    () async {
+      try {
+        await Supabase.instance.client.rpc('link_my_staff_account');
+      } catch (_) {}
+    }();
 
-    if (!hasPin) {
-      if (!mounted) return;
+    final enabled = await GhataSecurity.biometricEnabled();
+
+    if (!mounted) return;
+
+    if (!enabled) {
       setState(() {
         unlocked = true;
         loading = false;
@@ -4863,67 +4743,32 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
       return;
     }
 
-    final biometric = await GhataSecurity.biometricEnabled();
-
-    if (!mounted) return;
-
     setState(() {
-      biometricEnabled = biometric;
+      appLockEnabled = true;
       loading = false;
     });
 
-    if (biometric) {
-      await unlockWithBiometric();
-    }
+    await unlockWithDeviceAuthentication();
   }
 
-  Future<void> unlockWithBiometric() async {
-    if (checkingBiometric) return;
+  Future<void> unlockWithDeviceAuthentication() async {
+    if (checkingAuthentication) return;
 
     setState(() {
-      checkingBiometric = true;
-      errorText = null;
+      checkingAuthentication = true;
     });
 
-    final success = await GhataSecurity.authenticateBiometric();
+    final success =
+        await GhataSecurity.authenticateBiometric();
 
     if (!mounted) return;
 
     setState(() {
-      checkingBiometric = false;
-
+      checkingAuthentication = false;
       if (success) {
         unlocked = true;
       }
     });
-  }
-
-  Future<void> unlockWithPin() async {
-    final pin = pinController.text.trim();
-
-    if (!RegExp(r'^\d{4,6}$').hasMatch(pin)) {
-      setState(() {
-        errorText = ghataT(context, 'Enter your 4 to 6 digit PIN.');
-      });
-      return;
-    }
-
-    final valid = await GhataSecurity.verifyPin(pin);
-
-    if (!mounted) return;
-
-    if (valid) {
-      pinController.clear();
-
-      setState(() {
-        unlocked = true;
-        errorText = null;
-      });
-    } else {
-      setState(() {
-        errorText = ghataT(context, 'Incorrect PIN.');
-      });
-    }
   }
 
   Future<void> signOut() async {
@@ -4937,12 +4782,6 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
       ),
       (_) => false,
     );
-  }
-
-  @override
-  void dispose() {
-    pinController.dispose();
-    super.dispose();
   }
 
   @override
@@ -4987,52 +4826,26 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
                     style: TextStyle(fontSize: 18),
                   ),
                   SizedBox(height: 28),
-                  TextField(
-                    controller: pinController,
-                    autofocus: !biometricEnabled,
-                    obscureText: true,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => unlockWithPin(),
-                    decoration: InputDecoration(
-                      labelText: ghataT(context, 'App PIN'),
-                      border: OutlineInputBorder(),
-                      errorText: errorText,
-                    ),
-                  ),
-                  SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: unlockWithPin,
-                      icon: Icon(Icons.lock_open_outlined),
-                      label: Text(ghataT(context, 'Unlock')),
-                    ),
-                  ),
-                  if (biometricEnabled) ...[
-                    SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: checkingBiometric
-                            ? null
-                            : unlockWithBiometric,
-                        icon: checkingBiometric
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Icon(Icons.fingerprint),
-                        label: Text(
-                          ghataT(context, 'Fingerprint / Face ID'),
-                        ),
+                      onPressed: checkingAuthentication
+                          ? null
+                          : unlockWithDeviceAuthentication,
+                      icon: checkingAuthentication
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Icon(Icons.fingerprint),
+                      label: Text(
+                        ghataT(context, 'Fingerprint / Face ID / Screen Lock'),
                       ),
                     ),
-                  ],
+                  ),
                   SizedBox(height: 18),
                   TextButton(
                     onPressed: signOut,
@@ -5047,7 +4860,6 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
     );
   }
 }
-
 
 class HomeScreen extends StatefulWidget {
   HomeScreen({super.key});
@@ -6744,7 +6556,7 @@ class AboutGhataScreen extends StatelessWidget {
               context,
               Icons.menu_book_outlined,
               ghataT(context, 'Daily Journal'),
-              ghataT(context, 'The Daily Journal keeps your transaction history. Use search and filters to find transactions. Transactions can be reviewed with their amount, currency, customer, date, time and description.'),
+              ghataT(context, 'The Daily Journal shows general business transactions and exchange movements. Use search and filters by type, currency, date and time. Amounts and running balances remain separate for each currency.'),
             ),
 
             guideSection(
@@ -6793,14 +6605,14 @@ class AboutGhataScreen extends StatelessWidget {
               context,
               Icons.security_outlined,
               ghataT(context, 'Security'),
-              ghataT(context, 'Use Security to protect access to Ghata with the available PIN and biometric options. Keep your account password and security information private.'),
+              ghataT(context, 'Use App Lock to protect Ghata with fingerprint, Face ID or your phone screen lock where supported. Ghata does not read or store your phone PIN, pattern or passcode. Keep your account password private.'),
             ),
 
             guideSection(
               context,
               Icons.cloud_outlined,
               ghataT(context, 'Backup & Restore'),
-              ghataT(context, 'Your Supabase account is the main cloud data source. Backup features can also be used to export supported business information. Keep exported backup files in a safe place.'),
+              ghataT(context, 'Your Ghata account keeps supported business data synchronized when internet access is available. Signing in with the same account on another supported Android or iPhone device can restore synchronized account data. Exported backup files should be kept in a safe place.'),
             ),
 
             guideSection(
@@ -8030,41 +7842,77 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                         daysRemaining(customer['deleted_at']?.toString());
 
                     return Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Icon(Icons.person_outline),
-                        ),
-                        title: Text(name),
-                        subtitle: Text(
-                          address.isEmpty
-                              ? '$remaining days remaining'
-                              : '$address\n$remaining days remaining',
-                        ),
-                        isThreeLine: address.isNotEmpty,
-                        trailing: Wrap(
-                        spacing: 4,
-                        children: [
-                          TextButton(
-                            onPressed: id.isEmpty
-                                ? null
-                                : () => restoreCustomer(id),
-                            child: Text(ghataT(context, 'Restore')),
-                          ),
-                          TextButton(
-                            onPressed: id.isEmpty
-                                ? null
-                                : () => permanentlyDeleteCustomer(
-                                      id,
-                                      name,
-                                      customer['deleted_at']?.toString(),
-                                    ),
-                            child: Text(
-                              ghataT(context, 'Delete Permanently'),
-                              style: TextStyle(color: Colors.red),
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              child: Icon(Icons.person_outline),
                             ),
-                          ),
-                        ],
-                      ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  if (address.isNotEmpty) ...[
+                                    SizedBox(height: 4),
+                                    Text(
+                                      address,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                  SizedBox(height: 4),
+                                  Text('$remaining days remaining'),
+                                  SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    children: [
+                                      TextButton(
+                                        onPressed: id.isEmpty
+                                            ? null
+                                            : () => restoreCustomer(id),
+                                        child: Text(
+                                          ghataT(context, 'Restore'),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: id.isEmpty
+                                            ? null
+                                            : () => permanentlyDeleteCustomer(
+                                                  id,
+                                                  name,
+                                                  customer['deleted_at']
+                                                      ?.toString(),
+                                                ),
+                                        child: Text(
+                                          ghataT(
+                                            context,
+                                            'Delete Permanently',
+                                          ),
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }),
@@ -8109,42 +7957,77 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                     final label = '$typeLabel $amount $currency';
 
                     return Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Icon(Icons.receipt_long_outlined),
-                        ),
-                        title: Text('$amount $currency'),
-                        subtitle: Text(
-                          [
-                            typeLabel,
-                            if (customer.isNotEmpty) customer,
-                            '$remaining days remaining',
-                          ].join(' • '),
-                        ),
-                        trailing: Wrap(
-                        spacing: 4,
-                        children: [
-                          TextButton(
-                            onPressed: id.isEmpty
-                                ? null
-                                : () => restoreTransaction(id),
-                            child: Text(ghataT(context, 'Restore')),
-                          ),
-                          TextButton(
-                            onPressed: id.isEmpty
-                                ? null
-                                : () => permanentlyDeleteTransaction(
-                                      id,
-                                      label,
-                                      transaction['deleted_at']?.toString(),
-                                    ),
-                            child: Text(
-                              ghataT(context, 'Delete Permanently'),
-                              style: TextStyle(color: Colors.red),
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              child: Icon(Icons.receipt_long_outlined),
                             ),
-                          ),
-                        ],
-                      ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$amount $currency',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    [
+                                      typeLabel,
+                                      if (customer.isNotEmpty) customer,
+                                      '$remaining days remaining',
+                                    ].join(' • '),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    children: [
+                                      TextButton(
+                                        onPressed: id.isEmpty
+                                            ? null
+                                            : () => restoreTransaction(id),
+                                        child: Text(
+                                          ghataT(context, 'Restore'),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: id.isEmpty
+                                            ? null
+                                            : () => permanentlyDeleteTransaction(
+                                                  id,
+                                                  label,
+                                                  transaction['deleted_at']
+                                                      ?.toString(),
+                                                ),
+                                        child: Text(
+                                          ghataT(
+                                            context,
+                                            'Delete Permanently',
+                                          ),
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }),
@@ -8180,42 +8063,77 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                         : '$typeLabel - $customer';
 
                     return Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Icon(Icons.currency_exchange),
-                        ),
-                        title: Text(typeLabel),
-                        subtitle: Text(
-                          [
-                            if (customer.isNotEmpty) customer,
-                            if (date.isNotEmpty) date,
-                            '$remaining days remaining',
-                          ].join(' • '),
-                        ),
-                        trailing: Wrap(
-                        spacing: 4,
-                        children: [
-                          TextButton(
-                            onPressed: id.isEmpty
-                                ? null
-                                : () => restoreExchange(id),
-                            child: Text(ghataT(context, 'Restore')),
-                          ),
-                          TextButton(
-                            onPressed: id.isEmpty
-                                ? null
-                                : () => permanentlyDeleteExchange(
-                                      id,
-                                      label,
-                                      exchange['deleted_at']?.toString(),
-                                    ),
-                            child: Text(
-                              ghataT(context, 'Delete Permanently'),
-                              style: TextStyle(color: Colors.red),
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              child: Icon(Icons.currency_exchange),
                             ),
-                          ),
-                        ],
-                      ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    typeLabel,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    [
+                                      if (customer.isNotEmpty) customer,
+                                      if (date.isNotEmpty) date,
+                                      '$remaining days remaining',
+                                    ].join(' • '),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    children: [
+                                      TextButton(
+                                        onPressed: id.isEmpty
+                                            ? null
+                                            : () => restoreExchange(id),
+                                        child: Text(
+                                          ghataT(context, 'Restore'),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: id.isEmpty
+                                            ? null
+                                            : () => permanentlyDeleteExchange(
+                                                  id,
+                                                  label,
+                                                  exchange['deleted_at']
+                                                      ?.toString(),
+                                                ),
+                                        child: Text(
+                                          ghataT(
+                                            context,
+                                            'Delete Permanently',
+                                          ),
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }),
@@ -8303,6 +8221,79 @@ class DailyJournalScreen extends StatefulWidget {
 }
 
 class _DailyJournalScreenState extends State<DailyJournalScreen> {
+
+  List<Map<String, dynamic>> buildDailyJournalRunningLedger(
+    List<Map<String, dynamic>> transactions,
+  ) {
+    final ordered = transactions
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+
+    // Calculate oldest first so backdated entries correctly
+    // recalculate every balance that follows them.
+    ordered.sort((a, b) {
+      final ad =
+          '${a['transaction_date'] ?? ''} '
+          '${a['transaction_time'] ?? ''} '
+          '${a['created_at'] ?? ''}';
+      final bd =
+          '${b['transaction_date'] ?? ''} '
+          '${b['transaction_time'] ?? ''} '
+          '${b['created_at'] ?? ''}';
+      return ad.compareTo(bd);
+    });
+
+    final running = <String, double>{};
+    final rows = <Map<String, dynamic>>[];
+
+    for (final transaction in ordered) {
+      final currency =
+          transaction['currency']?.toString().toUpperCase() ?? '';
+      final type =
+          transaction['transaction_type']?.toString() ?? '';
+      final amount =
+          double.tryParse(transaction['amount']?.toString() ?? '0') ?? 0;
+
+      if (currency.isEmpty) continue;
+
+      running.putIfAbsent(currency, () => 0);
+
+      double moneyIn = 0;
+      double moneyOut = 0;
+
+      switch (type) {
+        case 'money_in':
+        case 'loan_received':
+        case 'loan_repayment_received':
+        case 'adjustment_in':
+          moneyIn = amount;
+          running[currency] = running[currency]! + amount;
+          break;
+
+        case 'money_out':
+        case 'loan_given':
+        case 'loan_repayment_paid':
+        case 'adjustment_out':
+          moneyOut = amount;
+          running[currency] = running[currency]! - amount;
+          break;
+
+        default:
+          continue;
+      }
+
+      rows.add({
+        ...transaction,
+        '_journal_in': moneyIn,
+        '_journal_out': moneyOut,
+        '_journal_balance': running[currency],
+      });
+    }
+
+    // Show newest first after calculating balances chronologically.
+    return rows.reversed.toList();
+  }
+
   String selectedFilter = 'all';
 
   DateTime? journalFromDate;
@@ -8310,7 +8301,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   TimeOfDay? journalFromTime;
   TimeOfDay? journalToTime;
   String? journalCurrencyFilter;
-  String? journalCustomerFilter;
 
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -8368,32 +8358,16 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
+    final local =
+        await OfflineDatabase.instance.getRecords('customers');
 
-      if (user != null) {
-        final data = await Supabase.instance.client
-            .from('customers')
-            .select('id, full_name, phone')
-            .isFilter('deleted_at', null)
-            .order('full_name');
-
-        final records = List<Map<String, dynamic>>.from(data);
-        await OfflineDatabase.instance.cacheServerRecords(
-          'customers',
-          records,
-        );
-        return records;
-      }
-    } catch (_) {
-      // Offline: use local database.
-    }
-
-    final local = await OfflineDatabase.instance.getRecords('customers');
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
           .compareTo(b['full_name']?.toString() ?? ''),
     );
+
+    ghataRefreshOfflineCache();
+
     return local;
   }
 
@@ -8422,10 +8396,135 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   ];
 
   Future<List<Map<String, dynamic>>> loadTransactions() async {
-    final local =
+    final transactions =
         await OfflineDatabase.instance.getRecords('transactions');
 
-    local.sort((a, b) {
+    final rows = transactions.where((row) {
+      final customerId = row['customer_id']?.toString().trim() ?? '';
+      return customerId.isEmpty;
+    }).map((row) => Map<String, dynamic>.from(row)).toList();
+
+    final exchanges =
+        await OfflineDatabase.instance.getRecords('exchanges');
+
+    final exchangeEntries =
+        await OfflineDatabase.instance.getRecords('exchange_entries');
+
+    for (final exchange in exchanges) {
+      final customerId =
+          exchange['customer_id']?.toString().trim() ?? '';
+
+      final deletedAt =
+          exchange['deleted_at']?.toString().trim() ?? '';
+
+      if (customerId.isNotEmpty || deletedAt.isNotEmpty) {
+        continue;
+      }
+
+      final exchangeId = exchange['id']?.toString() ?? '';
+      if (exchangeId.isEmpty) continue;
+
+      final entries = exchangeEntries.where((entry) {
+        return entry['exchange_id']?.toString() == exchangeId;
+      }).toList();
+
+      Map<String, dynamic>? outEntry;
+      Map<String, dynamic>? inEntry;
+
+      for (final entry in entries) {
+        final entryType =
+            entry['entry_type']?.toString() ?? '';
+
+        if (entryType == 'money_out' && outEntry == null) {
+          outEntry = entry;
+        }
+
+        if (entryType == 'money_in' && inEntry == null) {
+          inEntry = entry;
+        }
+      }
+
+      final outAmount =
+          double.tryParse(outEntry?['amount']?.toString() ?? '') ?? 0;
+
+      final inAmount =
+          double.tryParse(inEntry?['amount']?.toString() ?? '') ?? 0;
+
+      final outCurrency =
+          outEntry?['currency']?.toString().toUpperCase() ?? '';
+
+      final inCurrency =
+          inEntry?['currency']?.toString().toUpperCase() ?? '';
+
+      final exchangeDate =
+          exchange['exchange_date']?.toString() ?? '';
+
+      final exchangeTime =
+          exchange['exchange_time']?.toString() ?? '';
+
+      final createdAt =
+          exchange['created_at']?.toString() ?? '';
+
+      final notes =
+          exchange['notes']?.toString().trim() ?? '';
+
+      final exchangeDescription =
+          outAmount > 0 &&
+                  inAmount > 0 &&
+                  outCurrency.isNotEmpty &&
+                  inCurrency.isNotEmpty
+              ? 'Exchange (${outAmount % 1 == 0 ? outAmount.toStringAsFixed(0) : outAmount.toStringAsFixed(2)} $outCurrency → ${inAmount % 1 == 0 ? inAmount.toStringAsFixed(0) : inAmount.toStringAsFixed(2)} $inCurrency)'
+              : 'Exchange';
+
+      final description =
+          notes.isEmpty
+              ? exchangeDescription
+              : '$exchangeDescription • $notes';
+
+      if (outEntry != null &&
+          outAmount > 0 &&
+          outCurrency.isNotEmpty) {
+        rows.add({
+          'id': 'exchange_out_$exchangeId',
+          'exchange_id': exchangeId,
+          'customer_id': null,
+          'customer_name': '',
+          'transaction_date': exchangeDate,
+          'transaction_time': exchangeTime,
+          'transaction_type': 'money_out',
+          'amount': outAmount,
+          'currency': outCurrency,
+          'description': description,
+          'reference_no': 'Exchange',
+          'created_at': createdAt,
+          '_is_exchange': true,
+          '_exchange_leg': 'out',
+        });
+      }
+
+      if (inEntry != null &&
+          inAmount > 0 &&
+          inCurrency.isNotEmpty) {
+        rows.add({
+          'id': 'exchange_in_$exchangeId',
+          'exchange_id': exchangeId,
+          'customer_id': null,
+          'customer_name': '',
+          'transaction_date': exchangeDate,
+          'transaction_time': exchangeTime,
+          'transaction_type': 'money_in',
+          'amount': inAmount,
+          'currency': inCurrency,
+          'description': description,
+          'reference_no': 'Exchange',
+          'created_at': createdAt,
+          '_is_exchange': true,
+          '_exchange_leg': 'in',
+        });
+      }
+    }
+
+    rows.sort((a, b) {
       final ad =
           '${a['transaction_date'] ?? ''} '
           '${a['transaction_time'] ?? ''} '
@@ -8441,7 +8540,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
     ghataRefreshOfflineCache();
 
-    return local.take(100).toList();
+    return rows.take(200).toList();
   }
 
   Future<void> saveTransaction() async {
@@ -8976,6 +9075,131 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     referenceController.dispose();
     journalSearchController.dispose();
     super.dispose();
+  }
+
+  Future<void> showJournalRowActions(
+    Map<String, dynamic> row,
+  ) async {
+    final isExchange = row['_is_exchange'] == true;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(Icons.edit_rounded),
+                title: Text(ghataT(context, 'Edit')),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+
+                  if (isExchange) {
+                    final exchangeId =
+                        row['exchange_id']?.toString() ?? '';
+
+                    if (exchangeId.isEmpty) return;
+
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ExchangeScreen(
+                          initialExchangeId: exchangeId,
+                        ),
+                      ),
+                    );
+
+                    if (mounted) {
+                      setState(() {});
+                    }
+                  } else {
+                    await editTransaction(row);
+                  }
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.red,
+                ),
+                title: Text(
+                  ghataT(context, 'Delete'),
+                  style: TextStyle(color: Colors.red),
+                ),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+
+                  if (isExchange) {
+                    final exchangeId =
+                        row['exchange_id']?.toString() ?? '';
+
+                    if (exchangeId.isEmpty) return;
+
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: Text(
+                          ghataT(context, 'Move to Recycle Bin?'),
+                        ),
+                        content: Text(
+                          'This exchange will be moved to Recycle Bin.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, false),
+                            child: Text(
+                              ghataT(context, 'Cancel'),
+                            ),
+                          ),
+                          FilledButton(
+                            onPressed: () =>
+                                Navigator.pop(dialogContext, true),
+                            child: Text(
+                              ghataT(
+                                context,
+                                'Move to Recycle Bin',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirmed != true) return;
+
+                    await ghataSoftDeleteLocal(
+                      'exchanges',
+                      exchangeId,
+                    );
+
+                    ghataTrySync();
+
+                    if (!mounted) return;
+
+                    setState(() {});
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          ghataT(
+                            context,
+                            'Exchange moved to Recycle Bin.',
+                          ),
+                        ),
+                      ),
+                    );
+                  } else {
+                    await deleteTransaction(row);
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> editTransaction(
@@ -10095,7 +10319,6 @@ Future<void> shareTransactionReceiptPdf(
     TimeOfDay? fromTime = journalFromTime;
     TimeOfDay? toTime = journalToTime;
     String? currencyFilter = journalCurrencyFilter;
-    String? customerFilter = journalCustomerFilter;
 
     await showDialog<void>(
       context: context,
@@ -10222,35 +10445,6 @@ Future<void> shareTransactionReceiptPdf(
                       },
                     ),
                     SizedBox(height: 12),
-                    DropdownButtonFormField<String?>(
-                      initialValue: customerFilter,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: ghataT(context, 'Customer'),
-                        prefixIcon: Icon(Icons.person_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      items: [
-                        DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text(ghataT(context, 'All')),
-                        ),
-                        ...customers.map(
-                          (customer) => DropdownMenuItem<String?>(
-                            value: customer['id']?.toString(),
-                            child: Text(
-                              customer['full_name']?.toString() ?? '',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() => customerFilter = value);
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -10264,7 +10458,6 @@ Future<void> shareTransactionReceiptPdf(
                     journalFromTime = null;
                     journalToTime = null;
                     journalCurrencyFilter = null;
-                    journalCustomerFilter = null;
                   });
                   Navigator.pop(dialogContext);
                 },
@@ -10278,7 +10471,6 @@ Future<void> shareTransactionReceiptPdf(
                     journalFromTime = fromTime;
                     journalToTime = toTime;
                     journalCurrencyFilter = currencyFilter;
-                    journalCustomerFilter = customerFilter;
                   });
                   Navigator.pop(dialogContext);
                 },
@@ -10376,8 +10568,7 @@ Future<void> shareTransactionReceiptPdf(
                   journalToDate != null ||
                   journalFromTime != null ||
                   journalToTime != null ||
-                  journalCurrencyFilter != null ||
-                  journalCustomerFilter != null)
+                  journalCurrencyFilter != null)
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(
@@ -10422,8 +10613,7 @@ Future<void> shareTransactionReceiptPdf(
                             journalFromTime = null;
                             journalToTime = null;
                             journalCurrencyFilter = null;
-                            journalCustomerFilter = null;
-                          });
+                                  });
                         },
                         icon: Icon(Icons.close_rounded, size: 19),
                       ),
@@ -10492,12 +10682,6 @@ Future<void> shareTransactionReceiptPdf(
 
                     if (journalCurrencyFilter != null &&
                         currency != journalCurrencyFilter) {
-                      return false;
-                    }
-
-                    if (journalCustomerFilter != null &&
-                        row['customer_id']?.toString() !=
-                            journalCustomerFilter) {
                       return false;
                     }
 
@@ -10762,166 +10946,295 @@ Future<void> shareTransactionReceiptPdf(
                           ),
                         )
                       else
-                        ...filtered.map((row) {
-                          final type =
-                              row['transaction_type']?.toString() ??
-                                  '';
-                          final amount =
-                              row['amount']?.toString() ?? '0';
-                          final currency =
-                              row['currency']?.toString() ?? '';
-                          final customer =
-                              row['customer_name']?.toString() ?? '';
-                          final description =
-                              row['description']?.toString() ?? '';
-                          final date =
-                              row['transaction_date']?.toString() ??
-                                  '';
-                          final rawTime =
-                              row['transaction_time']?.toString() ??
-                                  '';
-                          final time = rawTime.length >= 5
-                              ? rawTime.substring(0, 5)
-                              : rawTime;
+                        Builder(
+                          builder: (context) {
+                            final journal =
+                                buildDailyJournalRunningLedger(filtered);
 
-                          final label = switch (type) {
-                            'money_in' => 'Money In',
-                            'money_out' => 'Money Out',
-                            'loan_given' => 'Loan Given',
-                            'loan_received' => 'Loan Received',
-                            'loan_repayment_received' =>
-                              'Repayment Received',
-                            'loan_repayment_paid' =>
-                              'Repayment Paid',
-                            'adjustment_in' => 'Adjustment In',
-                            'adjustment_out' => 'Adjustment Out',
-                            _ => type.replaceAll('_', ' '),
-                          };
+                            String amountText(dynamic value) {
+                              final number =
+                                  double.tryParse(value.toString()) ?? 0;
+                              if (number.abs() <= 0.000001) return '—';
+                              return number % 1 == 0
+                                  ? number.toStringAsFixed(0)
+                                  : number.toStringAsFixed(2);
+                            }
 
-                          final isIncoming =
-                              type == 'money_in' ||
-                              type == 'loan_received' ||
-                              type == 'loan_repayment_received' ||
-                              type == 'adjustment_in';
-
-                          final amountValue =
-                              double.tryParse(amount) ?? 0;
-
-                          return Container(
-                            margin: EdgeInsets.only(bottom: 10),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .outlineVariant
-                                    .withValues(alpha: 0.55),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.035),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(18),
-                              onTap: () {
-                                showTransactionReceipt(row);
-                              },
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 12,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: isIncoming
-                                            ? Colors.green.withValues(alpha: 0.12)
-                                            : Colors.red.withValues(alpha: 0.11),
-                                        shape: BoxShape.circle,
+                            return SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: BouncingScrollPhysics(),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minWidth: 820),
+                                child: SizedBox(
+                                  width: 820,
+                                  child: Column(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 13,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .surfaceContainerHighest,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 100,
+                                              child: Text(
+                                                ghataT(context, 'Date'),
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 3,
+                                              child: Text(
+                                                ghataT(context, 'Description'),
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                ghataT(context, 'Money In'),
+                                                textAlign: TextAlign.end,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.green,
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                ghataT(context, 'Money Out'),
+                                                textAlign: TextAlign.end,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              width: 90,
+                                              child: Text(
+                                                ghataT(context, 'Currency'),
+                                                textAlign: TextAlign.end,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Text(
+                                                ghataT(context, 'Balance'),
+                                                textAlign: TextAlign.end,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      child: Icon(
-                                        isIncoming
-                                            ? Icons.south_west_rounded
-                                            : Icons.north_east_rounded,
-                                        color: isIncoming
-                                            ? Colors.green.shade700
-                                            : Colors.red.shade600,
-                                        size: 27,
-                                      ),
-                                    ),
-                                    SizedBox(width: 10),
-                                    Text(
-                                      flagForCurrency(currency),
-                                      style: TextStyle(fontSize: 27),
-                                    ),
-                                    SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            customer.trim().isEmpty
-                                                ? ghataT(context, 'General')
-                                                : customer,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w800,
+                                      SizedBox(height: 4),
+                                      ...journal.map((row) {
+                                        final currency =
+                                            row['currency']
+                                                    ?.toString()
+                                                    .toUpperCase() ??
+                                                '';
+
+                                        final date =
+                                            row['transaction_date']
+                                                    ?.toString() ??
+                                                '';
+
+                                        final rawTime =
+                                            row['transaction_time']
+                                                    ?.toString() ??
+                                                '';
+
+                                        final time = rawTime.length >= 5
+                                            ? rawTime.substring(0, 5)
+                                            : rawTime;
+
+                                        final description =
+                                            row['description']
+                                                    ?.toString()
+                                                    .trim() ??
+                                                '';
+
+                                        final type =
+                                            row['transaction_type']
+                                                    ?.toString() ??
+                                                '';
+
+                                        final moneyIn =
+                                            row['_journal_in'] ?? 0.0;
+                                        final moneyOut =
+                                            row['_journal_out'] ?? 0.0;
+
+                                        final balance = double.tryParse(
+                                              row['_journal_balance']
+                                                  .toString(),
+                                            ) ??
+                                            0;
+
+                                        final balanceColor = balance > 0
+                                            ? Colors.green
+                                            : balance < 0
+                                                ? Colors.red
+                                                : Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant;
+
+                                        final label = switch (type) {
+                                          'money_in' => 'Money In',
+                                          'money_out' => 'Money Out',
+                                          'loan_given' => 'Loan Given',
+                                          'loan_received' => 'Loan Received',
+                                          'loan_repayment_received' =>
+                                            'Repayment Received',
+                                          'loan_repayment_paid' =>
+                                            'Repayment Paid',
+                                          'adjustment_in' => 'Adjustment In',
+                                          'adjustment_out' => 'Adjustment Out',
+                                          _ => type.replaceAll('_', ' '),
+                                        };
+
+                                        final displayDescription =
+                                            description.isNotEmpty
+                                                ? description
+                                                : ghataT(context, label);
+
+                                        return GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () =>
+                                              showTransactionReceipt(row),
+                                          onLongPress: () =>
+                                              showJournalRowActions(row),
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 13,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              border: Border(
+                                                bottom: BorderSide(
+                                                  color: Theme.of(context)
+                                                      .dividerColor
+                                                      .withValues(alpha: 0.45),
+                                                ),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                SizedBox(
+                                                  width: 100,
+                                                  child: Text(
+                                                    time.isEmpty
+                                                        ? date
+                                                        : '$date\n$time',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  flex: 3,
+                                                  child: Text(
+                                                    displayDescription,
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Text(
+                                                    amountText(moneyIn),
+                                                    textAlign: TextAlign.end,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: Colors.green,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Text(
+                                                    amountText(moneyOut),
+                                                    textAlign: TextAlign.end,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: Colors.red,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                ),
+                                                SizedBox(
+                                                  width: 90,
+                                                  child: Text(
+                                                    '$currency ${flagForCurrency(currency)}',
+                                                    textAlign: TextAlign.end,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: Text(
+                                                    amountText(balance),
+                                                    textAlign: TextAlign.end,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: balanceColor,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          SizedBox(height: 3),
-                                          Text(
-                                            [
-                                              ghataT(context, label),
-                                              if (time.isEmpty)
-                                                date
-                                              else
-                                                '$date $time',
-                                              if (description.isNotEmpty)
-                                                description,
-                                            ].join(' • '),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      '${amountValue.toStringAsFixed(amountValue % 1 == 0 ? 0 : 2)} $currency',
-                                      textAlign: TextAlign.end,
-                                      style: TextStyle(
-                                        color: isIncoming
-                                            ? Colors.green.shade700
-                                            : Colors.red.shade600,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ],
+                                        );
+                                      }),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        }),
+                            );
+                          },
+                        )
 
                       SizedBox(height: 90),
                     ],
@@ -11297,32 +11610,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
   String? pendingCustomerPhotoPath;
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
+    final local =
+        await OfflineDatabase.instance.getRecords('customers');
 
-      if (user != null) {
-        final data = await Supabase.instance.client
-            .from('customers')
-            .select()
-            .isFilter('deleted_at', null)
-            .order('full_name');
-
-        final records = List<Map<String, dynamic>>.from(data);
-        await OfflineDatabase.instance.cacheServerRecords(
-          'customers',
-          records,
-        );
-        return records;
-      }
-    } catch (_) {
-      // Offline: use local database.
-    }
-
-    final local = await OfflineDatabase.instance.getRecords('customers');
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
           .compareTo(b['full_name']?.toString() ?? ''),
     );
+
+    ghataRefreshOfflineCache();
+
     return local;
   }
 
@@ -15022,15 +15319,15 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                         scrollDirection: Axis.horizontal,
                         physics: BouncingScrollPhysics(),
                         child: ConstrainedBox(
-                          constraints: BoxConstraints(minWidth: 620),
+                          constraints: BoxConstraints(minWidth: 760),
                           child: SizedBox(
-                            width: 620,
+                            width: 760,
                             child: Column(
                               children: [
                           Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: 8,
-                              vertical: 10,
+                              vertical: 12,
                             ),
                             decoration: BoxDecoration(
                               color: Theme.of(context)
@@ -15041,11 +15338,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                             child: Row(
                               children: [
                                 SizedBox(
-                                  width: 82,
+                                  width: 100,
                                   child: Text(
                                     ghataT(context, 'Date'),
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -15055,7 +15352,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                   child: Text(
                                     ghataT(context, 'Description'),
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -15066,7 +15363,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                     ghataT(context, 'Money In'),
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.green,
                                     ),
@@ -15078,7 +15375,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                     ghataT(context, 'Money Out'),
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.red,
                                     ),
@@ -15090,7 +15387,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                     ghataT(context, 'Balance'),
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -15154,7 +15451,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                               child: Container(
                               padding: EdgeInsets.symmetric(
                                 horizontal: 8,
-                                vertical: 10,
+                                vertical: 14,
                               ),
                               decoration: BoxDecoration(
                                 border: Border(
@@ -15170,13 +15467,13 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                     CrossAxisAlignment.start,
                                 children: [
                                   SizedBox(
-                                    width: 82,
+                                    width: 100,
                                     child: Text(
                                       time.isEmpty
                                           ? date
                                           : '$date\n$time',
                                       style: TextStyle(
-                                        fontSize: 10,
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ),
@@ -15194,7 +15491,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                           overflow:
                                               TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 11,
+                                            fontSize: 13,
                                             fontWeight:
                                                 FontWeight.w500,
                                           ),
@@ -15203,7 +15500,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                         Text(
                                           '${flagForCurrency(currency)} $currency',
                                           style: TextStyle(
-                                            fontSize: 10,
+                                            fontSize: 11,
                                             color: Theme.of(context)
                                                 .colorScheme
                                                 .onSurfaceVariant,
@@ -15218,7 +15515,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                       amountText(moneyIn),
                                       textAlign: TextAlign.end,
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                         color: (double.tryParse(
                                                       moneyIn.toString(),
@@ -15236,7 +15533,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                       amountText(moneyOut),
                                       textAlign: TextAlign.end,
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                         color: (double.tryParse(
                                                       moneyOut.toString(),
@@ -15254,7 +15551,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                       amountText(balance),
                                       textAlign: TextAlign.end,
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.bold,
                                         color: balanceColor,
                                       ),
@@ -16123,11 +16420,13 @@ class _CashboxScreenState extends State<CashboxScreen> {
 class ExchangeScreen extends StatefulWidget {
   final String? initialCustomerId;
   final String? initialCustomerName;
+  final String? initialExchangeId;
 
   ExchangeScreen({
     super.key,
     this.initialCustomerId,
     this.initialCustomerName,
+    this.initialExchangeId,
   });
 
   @override
@@ -16161,6 +16460,34 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     super.initState();
     selectedCustomerId = widget.initialCustomerId;
     selectedCustomerName = widget.initialCustomerName;
+
+    final initialExchangeId = widget.initialExchangeId;
+
+    if (initialExchangeId != null &&
+        initialExchangeId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final history = await loadExchangeHistory();
+
+        if (!mounted) return;
+
+        Map<String, dynamic>? target;
+
+        for (final exchange in history) {
+          if (exchange['id']?.toString() == initialExchangeId) {
+            target = exchange;
+            break;
+          }
+        }
+
+        if (target != null) {
+          await editExchange(target);
+        }
+
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      });
+    }
   }
 
   void updateExchangeCalculatorResults({String? changed}) {
