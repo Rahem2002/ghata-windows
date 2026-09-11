@@ -1554,7 +1554,7 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ar': 'فعّل قفل التطبيق أولاً.',
   },
   'Device authentication was cancelled.': {
-    'en': ghataT(context, 'Device authentication was cancelled.'),
+    'en': 'Device authentication was cancelled.',
     'ps': 'د وسیلې تصدیق لغوه شو.',
     'fa': 'تأیید هویت دستگاه لغو شد.',
     'ur': 'ڈیوائس کی تصدیق منسوخ کر دی گئی۔',
@@ -11234,7 +11234,7 @@ Future<void> shareTransactionReceiptPdf(
                               ),
                             );
                           },
-                        )
+                        ),
 
                       SizedBox(height: 90),
                     ],
