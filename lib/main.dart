@@ -1525,6 +1525,84 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'حوالہ نمبر',
     'ar': 'رقم المرجع',
   },
+  'Select': {
+    'en': 'Select',
+    'ps': 'انتخاب',
+    'fa': 'انتخاب',
+    'ur': 'منتخب کریں',
+    'ar': 'تحديد',
+  },
+  'Cancel Selection': {
+    'en': 'Cancel Selection',
+    'ps': 'انتخاب لغوه کړئ',
+    'fa': 'لغو انتخاب',
+    'ur': 'انتخاب منسوخ کریں',
+    'ar': 'إلغاء التحديد',
+  },
+  'Delete All': {
+    'en': 'Delete All',
+    'ps': 'ټول حذف کړئ',
+    'fa': 'حذف همه',
+    'ur': 'سب حذف کریں',
+    'ar': 'حذف الكل',
+  },
+  'Delete Selected': {
+    'en': 'Delete Selected',
+    'ps': 'ټاکل شوي حذف کړئ',
+    'fa': 'حذف انتخاب‌شده‌ها',
+    'ur': 'منتخب شدہ حذف کریں',
+    'ar': 'حذف المحدد',
+  },
+  'No items selected.': {
+    'en': 'No items selected.',
+    'ps': 'هیڅ شی نه دی ټاکل شوی.',
+    'fa': 'هیچ موردی انتخاب نشده است.',
+    'ur': 'کوئی آئٹم منتخب نہیں کیا گیا۔',
+    'ar': 'لم يتم تحديد أي عنصر.',
+  },
+  'Delete selected items permanently? This cannot be undone.': {
+    'en': 'Delete selected items permanently? This cannot be undone.',
+    'ps': 'ټاکل شوي توکي دایمي حذف شي؟ دا کار بېرته نه راګرځي.',
+    'fa': 'موارد انتخاب‌شده برای همیشه حذف شوند؟ این کار قابل بازگشت نیست.',
+    'ur': 'منتخب آئٹمز مستقل طور پر حذف کریں؟ یہ عمل واپس نہیں ہو سکتا۔',
+    'ar': 'حذف العناصر المحددة نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.',
+  },
+  'Delete all items permanently? This cannot be undone.': {
+    'en': 'Delete all items permanently? This cannot be undone.',
+    'ps': 'ټول توکي دایمي حذف شي؟ دا کار بېرته نه راګرځي.',
+    'fa': 'همه موارد برای همیشه حذف شوند؟ این کار قابل بازگشت نیست.',
+    'ur': 'تمام آئٹمز مستقل طور پر حذف کریں؟ یہ عمل واپس نہیں ہو سکتا۔',
+    'ar': 'حذف جميع العناصر نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.',
+  },
+  'Selected items deleted permanently.': {
+    'en': 'Selected items deleted permanently.',
+    'ps': 'ټاکل شوي توکي دایمي حذف شول.',
+    'fa': 'موارد انتخاب‌شده برای همیشه حذف شدند.',
+    'ur': 'منتخب آئٹمز مستقل طور پر حذف ہو گئے۔',
+    'ar': 'تم حذف العناصر المحددة نهائيًا.',
+  },
+  'Recycle Bin cleared.': {
+    'en': 'Recycle Bin cleared.',
+    'ps': 'ریسایکل بین پاک شو.',
+    'fa': 'سطل بازیافت پاک شد.',
+    'ur': 'ری سائیکل بن صاف کر دیا گیا۔',
+    'ar': 'تم إفراغ سلة المحذوفات.',
+  },
+  'Unable to delete selected items': {
+    'en': 'Unable to delete selected items',
+    'ps': 'ټاکل شوي توکي حذف نشول',
+    'fa': 'حذف موارد انتخاب‌شده ممکن نشد',
+    'ur': 'منتخب آئٹمز حذف نہیں ہو سکے',
+    'ar': 'تعذر حذف العناصر المحددة',
+  },
+  'Unable to clear Recycle Bin': {
+    'en': 'Unable to clear Recycle Bin',
+    'ps': 'ریسایکل بین پاک نشو',
+    'fa': 'پاک‌سازی سطل بازیافت ممکن نشد',
+    'ur': 'ری سائیکل بن صاف نہیں ہو سکا',
+    'ar': 'تعذر إفراغ سلة المحذوفات',
+  },
+
   'Test App Lock': {
     'en': 'Test App Lock',
     'ps': 'د اپ قلف وازمویئ',
@@ -7452,6 +7530,22 @@ class RecycleBinScreen extends StatefulWidget {
 }
 
 class _RecycleBinScreenState extends State<RecycleBinScreen> {
+  bool _selectionMode = false;
+  final Set<String> _selectedRecycleItems = <String>{};
+
+  String _recycleKey(String table, String id) => '$table:$id';
+
+  void _toggleRecycleSelection(String table, String id, bool selected) {
+    setState(() {
+      final key = _recycleKey(table, id);
+      if (selected) {
+        _selectedRecycleItems.add(key);
+      } else {
+        _selectedRecycleItems.remove(key);
+      }
+    });
+  }
+
   Future<List<Map<String, dynamic>>> loadDeletedCustomers() async {
   ghataRefreshOfflineCache();
 
@@ -7776,11 +7870,177 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     }
   }
 
+  Future<void> _deleteRecycleBatch({
+    required bool selectedOnly,
+  }) async {
+    final customers = await loadDeletedCustomers();
+    final transactions = await loadDeletedTransactions();
+    final exchanges = await loadDeletedExchanges();
+
+    bool wanted(String table, Map<String, dynamic> row) {
+      final id = row['id']?.toString() ?? '';
+      if (id.isEmpty) return false;
+      if (!selectedOnly) return true;
+      return _selectedRecycleItems.contains(_recycleKey(table, id));
+    }
+
+    final selectedCustomers =
+        customers.where((row) => wanted('customers', row)).toList();
+    final selectedTransactions =
+        transactions.where((row) => wanted('transactions', row)).toList();
+    final selectedExchanges =
+        exchanges.where((row) => wanted('exchanges', row)).toList();
+
+    final total = selectedCustomers.length +
+        selectedTransactions.length +
+        selectedExchanges.length;
+
+    if (total == 0) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(ghataT(context, 'No items selected.'))),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          ghataT(
+            context,
+            selectedOnly ? 'Delete Selected' : 'Delete All',
+          ),
+        ),
+        content: Text(
+          ghataT(
+            context,
+            selectedOnly
+                ? 'Delete selected items permanently? This cannot be undone.'
+                : 'Delete all items permanently? This cannot be undone.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(ghataT(context, 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(
+              ghataT(
+                context,
+                selectedOnly ? 'Delete Selected' : 'Delete All',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      for (final customer in selectedCustomers) {
+        final id = customer['id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        await ghataDeleteCustomerPhoto(id);
+        await OfflineDatabase.instance.permanentlyDeleteLocalRecord(
+          'customers',
+          id,
+        );
+      }
+
+      for (final transaction in selectedTransactions) {
+        final id = transaction['id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        await OfflineDatabase.instance.permanentlyDeleteLocalRecord(
+          'transactions',
+          id,
+        );
+      }
+
+      for (final exchange in selectedExchanges) {
+        final id = exchange['id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        await OfflineDatabase.instance.permanentlyDeleteLocalRecord(
+          'exchanges',
+          id,
+        );
+      }
+
+      ghataTrySync();
+
+      if (!mounted) return;
+
+      setState(() {
+        _selectedRecycleItems.clear();
+        _selectionMode = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ghataT(
+              context,
+              selectedOnly
+                  ? 'Selected items deleted permanently.'
+                  : 'Recycle Bin cleared.',
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${ghataT(context, selectedOnly ? 'Unable to delete selected items' : 'Unable to clear Recycle Bin')}: $e',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteAllRecycleBin() async {
+    await _deleteRecycleBatch(selectedOnly: false);
+  }
+
+  Future<void> _deleteSelectedRecycleBin() async {
+    await _deleteRecycleBatch(selectedOnly: true);
+  }
+
   @override
   Widget build(BuildContext context) {
       return Scaffold(
         appBar: AppBar(
           title: Text(ghataT(context, 'Recycle Bin')),
+          actions: [
+            IconButton(
+              tooltip: ghataT(
+                context,
+                _selectionMode ? 'Cancel Selection' : 'Select',
+              ),
+              icon: Icon(
+                _selectionMode ? Icons.close : Icons.checklist,
+              ),
+              onPressed: () {
+                setState(() {
+                  _selectionMode = !_selectionMode;
+                  if (!_selectionMode) {
+                    _selectedRecycleItems.clear();
+                  }
+                });
+              },
+            ),
+            IconButton(
+              tooltip: ghataT(context, 'Delete All'),
+              icon: Icon(Icons.delete_sweep_outlined),
+              onPressed: _deleteAllRecycleBin,
+            ),
+          ],
         ),
         body: FutureBuilder<List<dynamic>>(
           future: Future.wait([
@@ -7847,6 +8107,19 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (_selectionMode)
+                              Checkbox(
+                                value: _selectedRecycleItems.contains(
+                                  _recycleKey('customers', id),
+                                ),
+                                onChanged: id.isEmpty
+                                    ? null
+                                    : (value) => _toggleRecycleSelection(
+                                          'customers',
+                                          id,
+                                          value ?? false,
+                                        ),
+                              ),
                             CircleAvatar(
                               child: Icon(Icons.person_outline),
                             ),
@@ -7962,6 +8235,19 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (_selectionMode)
+                              Checkbox(
+                                value: _selectedRecycleItems.contains(
+                                  _recycleKey('transactions', id),
+                                ),
+                                onChanged: id.isEmpty
+                                    ? null
+                                    : (value) => _toggleRecycleSelection(
+                                          'transactions',
+                                          id,
+                                          value ?? false,
+                                        ),
+                              ),
                             CircleAvatar(
                               child: Icon(Icons.receipt_long_outlined),
                             ),
@@ -8068,6 +8354,19 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            if (_selectionMode)
+                              Checkbox(
+                                value: _selectedRecycleItems.contains(
+                                  _recycleKey('exchanges', id),
+                                ),
+                                onChanged: id.isEmpty
+                                    ? null
+                                    : (value) => _toggleRecycleSelection(
+                                          'exchanges',
+                                          id,
+                                          value ?? false,
+                                        ),
+                              ),
                             CircleAvatar(
                               child: Icon(Icons.currency_exchange),
                             ),
@@ -8142,6 +8441,16 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
             );
           },
         ),
+        floatingActionButton:
+            _selectionMode && _selectedRecycleItems.isNotEmpty
+                ? FloatingActionButton.extended(
+                    onPressed: _deleteSelectedRecycleBin,
+                    icon: Icon(Icons.delete_forever),
+                    label: Text(
+                      '${ghataT(context, 'Delete Selected')} (${_selectedRecycleItems.length})',
+                    ),
+                  )
+                : null,
       );
     }
 }
