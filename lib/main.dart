@@ -1385,13 +1385,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'کیا آپ کو مکمل یقین ہے؟',
     'ar': 'هل أنت متأكد تماماً؟',
   },
-  'Delete Permanently': {
-    'en': 'Delete Permanently',
-    'ps': 'د تل لپاره حذف کړئ',
-    'fa': 'حذف دائمی',
-    'ur': 'مستقل طور پر حذف کریں',
-    'ar': 'حذف نهائي',
-  },
   'Account deleted successfully.': {
     'en': 'Account deleted successfully.',
     'ps': 'اکاونټ په بریالیتوب حذف شو.',
