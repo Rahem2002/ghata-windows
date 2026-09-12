@@ -43,9 +43,7 @@
 					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
 					<key>UISceneStoryboardFile</key>
 					<string>Main</string>
-					<key>NSFaceIDUsageDescription</key>
-	<string>Ghata uses Face ID to securely unlock your accounting data.</string>
-</dict>
+				</dict>
 			</array>
 		</dict>
 	</dict>
@@ -68,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Ghata uses Face ID to securely unlock your accounting data.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Ghata uses the camera so you can take customer profile photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Ghata uses your photo library so you can select customer profile photos.</string>
 </dict>
 </plist>

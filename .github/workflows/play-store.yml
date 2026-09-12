@@ -1,0 +1,64 @@
+name: Build Ghata Play Store AAB
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-play-aab:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Generate App Icons
+        run: dart run flutter_launcher_icons
+
+      - name: Prepare Play Store signing
+        env:
+          GHATA_KEYSTORE_BASE64: ${{ secrets.GHATA_KEYSTORE_BASE64 }}
+          GHATA_KEY_ALIAS: ${{ secrets.GHATA_KEY_ALIAS }}
+          GHATA_KEY_PASSWORD: ${{ secrets.GHATA_KEY_PASSWORD }}
+          GHATA_STORE_PASSWORD: ${{ secrets.GHATA_STORE_PASSWORD }}
+        run: |
+          test -n "$GHATA_KEYSTORE_BASE64" || { echo "Missing GHATA_KEYSTORE_BASE64"; exit 1; }
+          test -n "$GHATA_KEY_ALIAS" || { echo "Missing GHATA_KEY_ALIAS"; exit 1; }
+          test -n "$GHATA_KEY_PASSWORD" || { echo "Missing GHATA_KEY_PASSWORD"; exit 1; }
+          test -n "$GHATA_STORE_PASSWORD" || { echo "Missing GHATA_STORE_PASSWORD"; exit 1; }
+
+          printf '%s' "$GHATA_KEYSTORE_BASE64" | base64 --decode > android/app/ghata-release.jks
+
+          {
+            printf 'storePassword=%s\n' "$GHATA_STORE_PASSWORD"
+            printf 'keyPassword=%s\n' "$GHATA_KEY_PASSWORD"
+            printf 'keyAlias=%s\n' "$GHATA_KEY_ALIAS"
+            printf 'storeFile=ghata-release.jks\n'
+          } > android/key.properties
+
+      - name: Build Play Store AAB
+        run: >
+          flutter build appbundle --release
+          --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
+          --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+
+      - name: Verify AAB
+        run: |
+          test -f build/app/outputs/bundle/release/app-release.aab
+          ls -lh build/app/outputs/bundle/release/app-release.aab

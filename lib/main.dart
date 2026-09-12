@@ -1357,6 +1357,55 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'گاہک شامل کریں',
     'ar': 'إضافة عميل',
   },
+  'Delete Account': {
+    'en': 'Delete Account',
+    'ps': 'اکاونټ حذف کړئ',
+    'fa': 'حذف حساب',
+    'ur': 'اکاؤنٹ حذف کریں',
+    'ar': 'حذف الحساب',
+  },
+  'Delete Account?': {
+    'en': 'Delete Account?',
+    'ps': 'اکاونټ حذف کړئ؟',
+    'fa': 'حساب حذف شود؟',
+    'ur': 'اکاؤنٹ حذف کریں؟',
+    'ar': 'حذف الحساب؟',
+  },
+  'This permanently deletes your Ghata account and cloud accounting data. This cannot be undone.': {
+    'en': 'This permanently deletes your Ghata account and cloud accounting data. This cannot be undone.',
+    'ps': 'دا به ستاسو د ګهته اکاونټ او په کلاوډ کې حسابي معلومات د تل لپاره حذف کړي. بېرته نه راګرځي.',
+    'fa': 'این کار حساب گَهته و اطلاعات حسابداری ابری شما را برای همیشه حذف می‌کند و قابل بازگشت نیست.',
+    'ur': 'یہ آپ کا گہتہ اکاؤنٹ اور کلاؤڈ اکاؤنٹنگ ڈیٹا مستقل طور پر حذف کر دے گا۔ اسے واپس نہیں لایا جا سکتا۔',
+    'ar': 'سيؤدي هذا إلى حذف حساب غهته وبيانات المحاسبة السحابية نهائياً ولا يمكن التراجع عنه.',
+  },
+  'Are you absolutely sure?': {
+    'en': 'Are you absolutely sure?',
+    'ps': 'ایا بشپړ ډاډه یاست؟',
+    'fa': 'آیا کاملاً مطمئن هستید؟',
+    'ur': 'کیا آپ کو مکمل یقین ہے؟',
+    'ar': 'هل أنت متأكد تماماً؟',
+  },
+  'Delete Permanently': {
+    'en': 'Delete Permanently',
+    'ps': 'د تل لپاره حذف کړئ',
+    'fa': 'حذف دائمی',
+    'ur': 'مستقل طور پر حذف کریں',
+    'ar': 'حذف نهائي',
+  },
+  'Account deleted successfully.': {
+    'en': 'Account deleted successfully.',
+    'ps': 'اکاونټ په بریالیتوب حذف شو.',
+    'fa': 'حساب با موفقیت حذف شد.',
+    'ur': 'اکاؤنٹ کامیابی سے حذف ہو گیا۔',
+    'ar': 'تم حذف الحساب بنجاح.',
+  },
+  'Unable to delete account': {
+    'en': 'Unable to delete account',
+    'ps': 'اکاونټ حذف نشو',
+    'fa': 'حذف حساب ممکن نشد',
+    'ur': 'اکاؤنٹ حذف نہیں ہو سکا',
+    'ar': 'تعذر حذف الحساب',
+  },
   'Change Email': {
     'en': 'Change Email',
     'ps': 'ایمیل بدل کړئ',
@@ -7266,6 +7315,92 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+
+  Future<void> deleteAccount() async {
+    final firstConfirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(ghataT(context, 'Delete Account?')),
+        content: Text(
+          ghataT(
+            context,
+            'This permanently deletes your Ghata account and cloud accounting data. This cannot be undone.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(ghataT(context, 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(ghataT(context, 'Delete Account')),
+          ),
+        ],
+      ),
+    );
+
+    if (firstConfirm != true || !mounted) return;
+
+    final finalConfirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(ghataT(context, 'Are you absolutely sure?')),
+        content: Text(
+          ghataT(
+            context,
+            'This permanently deletes your Ghata account and cloud accounting data. This cannot be undone.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(ghataT(context, 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(ghataT(context, 'Delete Permanently')),
+          ),
+        ],
+      ),
+    );
+
+    if (finalConfirm != true || !mounted) return;
+
+    setState(() => isSaving = true);
+
+    try {
+      await Supabase.instance.client.rpc('delete_my_account');
+
+      await OfflineDatabase.instance.clearAllLocalData();
+
+      try {
+        await Supabase.instance.client.auth.signOut();
+      } catch (_) {}
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => LoginScreen()),
+        (_) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "${ghataT(context, 'Unable to delete account')}: $e",
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
+    }
+  }
+
   @override
   void dispose() {
     fullNameController.dispose();
@@ -7397,7 +7532,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     ),
                   ),
-                    SizedBox(height: 12),
+
+                  SizedBox(height: 12),
+                  SizedBox(
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                      ),
+                      icon: Icon(Icons.delete_forever_outlined),
+                      label: Text(ghataT(context, 'Delete Account')),
+                      onPressed: isSaving ? null : deleteAccount,
+                    ),
+                  ),
+                  SizedBox(height: 12),
                     SizedBox(
                       height: 52,
                       child: OutlinedButton.icon(
