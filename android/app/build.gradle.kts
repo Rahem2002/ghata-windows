@@ -1,4 +1,6 @@
-val keystoreProperties = java.util.Properties()
+import java.util.Properties
+
+val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val hasReleaseKeystore = keystorePropertiesFile.exists()
 
