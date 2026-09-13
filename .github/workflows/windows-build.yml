@@ -25,6 +25,12 @@ jobs:
       - name: Create Windows platform
         run: flutter create --platforms=windows .
 
+      - name: Set Ghata Windows icon
+        shell: pwsh
+        run: |
+          python -m pip install --quiet Pillow
+          python -c "from PIL import Image; im=Image.open('assets/windows/ghata_icon.png').convert('RGBA'); im.save('windows/runner/resources/app_icon.ico', sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])"
+
       - name: Get packages
         run: flutter pub get
 
