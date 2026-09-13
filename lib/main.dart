@@ -11355,7 +11355,7 @@ Future<void> shareTransactionReceiptPdf(
                 ),
                 pw.SizedBox(height: 3),
                 pw.Text(
-                  ghataT(context, 'Daily Journal'),
+                  ghataT(this.context, 'Daily Journal'),
                   textAlign: pw.TextAlign.center,
                   style: const pw.TextStyle(
                     color: PdfColors.white,
