@@ -4976,8 +4976,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     title: Text(ghataT(context, 'App Lock')),
                     subtitle: Text(
                       deviceAuthAvailable
-                          ? ghataT(context, 'Use fingerprint, Face ID, or your phone screen lock to open Ghata.')
-                          : ghataT(context, 'Set up a phone screen lock first.'),
+                          ? (Platform.isWindows
+                              ? 'Use Windows Hello or your Windows device sign-in to open Ghata.'
+                              : ghataT(context, 'Use fingerprint, Face ID, or your phone screen lock to open Ghata.'))
+                          : (Platform.isWindows
+                              ? 'Set up Windows Hello or a supported Windows sign-in method first.'
+                              : ghataT(context, 'Set up a phone screen lock first.')),
                     ),
                     value: appLockEnabled,
                     onChanged:
@@ -5061,12 +5065,15 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
     }();
 
     final enabled = await GhataSecurity.biometricEnabled();
+    final deviceAuthAvailable =
+        await GhataSecurity.canUseBiometrics();
 
     if (!mounted) return;
 
-    if (!enabled) {
+    if (!enabled || !deviceAuthAvailable) {
       setState(() {
         unlocked = true;
+        appLockEnabled = false;
         loading = false;
       });
       return;
@@ -7008,10 +7015,28 @@ class AboutGhataScreen extends StatelessWidget {
                             scheme: 'mailto',
                             path: 'mrahemsadaf@gmail.com',
                           );
-                          await launchUrl(
-                            uri,
-                            mode: LaunchMode.externalApplication,
-                          );
+
+                          try {
+                            final opened = await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+
+                            if (!opened && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Unable to open email app.'),
+                                ),
+                              );
+                            }
+                          } catch (_) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Unable to open email app.'),
+                              ),
+                            );
+                          }
                         },
                         child: Container(
                           width: double.infinity,
@@ -7060,12 +7085,30 @@ class AboutGhataScreen extends StatelessWidget {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14),
                         onTap: () async {
-                          await launchUrl(
-                            Uri.parse(
-                              'https://wa.me/93771770927',
-                            ),
-                            mode: LaunchMode.externalApplication,
-                          );
+                          final uri =
+                              Uri.parse('https://wa.me/93771770927');
+
+                          try {
+                            final opened = await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+
+                            if (!opened && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Unable to open WhatsApp.'),
+                                ),
+                              );
+                            }
+                          } catch (_) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Unable to open WhatsApp.'),
+                              ),
+                            );
+                          }
                         },
                         child: Container(
                           width: double.infinity,
@@ -7114,12 +7157,30 @@ class AboutGhataScreen extends StatelessWidget {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(14),
                         onTap: () async {
-                          await launchUrl(
-                            Uri.parse(
-                              'https://wa.me/93774832595',
-                            ),
-                            mode: LaunchMode.externalApplication,
-                          );
+                          final uri =
+                              Uri.parse('https://wa.me/93774832595');
+
+                          try {
+                            final opened = await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+
+                            if (!opened && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Unable to open WhatsApp.'),
+                                ),
+                              );
+                            }
+                          } catch (_) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Unable to open WhatsApp.'),
+                              ),
+                            );
+                          }
                         },
                         child: Container(
                           width: double.infinity,
@@ -10693,19 +10754,41 @@ Future<void> shareTransactionReceiptPdf(
 
       final bytes = await pdf.save();
 
-      await SharePlus.instance.share(
-        ShareParams(
-          title: ghataT(context, 'Transaction Receipt'),
-          subject: '${ghataT(context, 'Receipt')} $receiptNo',
-          files: [
-            XFile.fromData(
-              bytes,
-              mimeType: 'application/pdf',
+      final receiptFileName = 'Ghata_Receipt_$receiptNo.pdf';
+
+      if (Platform.isWindows) {
+        final location = await getSaveLocation(
+          suggestedName: receiptFileName,
+          acceptedTypeGroups: const <XTypeGroup>[
+            XTypeGroup(
+              label: 'PDF',
+              extensions: <String>['pdf'],
             ),
           ],
-          fileNameOverrides: ['Ghata_Receipt_$receiptNo.pdf'],
-        ),
-      );
+        );
+
+        if (location == null) return;
+
+        await XFile.fromData(
+          bytes,
+          mimeType: 'application/pdf',
+          name: receiptFileName,
+        ).saveTo(location.path);
+      } else {
+        await SharePlus.instance.share(
+          ShareParams(
+            title: ghataT(context, 'Transaction Receipt'),
+            subject: '${ghataT(context, 'Receipt')} $receiptNo',
+            files: [
+              XFile.fromData(
+                bytes,
+                mimeType: 'application/pdf',
+              ),
+            ],
+            fileNameOverrides: [receiptFileName],
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -12028,7 +12111,7 @@ Future<void> shareTransactionReceiptPdf(
                                 constraints: BoxConstraints(minWidth: 820),
                                 child: SizedBox(
                                   width: Platform.isWindows
-                                      ? MediaQuery.sizeOf(context).width
+                                      ? (MediaQuery.sizeOf(context).width - 32)
                                           .clamp(820.0, 1180.0)
                                           .toDouble()
                                       : 820,
@@ -15439,22 +15522,43 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           .replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_')
           .replaceAll(RegExp(r'_+'), '_');
 
-      await SharePlus.instance.share(
-        ShareParams(
-          title: ghataT(context, 'Customer Balance'),
-          subject: '$name - Balance',
-          text: '${ghataT(context, 'Customer Balance')} - $name',
-          files: [
-            XFile.fromData(
-              bytes,
-              mimeType: 'image/png',
+      final balanceFileName =
+          'Ghata_Balance_${safeName.isEmpty ? 'Customer' : safeName}.png';
+
+      if (Platform.isWindows) {
+        final location = await getSaveLocation(
+          suggestedName: balanceFileName,
+          acceptedTypeGroups: const <XTypeGroup>[
+            XTypeGroup(
+              label: 'PNG Image',
+              extensions: <String>['png'],
             ),
           ],
-          fileNameOverrides: [
-            'Ghata_Balance_${safeName.isEmpty ? 'Customer' : safeName}.png',
-          ],
-        ),
-      );
+        );
+
+        if (location == null) return;
+
+        await XFile.fromData(
+          bytes,
+          mimeType: 'image/png',
+          name: balanceFileName,
+        ).saveTo(location.path);
+      } else {
+        await SharePlus.instance.share(
+          ShareParams(
+            title: ghataT(context, 'Customer Balance'),
+            subject: '$name - Balance',
+            text: '${ghataT(context, 'Customer Balance')} - $name',
+            files: [
+              XFile.fromData(
+                bytes,
+                mimeType: 'image/png',
+              ),
+            ],
+            fileNameOverrides: [balanceFileName],
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -16432,7 +16536,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           constraints: BoxConstraints(minWidth: 760),
                           child: SizedBox(
                             width: Platform.isWindows
-                                ? MediaQuery.sizeOf(context).width
+                                ? (MediaQuery.sizeOf(context).width - 32)
                                     .clamp(760.0, 1180.0)
                                     .toDouble()
                                 : 760,
