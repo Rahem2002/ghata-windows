@@ -7241,10 +7241,6 @@ class AboutGhataScreen extends StatelessWidget {
                   _ => 'Design by MRS',
                 };
 
-                final designerName = language == 'en'
-                    ? 'Mohammad Rahem Sadaf'
-                    : 'محمد رحیم صدف';
-
                 return Column(
                   children: [
                     Text(
@@ -7253,14 +7249,6 @@ class AboutGhataScreen extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      designerName,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
                       ),
                     ),
                   ],
@@ -10416,9 +10404,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       _ => 'Design by MRS',
     };
 
-    final designerName =
-        language == 'en' ? 'Mohammad Rahem Sadaf' : 'محمد رحیم صدف';
-
     return pw.Center(
       child: pw.Transform.rotate(
         angle: -0.35,
@@ -10434,11 +10419,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
-              pw.SizedBox(height: 4),
-              pw.Text(
-                designerName,
-                style: const pw.TextStyle(fontSize: 22),
-              ),
+
             ],
           ),
         ),
@@ -15121,9 +15102,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         _ => 'Design by MRS',
       };
 
-      final designerName =
-          language == 'en' ? 'Mohammad Rahem Sadaf' : 'محمد رحیم صدف';
-
       final now = DateTime.now();
       String two(int value) => value.toString().padLeft(2, '0');
       final dateText =
@@ -15488,15 +15466,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         color: const Color(0xFF64748B),
       );
 
-      drawText(
-        designerName,
-        60,
-        height - 62,
-        fontSize: 18,
-        textAlign: TextAlign.center,
-        color: const Color(0xFF64748B),
-      );
-
       final picture = recorder.endRecording();
 
       final image = await picture.toImage(
@@ -15642,9 +15611,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         'ar' => 'تصميم بواسطة MRS',
         _ => 'Design by MRS',
       };
-      final designerName =
-          language == 'en' ? 'Mohammad Rahem Sadaf' : 'محمد رحیم صدف';
-
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
@@ -15708,7 +15674,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    '$designBy • $designerName',
+                    designBy,
                     style: pw.TextStyle(
                       fontSize: 7,
                       color: muted,
