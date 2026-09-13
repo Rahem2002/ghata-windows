@@ -247,7 +247,7 @@ Future<void> ghataRefreshOfflineCache() {
 
   late final Future<void> refreshFuture;
 
-  refreshFuture = _ghataRefreshOfflineCacheImpl().whenComplete(() {
+  refreshFuture = _ghataOfflineCacheRefreshImpl().whenComplete(() {
     if (identical(_ghataOfflineCacheRefreshFuture, refreshFuture)) {
       _ghataOfflineCacheRefreshFuture = null;
     }
