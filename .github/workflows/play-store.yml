@@ -6,6 +6,9 @@ on:
 permissions:
   contents: read
 
+permissions:
+  contents: write
+
 jobs:
   build-play-aab:
     runs-on: ubuntu-latest
@@ -62,3 +65,11 @@ jobs:
         run: |
           test -f build/app/outputs/bundle/release/app-release.aab
           ls -lh build/app/outputs/bundle/release/app-release.aab
+
+
+      - name: Upload AAB to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="play-${{ github.run_number }}"
+          gh release create "$TAG"             build/app/outputs/bundle/release/app-release.aab#Ghata.aab             --title "Ghata Play Store AAB ${{ github.run_number }}"             --notes "Signed Ghata Android App Bundle for Google Play Store."             --prerelease
