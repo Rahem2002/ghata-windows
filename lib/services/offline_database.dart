@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
 
 class OfflineDatabase {
   OfflineDatabase._();
@@ -13,10 +15,48 @@ class OfflineDatabase {
   Future<Database> get database async {
     if (_database != null) return _database!;
 
-    final dbPath = await getDatabasesPath();
+    if (Platform.isWindows) {
+      ffi.sqfliteFfiInit();
+    }
+
+    final dbPath = Platform.isWindows
+        ? await ffi.databaseFactoryFfi.getDatabasesPath()
+        : await getDatabasesPath();
     final path = p.join(dbPath, 'ghata_offline.db');
 
-    _database = await openDatabase(
+    _database = Platform.isWindows
+        ? await ffi.databaseFactoryFfi.openDatabase(
+            path,
+            options: ffi.OpenDatabaseOptions(
+              version: 2,
+              onCreate: (db, version) async {
+                await _createTables(db);
+              },
+              onUpgrade: (db, oldVersion, newVersion) async {
+                if (oldVersion < 2) {
+                  await db.execute('''
+                    CREATE TABLE IF NOT EXISTS offline_operations (
+                      operation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      operation_type TEXT NOT NULL,
+                      table_name TEXT,
+                      record_id TEXT,
+                      payload TEXT,
+                      rpc_name TEXT,
+                      rpc_params TEXT,
+                      created_at TEXT NOT NULL,
+                      attempts INTEGER NOT NULL DEFAULT 0,
+                      last_error TEXT
+                    )
+                  ''');
+                  await db.execute('''
+                    CREATE INDEX IF NOT EXISTS idx_offline_operations_created
+                    ON offline_operations(created_at)
+                  ''');
+                }
+              },
+            ),
+          )
+        : await openDatabase(
       path,
       version: 2,
       onCreate: (db, version) async {

@@ -1,0 +1,55 @@
+name: Build Ghata Windows
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Create Windows platform
+        run: flutter create --platforms=windows .
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: >
+          flutter build windows --release
+          --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
+          --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+
+      - name: Package Windows app
+        shell: pwsh
+        run: |
+          $source = "build\windows\x64\runner\Release"
+          if (!(Test-Path $source)) {
+            throw "Windows release folder not found"
+          }
+          Compress-Archive -Path "$source\*" -DestinationPath "Ghata-Windows.zip" -Force
+
+      - name: Upload Windows Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "windows-${{ github.run_number }}"
+          gh release create $tag "Ghata-Windows.zip" `
+            --title "Ghata Windows ${{ github.run_number }}" `
+            --notes "Ghata Windows desktop release." `
+            --prerelease
