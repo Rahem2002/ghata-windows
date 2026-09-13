@@ -45,12 +45,13 @@ Future<String?> ghataPickCustomerPhoto(BuildContext context) async {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: Icon(Icons.photo_camera_outlined),
-                title: Text(ghataT(context, 'Camera')),
-                onTap: () =>
-                    Navigator.pop(sheetContext, ImageSource.camera),
-              ),
+              if (!Platform.isWindows)
+                ListTile(
+                  leading: Icon(Icons.photo_camera_outlined),
+                  title: Text(ghataT(context, 'Camera')),
+                  onTap: () =>
+                      Navigator.pop(sheetContext, ImageSource.camera),
+                ),
               ListTile(
                 leading: Icon(Icons.photo_library_outlined),
                 title: Text(ghataT(context, 'Gallery')),
@@ -5861,7 +5862,13 @@ class _HomeScreenState extends State<HomeScreen> {
             await dashboardFuture;
           },
           child: ListView(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: Platform.isWindows &&
+                      MediaQuery.sizeOf(context).width > 1212
+                  ? (MediaQuery.sizeOf(context).width - 1180) / 2
+                  : 16,
+            ),
             children: [
               FutureBuilder<Map<String, Map<String, double>>>(
                 future: dashboardFuture,
@@ -6269,8 +6276,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          child: Row(
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: Platform.isWindows ? 900 : double.infinity,
+              ),
+              child: Row(
+                children: [
               Expanded(
                 child: _GhataBottomItem(
                   icon: Icons.home_rounded,
@@ -6366,7 +6378,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                 ),
               ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -6458,7 +6472,7 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
           final canReports =
               snapshot.hasData && snapshot.data![1];
 
-          return Row(
+          final nav = Row(
             children: [
               Expanded(
                 child: _GhataBottomItem(
@@ -6540,6 +6554,17 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
                 ),
               ),
             ],
+          );
+
+          if (!Platform.isWindows) {
+            return nav;
+          }
+
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 900),
+              child: nav,
+            ),
           );
         },
       ),
@@ -11416,7 +11441,11 @@ Future<void> shareTransactionReceiptPdf(
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(minWidth: 820),
                                 child: SizedBox(
-                                  width: 820,
+                                  width: Platform.isWindows
+                                      ? MediaQuery.sizeOf(context).width
+                                          .clamp(820.0, 1180.0)
+                                          .toDouble()
+                                      : 820,
                                   child: Column(
                                     children: [
                                       Container(
@@ -15771,7 +15800,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                         child: ConstrainedBox(
                           constraints: BoxConstraints(minWidth: 760),
                           child: SizedBox(
-                            width: 760,
+                            width: Platform.isWindows
+                                ? MediaQuery.sizeOf(context).width
+                                    .clamp(760.0, 1180.0)
+                                    .toDouble()
+                                : 760,
                             child: Column(
                               children: [
                           Container(
