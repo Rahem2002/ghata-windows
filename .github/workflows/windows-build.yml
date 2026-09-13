@@ -40,6 +40,18 @@ jobs:
           --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
           --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build Ghata Installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "installer\ghata.iss"
+          if (!(Test-Path "installer\output\Ghata-Setup.exe")) {
+            throw "Ghata installer was not created"
+          }
+
       - name: Package Windows app
         shell: pwsh
         run: |
@@ -59,3 +71,11 @@ jobs:
             --title "Ghata Windows ${{ github.run_number }}" `
             --notes "Ghata Windows desktop release." `
             --prerelease
+
+
+      - name: Upload Ghata Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ghata-Windows-Setup
+          path: installer/output/Ghata-Setup.exe
+          if-no-files-found: error
