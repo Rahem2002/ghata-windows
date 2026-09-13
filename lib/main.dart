@@ -331,8 +331,7 @@ Future<List<Map<String, dynamic>>>
 }
 
 Future<List<Map<String, dynamic>>> ghataLocalFinancialRows() async {
-  // Offline-first: never block local data while waiting for internet.
-  ghataRefreshOfflineCache();
+  await ghataRefreshOfflineCache();
 
   final transactionData =
       await OfflineDatabase.instance.getRecords('transactions');
@@ -5054,7 +5053,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
         await ghataRefreshOfflineCache();
       } else {
         ghataTrySync();
-        ghataRefreshOfflineCache();
+        await ghataRefreshOfflineCache();
       }
     }
 
@@ -5304,7 +5303,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<Map<String, Map<String, double>>> loadDashboardSummary() async {
-    ghataRefreshOfflineCache();
+    await ghataRefreshOfflineCache();
 
     final transactions =
         await OfflineDatabase.instance.getRecords('transactions');
@@ -5508,7 +5507,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<List<Map<String, dynamic>>> loadRecentTransactions() async {
-  ghataRefreshOfflineCache();
+  await ghataRefreshOfflineCache();
 
   final local =
       await OfflineDatabase.instance.getRecords('transactions');
