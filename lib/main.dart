@@ -12,6 +12,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:file_selector/file_selector.dart';
+import 'package:printing/printing.dart';
 import 'services/offline_database.dart';
 import 'services/offline_sync_service.dart';
 
@@ -4447,48 +4449,56 @@ class BackupRestoreScreen extends StatefulWidget {
 class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
   bool busy = false;
 
+  static const XTypeGroup _jsonTypeGroup = XTypeGroup(
+    label: 'Ghata Backup',
+    extensions: <String>['json'],
+  );
+
+  Future<Map<String, dynamic>> _buildBackup() async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      throw Exception('You are not signed in.');
+    }
+
+    final customers =
+        await OfflineDatabase.instance.getRecords('customers');
+
+    final transactions =
+        await OfflineDatabase.instance.getRecords('transactions');
+
+    final exchanges =
+        await OfflineDatabase.instance.getRecords('exchanges');
+
+    final exchangeEntries =
+        await OfflineDatabase.instance.getRecords('exchange_entries');
+
+    final profile = await OfflineDatabase.instance.getRecord(
+      'profiles',
+      user.id,
+      includeDeleted: true,
+    );
+
+    return <String, dynamic>{
+      'app': 'Ghata',
+      'format_version': 1,
+      'created_at': DateTime.now().toUtc().toIso8601String(),
+      'user_id': user.id,
+      'profile': profile,
+      'customers': customers,
+      'transactions': transactions,
+      'exchanges': exchanges,
+      'exchange_entries': exchangeEntries,
+    };
+  }
+
   Future<void> createBackup() async {
     if (busy) return;
 
     setState(() => busy = true);
 
     try {
-        final user = Supabase.instance.client.auth.currentUser;
-
-        if (user == null) {
-          throw Exception('You are not signed in.');
-        }
-
-        // Backup is local-first so it also works without internet.
-        final customers =
-            await OfflineDatabase.instance.getRecords('customers');
-
-        final transactions =
-            await OfflineDatabase.instance.getRecords('transactions');
-
-        final exchanges =
-            await OfflineDatabase.instance.getRecords('exchanges');
-
-        final exchangeEntries =
-            await OfflineDatabase.instance.getRecords('exchange_entries');
-
-        final profile = await OfflineDatabase.instance.getRecord(
-          'profiles',
-          user.id,
-          includeDeleted: true,
-        );
-
-      final backup = <String, dynamic>{
-        'app': 'Ghata',
-        'format_version': 1,
-        'created_at': DateTime.now().toUtc().toIso8601String(),
-        'user_id': user.id,
-        'profile': profile,
-        'customers': customers,
-        'transactions': transactions,
-        'exchanges': exchanges,
-        'exchange_entries': exchangeEntries,
-      };
+      final backup = await _buildBackup();
 
       final bytes = Uint8List.fromList(
         utf8.encode(
@@ -4504,34 +4514,58 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           '${now.year}${two(now.month)}${two(now.day)}_'
           '${two(now.hour)}${two(now.minute)}.json';
 
-      await SharePlus.instance.share(
-        ShareParams(
-          title: ghataT(context, 'Ghata Backup'),
-          subject: 'Ghata Accounting Backup',
-          text:
-              'Ghata backup created ${now.toString().substring(0, 16)}',
-          files: [
-            XFile.fromData(
-              bytes,
-              mimeType: 'application/json',
-            ),
-          ],
-          fileNameOverrides: [fileName],
-        ),
-      );
+      if (Platform.isWindows) {
+        final location = await getSaveLocation(
+          suggestedName: fileName,
+          acceptedTypeGroups: const <XTypeGroup>[_jsonTypeGroup],
+        );
+
+        if (location == null) return;
+
+        final file = XFile.fromData(
+          bytes,
+          mimeType: 'application/json',
+          name: fileName,
+        );
+
+        await file.saveTo(location.path);
+      } else {
+        await SharePlus.instance.share(
+          ShareParams(
+            title: ghataT(context, 'Ghata Backup'),
+            subject: 'Ghata Accounting Backup',
+            text:
+                'Ghata backup created ${now.toString().substring(0, 16)}',
+            files: [
+              XFile.fromData(
+                bytes,
+                mimeType: 'application/json',
+                name: fileName,
+              ),
+            ],
+            fileNameOverrides: [fileName],
+          ),
+        );
+      }
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(ghataT(context, 'Backup created successfully.')),
+          content: Text(
+            ghataT(context, 'Backup created successfully.'),
+          ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${ghataT(context, 'Unable to create backup')}: $e")),
+        SnackBar(
+          content: Text(
+            "${ghataT(context, 'Unable to create backup')}: $e",
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -4540,24 +4574,182 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     }
   }
 
-  void showRestoreInfo() {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(ghataT(context, 'Restore Backup')),
-        content: Text(
-          'Backup export is ready. Safe restore will be enabled '
-          'after restore validation is connected, so an invalid or '
-          'wrong-account backup cannot overwrite accounting data.',
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(ghataT(context, 'OK')),
-          ),
-        ],
-      ),
+  List<Map<String, dynamic>> _validatedList(
+    Map<String, dynamic> backup,
+    String key,
+  ) {
+    final value = backup[key];
+
+    if (value == null) {
+      return <Map<String, dynamic>>[];
+    }
+
+    if (value is! List) {
+      throw FormatException('Invalid backup section: $key');
+    }
+
+    return value.map<Map<String, dynamic>>((item) {
+      if (item is! Map) {
+        throw FormatException('Invalid record in: $key');
+      }
+
+      final record = Map<String, dynamic>.from(item);
+
+      final id = record['id']?.toString() ?? '';
+
+      if (id.isEmpty) {
+        throw FormatException('Missing record id in: $key');
+      }
+
+      return record;
+    }).toList();
+  }
+
+  Future<void> restoreBackup() async {
+    if (busy) return;
+
+    final selected = await openFile(
+      acceptedTypeGroups: const <XTypeGroup>[_jsonTypeGroup],
     );
+
+    if (selected == null) return;
+
+    try {
+      final raw = await selected.readAsString();
+      final decoded = jsonDecode(raw);
+
+      if (decoded is! Map) {
+        throw FormatException('Invalid backup file.');
+      }
+
+      final backup = Map<String, dynamic>.from(decoded);
+
+      if (backup['app']?.toString() != 'Ghata') {
+        throw FormatException('This is not a Ghata backup.');
+      }
+
+      if (backup['format_version'] != 1) {
+        throw FormatException('Unsupported backup version.');
+      }
+
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user == null) {
+        throw Exception('You are not signed in.');
+      }
+
+      final backupUserId = backup['user_id']?.toString() ?? '';
+
+      if (backupUserId.isEmpty || backupUserId != user.id) {
+        throw Exception(
+          'This backup belongs to another Ghata account.',
+        );
+      }
+
+      final customers = _validatedList(backup, 'customers');
+      final transactions = _validatedList(backup, 'transactions');
+      final exchanges = _validatedList(backup, 'exchanges');
+      final exchangeEntries =
+          _validatedList(backup, 'exchange_entries');
+
+      Map<String, dynamic>? profile;
+
+      if (backup['profile'] != null) {
+        if (backup['profile'] is! Map) {
+          throw FormatException('Invalid profile data.');
+        }
+
+        profile =
+            Map<String, dynamic>.from(backup['profile'] as Map);
+
+        if (profile['id']?.toString() != user.id) {
+          throw Exception(
+            'The profile in this backup belongs to another account.',
+          );
+        }
+      }
+
+      if (!mounted) return;
+
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(ghataT(context, 'Restore Backup')),
+          content: Text(
+            'This backup was validated for your current Ghata account. '
+            'Its records will be restored to this device and queued for '
+            'safe synchronization. Existing records with the same ID '
+            'will be updated.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, false),
+              child: Text(ghataT(context, 'Cancel')),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, true),
+              child: Text(ghataT(context, 'Restore Backup')),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true || !mounted) return;
+
+      setState(() => busy = true);
+
+      Future<void> restoreRecords(
+        String table,
+        List<Map<String, dynamic>> records,
+      ) async {
+        for (final record in records) {
+          await OfflineDatabase.instance.saveLocalRecord(
+            table,
+            record,
+            operationType: 'upsert',
+          );
+        }
+      }
+
+      if (profile != null) {
+        await OfflineDatabase.instance.saveLocalRecord(
+          'profiles',
+          profile,
+          operationType: 'upsert',
+        );
+      }
+
+      await restoreRecords('customers', customers);
+      await restoreRecords('transactions', transactions);
+      await restoreRecords('exchanges', exchanges);
+      await restoreRecords('exchange_entries', exchangeEntries);
+
+      ghataTrySync();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Backup restored successfully.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Restore failed: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => busy = false);
+      }
+    }
   }
 
   @override
@@ -4574,7 +4766,9 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
               leading: Icon(Icons.cloud_upload_outlined),
               title: Text(ghataT(context, 'Create Backup')),
               subtitle: Text(
-                'Export customers, transactions, exchanges and profile.',
+                Platform.isWindows
+                    ? 'Save a Ghata backup file on this computer.'
+                    : 'Export customers, transactions, exchanges and profile.',
               ),
               trailing: busy
                   ? SizedBox(
@@ -4594,17 +4788,31 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
               leading: Icon(Icons.restore_outlined),
               title: Text(ghataT(context, 'Restore Backup')),
               subtitle: Text(
-                'Protected restore with validation.',
+                'Select a validated Ghata JSON backup file.',
               ),
-              trailing: Icon(Icons.chevron_right),
-              onTap: showRestoreInfo,
+              trailing: busy
+                  ? SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Icon(Icons.chevron_right),
+              onTap: busy ? null : restoreBackup,
             ),
           ),
           SizedBox(height: 16),
           Text(
-            ghataT(context, 'Keep backup files in a safe place such as your') +
+            ghataT(
+                  context,
+                  'Keep backup files in a safe place such as your',
+                ) +
                 ' ' +
-                ghataT(context, 'private cloud storage or another trusted device.'),
+                ghataT(
+                  context,
+                  'private cloud storage or another trusted device.',
+                ),
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey),
           ),
@@ -10958,6 +11166,376 @@ Future<void> shareTransactionReceiptPdf(
     );
   }
 
+  Future<void> printFullDailyJournal() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      final transactions = await loadTransactions();
+      final rows = buildDailyJournalRunningLedger(transactions);
+
+      if (rows.isEmpty) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No journal records to print.'),
+          ),
+        );
+        return;
+      }
+
+      final profile = await ghataLoadBusinessProfile();
+      final pdfFont = await ghataPdfUnicodeFont();
+
+      final businessName =
+          profile?['business_name']?.toString().trim() ?? '';
+      final businessPhone =
+          profile?['business_phone']?.toString().trim() ?? '';
+      final businessAddress =
+          profile?['business_address']?.toString().trim() ?? '';
+
+      String typeLabel(String type) {
+        return switch (type) {
+          'money_in' => ghataT(context, 'Money In'),
+          'money_out' => ghataT(context, 'Money Out'),
+          'loan_given' => ghataT(context, 'Loan Given'),
+          'loan_received' => ghataT(context, 'Loan Received'),
+          'loan_repayment_received' =>
+            ghataT(context, 'Repayment Received'),
+          'loan_repayment_paid' =>
+            ghataT(context, 'Repayment Paid'),
+          'adjustment_in' => ghataT(context, 'Adjustment In'),
+          'adjustment_out' => ghataT(context, 'Adjustment Out'),
+          _ => type.replaceAll('_', ' '),
+        };
+      }
+
+      String amountText(dynamic value) {
+        final number =
+            double.tryParse(value?.toString() ?? '') ?? 0;
+
+        if (number == 0) return '';
+
+        if (number == number.roundToDouble()) {
+          return number.toStringAsFixed(0);
+        }
+
+        return number.toStringAsFixed(2);
+      }
+
+      final pdf = pw.Document(
+        theme: pw.ThemeData.withFont(
+          base: pdfFont,
+          bold: pdfFont,
+          italic: pdfFont,
+          boldItalic: pdfFont,
+        ),
+      );
+
+      final blue = PdfColor.fromHex('#3157D5');
+      final lightBlue = PdfColor.fromHex('#EEF2FF');
+      final border = PdfColor.fromHex('#D1D5DB');
+      final muted = PdfColor.fromHex('#6B7280');
+
+      final totalsIn = <String, double>{};
+      final totalsOut = <String, double>{};
+
+      for (final row in rows) {
+        final currency =
+            row['currency']?.toString().toUpperCase() ?? '';
+
+        if (currency.isEmpty) continue;
+
+        final moneyIn = double.tryParse(
+              row['_journal_in']?.toString() ?? '0',
+            ) ??
+            0;
+
+        final moneyOut = double.tryParse(
+              row['_journal_out']?.toString() ?? '0',
+            ) ??
+            0;
+
+        totalsIn[currency] =
+            (totalsIn[currency] ?? 0) + moneyIn;
+
+        totalsOut[currency] =
+            (totalsOut[currency] ?? 0) + moneyOut;
+      }
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4.landscape,
+          margin: const pw.EdgeInsets.all(24),
+          header: (context) => pw.Container(
+            margin: const pw.EdgeInsets.only(bottom: 12),
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: blue,
+              borderRadius: pw.BorderRadius.circular(8),
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [
+                pw.Text(
+                  businessName.isEmpty
+                      ? 'ګهته • Ghata'
+                      : businessName,
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(
+                    color: PdfColors.white,
+                    fontSize: 18,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 3),
+                pw.Text(
+                  ghataT(context, 'Daily Journal'),
+                  textAlign: pw.TextAlign.center,
+                  style: const pw.TextStyle(
+                    color: PdfColors.white,
+                    fontSize: 12,
+                  ),
+                ),
+                if (businessAddress.isNotEmpty)
+                  pw.Text(
+                    businessAddress,
+                    textAlign: pw.TextAlign.center,
+                    style: const pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 8,
+                    ),
+                  ),
+                if (businessPhone.isNotEmpty)
+                  pw.Text(
+                    businessPhone,
+                    textAlign: pw.TextAlign.center,
+                    style: const pw.TextStyle(
+                      color: PdfColors.white,
+                      fontSize: 8,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          footer: (context) => pw.Container(
+            padding: const pw.EdgeInsets.only(top: 7),
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                top: pw.BorderSide(
+                  color: border,
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: pw.Row(
+              mainAxisAlignment:
+                  pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  'Design by MRS',
+                  style: pw.TextStyle(
+                    fontSize: 7,
+                    color: muted,
+                  ),
+                ),
+                pw.Text(
+                  'Page ${context.pageNumber} / ${context.pagesCount}',
+                  style: pw.TextStyle(
+                    fontSize: 7,
+                    color: muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          build: (context) => [
+            pw.Container(
+              margin: const pw.EdgeInsets.only(bottom: 10),
+              padding: const pw.EdgeInsets.all(8),
+              decoration: pw.BoxDecoration(
+                color: lightBlue,
+                borderRadius: pw.BorderRadius.circular(6),
+              ),
+              child: pw.Row(
+                mainAxisAlignment:
+                    pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Total records: ${rows.length}',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'Printed: ${DateTime.now().toString().substring(0, 16)}',
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ],
+              ),
+            ),
+            pw.Table(
+              border: pw.TableBorder.all(
+                color: border,
+                width: 0.5,
+              ),
+              columnWidths: const {
+                0: pw.FixedColumnWidth(26),
+                1: pw.FixedColumnWidth(62),
+                2: pw.FixedColumnWidth(40),
+                3: pw.FixedColumnWidth(76),
+                4: pw.FlexColumnWidth(2.2),
+                5: pw.FixedColumnWidth(68),
+                6: pw.FixedColumnWidth(42),
+                7: pw.FixedColumnWidth(62),
+                8: pw.FixedColumnWidth(62),
+                9: pw.FixedColumnWidth(70),
+              },
+              children: [
+                pw.TableRow(
+                  decoration: pw.BoxDecoration(
+                    color: lightBlue,
+                  ),
+                  children: [
+                    'No.',
+                    'Date',
+                    'Time',
+                    'Type',
+                    'Description',
+                    'Receipt',
+                    'Curr.',
+                    'Money In',
+                    'Money Out',
+                    'Balance',
+                  ].map(
+                    (value) => pw.Padding(
+                      padding: const pw.EdgeInsets.all(4),
+                      child: pw.Text(
+                        value,
+                        style: pw.TextStyle(
+                          fontSize: 7,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ).toList(),
+                ),
+                ...List.generate(rows.length, (index) {
+                  final row = rows[index];
+
+                  final rawTime =
+                      row['transaction_time']?.toString() ?? '';
+
+                  final time = rawTime.length >= 5
+                      ? rawTime.substring(0, 5)
+                      : rawTime;
+
+                  final values = <String>[
+                    '${index + 1}',
+                    row['transaction_date']?.toString() ?? '',
+                    time,
+                    typeLabel(
+                      row['transaction_type']?.toString() ?? '',
+                    ),
+                    row['description']?.toString() ?? '',
+                    row['reference_no']?.toString() ?? '',
+                    row['currency']?.toString().toUpperCase() ?? '',
+                    amountText(row['_journal_in']),
+                    amountText(row['_journal_out']),
+                    amountText(row['_journal_balance']),
+                  ];
+
+                  return pw.TableRow(
+                    children: values.map(
+                      (value) => pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 3,
+                          vertical: 4,
+                        ),
+                        child: pw.Text(
+                          value,
+                          style: const pw.TextStyle(fontSize: 6.7),
+                        ),
+                      ),
+                    ).toList(),
+                  );
+                }),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+            pw.Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: totalsIn.keys.map((currency) {
+                final incoming = totalsIn[currency] ?? 0;
+                final outgoing = totalsOut[currency] ?? 0;
+                final balance = incoming - outgoing;
+
+                return pw.Container(
+                  width: 165,
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(
+                      color: border,
+                      width: 0.5,
+                    ),
+                    borderRadius: pw.BorderRadius.circular(6),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment:
+                        pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        currency,
+                        style: pw.TextStyle(
+                          fontSize: 9,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 3),
+                      pw.Text(
+                        'Money In: ${amountText(incoming)}',
+                        style: const pw.TextStyle(fontSize: 7),
+                      ),
+                      pw.Text(
+                        'Money Out: ${amountText(outgoing)}',
+                        style: const pw.TextStyle(fontSize: 7),
+                      ),
+                      pw.Text(
+                        'Balance: ${amountText(balance)}',
+                        style: pw.TextStyle(
+                          fontSize: 7,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      );
+
+      final bytes = await pdf.save();
+
+      await Printing.layoutPdf(
+        name: 'Ghata_Daily_Journal.pdf',
+        onLayout: (_) async => bytes,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to print Daily Journal: $e'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -10966,6 +11544,14 @@ Future<void> shareTransactionReceiptPdf(
           ghataT(context, 'Daily Journal'),
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          if (Platform.isWindows)
+            IconButton(
+              tooltip: 'Print Full Journal',
+              icon: Icon(Icons.print_outlined),
+              onPressed: printFullDailyJournal,
+            ),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -14882,7 +15468,9 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     }
   }
 
-  Future<void> shareCustomerStatementPdf() async {
+  Future<void> shareCustomerStatementPdf({
+    bool printDirect = false,
+  }) async {
     final ghataPdfFont = await ghataPdfUnicodeFont();
     try {
       final user = Supabase.instance.client.auth.currentUser;
@@ -15314,21 +15902,47 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           .replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_')
           .replaceAll(RegExp(r'_+'), '_');
 
-      await SharePlus.instance.share(
-        ShareParams(
-          title: ghataT(context, 'Customer Statement'),
-          subject: '$name - Statement',
-          files: [
-            XFile.fromData(
-              bytes,
-              mimeType: 'application/pdf',
+      final statementFileName =
+          'Ghata_Statement_${safeName.isEmpty ? 'Customer' : safeName}.pdf';
+
+      if (Platform.isWindows && printDirect) {
+        await Printing.layoutPdf(
+          name: statementFileName,
+          onLayout: (_) async => bytes,
+        );
+      } else if (Platform.isWindows) {
+        final location = await getSaveLocation(
+          suggestedName: statementFileName,
+          acceptedTypeGroups: const <XTypeGroup>[
+            XTypeGroup(
+              label: 'PDF',
+              extensions: <String>['pdf'],
             ),
           ],
-          fileNameOverrides: [
-            'Ghata_Statement_${safeName.isEmpty ? 'Customer' : safeName}.pdf',
-          ],
-        ),
-      );
+        );
+
+        if (location == null) return;
+
+        await XFile.fromData(
+          bytes,
+          mimeType: 'application/pdf',
+          name: statementFileName,
+        ).saveTo(location.path);
+      } else {
+        await SharePlus.instance.share(
+          ShareParams(
+            title: ghataT(context, 'Customer Statement'),
+            subject: '$name - Statement',
+            files: [
+              XFile.fromData(
+                bytes,
+                mimeType: 'application/pdf',
+              ),
+            ],
+            fileNameOverrides: [statementFileName],
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -15394,7 +16008,9 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           actions: [
             PopupMenuButton<String>(
               onSelected: (value) {
-                if (value == 'pdf') {
+                if (value == 'print') {
+                  shareCustomerStatementPdf(printDirect: true);
+                } else if (value == 'pdf') {
                   shareCustomerStatementPdf();
                 } else if (value == 'share') {
                   shareCustomerBalanceImage();
@@ -15407,9 +16023,24 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 }
               },
               itemBuilder: (context) =>  [
+                if (Platform.isWindows)
+                  PopupMenuItem(
+                    value: 'print',
+                    child: Row(
+                      children: [
+                        Icon(Icons.print_outlined),
+                        SizedBox(width: 10),
+                        Text('Print Statement'),
+                      ],
+                    ),
+                  ),
                 PopupMenuItem(
                   value: 'pdf',
-                  child: Text(ghataT(context, 'Full Statement (PDF)')),
+                  child: Text(
+                    Platform.isWindows
+                        ? 'Save Statement (PDF)'
+                        : ghataT(context, 'Full Statement (PDF)'),
+                  ),
                 ),
                 PopupMenuItem(
                   value: 'share',
