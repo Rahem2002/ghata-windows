@@ -237,17 +237,29 @@ Future<void> ghataSoftDeleteLocal(
 }
 
 
-bool _ghataOfflineCacheRefreshRunning = false;
+Future<void>? _ghataOfflineCacheRefreshFuture;
 
-Future<void> ghataRefreshOfflineCache() async {
-  if (_ghataOfflineCacheRefreshRunning) return;
+Future<void> ghataRefreshOfflineCache() {
+  final existing = _ghataOfflineCacheRefreshFuture;
+  if (existing != null) {
+    return existing;
+  }
 
+  late final Future<void> refreshFuture;
+
+  refreshFuture = _ghataRefreshOfflineCacheImpl().whenComplete(() {
+    if (identical(_ghataOfflineCacheRefreshFuture, refreshFuture)) {
+      _ghataOfflineCacheRefreshFuture = null;
+    }
+  });
+
+  _ghataOfflineCacheRefreshFuture = refreshFuture;
+  return refreshFuture;
+}
+
+Future<void> _ghataOfflineCacheRefreshImpl() async {
   final user = Supabase.instance.client.auth.currentUser;
   if (user == null) return;
-
-  _ghataOfflineCacheRefreshRunning = true;
-
-  try {
 
   try {
     final customers =
@@ -257,7 +269,9 @@ Future<void> ghataRefreshOfflineCache() async {
       'customers',
       List<Map<String, dynamic>>.from(customers),
     );
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('Ghata customers cache refresh failed: $e');
+  }
 
   try {
     final transactions =
@@ -267,7 +281,9 @@ Future<void> ghataRefreshOfflineCache() async {
       'transactions',
       List<Map<String, dynamic>>.from(transactions),
     );
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('Ghata transactions cache refresh failed: $e');
+  }
 
   try {
     final exchanges =
@@ -277,7 +293,9 @@ Future<void> ghataRefreshOfflineCache() async {
       'exchanges',
       List<Map<String, dynamic>>.from(exchanges),
     );
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('Ghata exchanges cache refresh failed: $e');
+  }
 
   try {
     final entries =
@@ -287,9 +305,8 @@ Future<void> ghataRefreshOfflineCache() async {
       'exchange_entries',
       List<Map<String, dynamic>>.from(entries),
     );
-  } catch (_) {}
-  } finally {
-    _ghataOfflineCacheRefreshRunning = false;
+  } catch (e) {
+    debugPrint('Ghata exchange entries cache refresh failed: $e');
   }
 }
 
