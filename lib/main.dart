@@ -4363,6 +4363,84 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'اپنے اکاؤنٹ کو تمام دیگر فونز اور ڈیوائسز سے لاگ آؤٹ کریں۔',
     'ar': 'سجّل خروج حسابك من جميع الهواتف والأجهزة الأخرى.',
   },
+
+  'Active Devices': {
+    'en': 'Active Devices',
+    'ps': 'فعالې وسیلې',
+    'fa': 'دستگاه‌های فعال',
+    'ur': 'فعال ڈیوائسز',
+    'ar': 'الأجهزة النشطة',
+  },
+  'This device': {
+    'en': ghataT(context, 'This device'),
+    'ps': 'همدا وسیله',
+    'fa': 'این دستگاه',
+    'ur': 'یہ ڈیوائس',
+    'ar': 'هذا الجهاز',
+  },
+  'Logged out': {
+    'en': 'Logged out',
+    'ps': 'وتل شوی',
+    'fa': 'خارج شده',
+    'ur': 'لاگ آؤٹ',
+    'ar': 'تم تسجيل الخروج',
+  },
+  'Last seen': {
+    'en': 'Last seen',
+    'ps': 'وروستی فعالیت',
+    'fa': 'آخرین فعالیت',
+    'ur': 'آخری سرگرمی',
+    'ar': 'آخر نشاط',
+  },
+  'Log out device': {
+    'en': 'Log out device',
+    'ps': 'وسیله وباسئ',
+    'fa': 'خروج دستگاه',
+    'ur': 'ڈیوائس لاگ آؤٹ کریں',
+    'ar': 'تسجيل خروج الجهاز',
+  },
+  'View signed-in devices and log out a specific device.': {
+    'en': ghataT(context, 'View signed-in devices and log out a specific device.'),
+    'ps': 'لاګین شوې وسیلې وګورئ او ټاکلې وسیله وباسئ.',
+    'fa': 'دستگاه‌های واردشده را ببینید و یک دستگاه مشخص را خارج کنید.',
+    'ur': 'لاگ اِن ڈیوائسز دیکھیں اور کسی مخصوص ڈیوائس کو لاگ آؤٹ کریں۔',
+    'ar': 'اعرض الأجهزة المسجّل دخولها وسجّل خروج جهاز محدد.',
+  },
+  'Filter': {
+    'en': 'Filter',
+    'ps': 'فلټر',
+    'fa': 'فیلتر',
+    'ur': 'فلٹر',
+    'ar': 'تصفية',
+  },
+  'Adjustments': {
+    'en': 'Adjustments',
+    'ps': 'سمونونه',
+    'fa': 'تعدیلات',
+    'ur': 'ایڈجسٹمنٹس',
+    'ar': 'التعديلات',
+  },
+  'Change Photo': {
+    'en': 'Change Photo',
+    'ps': 'عکس بدل کړئ',
+    'fa': 'تغییر عکس',
+    'ur': 'تصویر تبدیل کریں',
+    'ar': 'تغيير الصورة',
+  },
+  'Remove Photo': {
+    'en': 'Remove Photo',
+    'ps': 'عکس لرې کړئ',
+    'fa': 'حذف عکس',
+    'ur': 'تصویر ہٹائیں',
+    'ar': 'إزالة الصورة',
+  },
+  'Profile Photo': {
+    'en': 'Profile Photo',
+    'ps': 'د پروفایل عکس',
+    'fa': 'عکس پروفایل',
+    'ur': 'پروفائل تصویر',
+    'ar': 'صورة الملف الشخصي',
+  },
 };
 String ghataT(BuildContext context, String key) {
   final code = Localizations.localeOf(context).languageCode;
@@ -6386,7 +6464,7 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Active Devices'),
+        title: Text(ghataT(context, 'Active Devices')),
         actions: [
           IconButton(
             tooltip: 'Refresh',
@@ -6464,7 +6542,7 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
                                         EdgeInsets.only(left: 8),
                                     child: Chip(
                                       label: Text(
-                                        'This device',
+                                        ghataT(context, 'This device'),
                                       ),
                                     ),
                                   ),
@@ -6472,7 +6550,7 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
                             ),
                             subtitle: Text(
                               revoked
-                                  ? 'Logged out'
+                                  ? ghataT(context, 'Logged out')
                                   : '${platform.toUpperCase()} • ${_lastSeenText(device['last_seen'])}',
                             ),
                             trailing: isCurrent || revoked
@@ -6688,9 +6766,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 Card(
                   child: ListTile(
                     leading: Icon(Icons.devices_other_outlined),
-                    title: Text('Active Devices'),
+                    title: Text(ghataT(context, 'Active Devices')),
                     subtitle: Text(
-                      'View signed-in devices and log out a specific device.',
+                      ghataT(context, 'View signed-in devices and log out a specific device.'),
                     ),
                     trailing: Icon(Icons.chevron_right),
                     onTap: () {
@@ -8070,7 +8148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   PopupMenuButton<String>(
-                    tooltip: 'Filter',
+                    tooltip: ghataT(context, 'Filter'),
                     icon: Icon(
                       selectedRecentTransactionFilter == 'ALL'
                           ? Icons.filter_alt_outlined
@@ -8084,7 +8162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context) => [
                       PopupMenuItem(
                         value: 'ALL',
-                        child: Text('All'),
+                        child: Text(ghataT(context, 'All')),
                       ),
                       PopupMenuItem(
                         value: 'MONEY_IN',
@@ -8096,11 +8174,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       PopupMenuItem(
                         value: 'LOANS',
-                        child: Text('Loans'),
+                        child: Text(ghataT(context, 'Loans')),
                       ),
                       PopupMenuItem(
                         value: 'ADJUSTMENTS',
-                        child: Text('Adjustments'),
+                        child: Text(ghataT(context, 'Adjustments')),
                       ),
                     ],
                   ),
