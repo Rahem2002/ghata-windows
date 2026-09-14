@@ -37,3 +37,6 @@ Name: "{autodesktop}\Ghata"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopic
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch Ghata"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall-cleanup"; Flags: runhidden waituntilterminated skipifdoesntexist

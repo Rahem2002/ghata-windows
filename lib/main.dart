@@ -778,7 +778,7 @@ class GhataCalculatorField extends StatelessWidget {
   }
 }
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
@@ -789,7 +789,34 @@ Future<void> main() async {
     anonKey: supabaseAnonKey,
   );
 
+  if (args.contains('--uninstall-cleanup')) {
+    await _ghataWindowsUninstallCleanup();
+    exit(0);
+  }
+
   runApp(GhataApp());
+}
+
+Future<void> _ghataWindowsUninstallCleanup() async {
+  if (!Platform.isWindows) return;
+
+  // Remove the persisted Supabase login/session.
+  try {
+    await Supabase.instance.client.auth.signOut();
+  } catch (_) {}
+
+  // Remove Ghata secure settings such as local account owner,
+  // biometric setting, language/theme secure values, etc.
+  try {
+    const storage = FlutterSecureStorage();
+    await storage.deleteAll();
+  } catch (_) {}
+
+  // Remove all locally cached/offline business data.
+  try {
+    await OfflineDatabase.instance.clearAllLocalData();
+    await OfflineDatabase.instance.close();
+  } catch (_) {}
 }
 
 
