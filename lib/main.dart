@@ -93,44 +93,61 @@ Future<pw.Font> ghataPdfUnicodeFont() async {
 
 
 Future<String?> ghataPickCustomerPhoto(BuildContext context) async {
-  final source = await showModalBottomSheet<ImageSource>(
-    context: context,
-    builder: (sheetContext) {
-      return SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!Platform.isWindows)
+  try {
+    if (Platform.isWindows) {
+      final file = await openFile(
+        acceptedTypeGroups: [
+          XTypeGroup(
+            label: 'Images',
+            extensions: ['jpg', 'jpeg', 'png', 'webp'],
+          ),
+        ],
+      );
+
+      return file?.path;
+    }
+
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 ListTile(
                   leading: Icon(Icons.photo_camera_outlined),
                   title: Text(ghataT(context, 'Camera')),
                   onTap: () =>
                       Navigator.pop(sheetContext, ImageSource.camera),
                 ),
-              ListTile(
-                leading: Icon(Icons.photo_library_outlined),
-                title: Text(ghataT(context, 'Gallery')),
-                onTap: () =>
-                    Navigator.pop(sheetContext, ImageSource.gallery),
-              ),
-            ],
+                ListTile(
+                  leading: Icon(Icons.photo_library_outlined),
+                  title: Text(ghataT(context, 'Gallery')),
+                  onTap: () =>
+                      Navigator.pop(sheetContext, ImageSource.gallery),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
+        );
+      },
+    );
 
-  if (source == null) return null;
+    if (source == null) return null;
 
-  final image = await ImagePicker().pickImage(
-    source: source,
-    imageQuality: 82,
-    maxWidth: 1200,
-  );
+    final image = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 82,
+      maxWidth: 1200,
+    );
 
-  return image?.path;
+    return image?.path;
+  } catch (e) {
+    debugPrint('Customer photo picker error: $e');
+    return null;
+  }
 }
 
 Future<String?> ghataSaveCustomerPhoto(
@@ -221,6 +238,24 @@ Future<void> ghataDeleteCustomerPhoto(String customerId) async {
   } catch (_) {}
 }
 
+
+
+Future<void> ghataRefreshCustomersCache() async {
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return;
+
+  try {
+    final rows =
+        await Supabase.instance.client.from('customers').select();
+
+    await OfflineDatabase.instance.cacheServerRecords(
+      'customers',
+      List<Map<String, dynamic>>.from(rows),
+    );
+  } catch (e) {
+    debugPrint('Customer cache refresh error: $e');
+  }
+}
 
 Future<Map<String, dynamic>?> ghataLoadBusinessProfile() async {
   final user = Supabase.instance.client.auth.currentUser;
@@ -719,8 +754,73 @@ class GhataCalculatorField extends StatelessWidget {
               );
             }
 
-            return SafeArea(
-              child: Padding(
+            return Focus(
+              autofocus: true,
+              onKeyEvent: (node, event) {
+                if (event is! KeyDownEvent) {
+                  return KeyEventResult.ignored;
+                }
+
+                final character = event.character ?? '';
+                final key = event.logicalKey;
+
+                if (RegExp(r'^[0-9]$').hasMatch(character)) {
+                  refresh(() => _append(character));
+                  return KeyEventResult.handled;
+                }
+
+                if (character == '.') {
+                  refresh(() => _append('.'));
+                  return KeyEventResult.handled;
+                }
+
+                if (character == '+') {
+                  refresh(() => _append('+'));
+                  return KeyEventResult.handled;
+                }
+
+                if (character == '-') {
+                  refresh(() => _append('-'));
+                  return KeyEventResult.handled;
+                }
+
+                if (character == '*' || character == '×') {
+                  refresh(() => _append('×'));
+                  return KeyEventResult.handled;
+                }
+
+                if (character == '/' || character == '÷') {
+                  refresh(() => _append('÷'));
+                  return KeyEventResult.handled;
+                }
+
+                if (character == '%') {
+                  refresh(() => _append('%'));
+                  return KeyEventResult.handled;
+                }
+
+                if (key == LogicalKeyboardKey.backspace ||
+                    key == LogicalKeyboardKey.delete) {
+                  refresh(_backspace);
+                  return KeyEventResult.handled;
+                }
+
+                if (key == LogicalKeyboardKey.enter ||
+                    key == LogicalKeyboardKey.numpadEnter) {
+                  refresh(_equals);
+                  Navigator.pop(sheetContext);
+                  return KeyEventResult.handled;
+                }
+
+                if (key == LogicalKeyboardKey.escape) {
+                  Navigator.pop(sheetContext);
+                  return KeyEventResult.handled;
+                }
+
+                return KeyEventResult.ignored;
+              },
+              child: SafeArea(
+                child: Padding(
                 padding: EdgeInsets.fromLTRB(14, 12, 14, 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -810,7 +910,8 @@ class GhataCalculatorField extends StatelessWidget {
                   ],
                 ),
               ),
-            );
+            ),
+          );
           },
         );
       },
@@ -5402,13 +5503,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<Map<String, Map<String, double>>> loadDashboardSummary() async {
-    await ghataRefreshOfflineCache();
-
-    final transactions =
+    var transactions =
         await OfflineDatabase.instance.getRecords('transactions');
 
-    final exchangeEntries =
+    var exchangeEntries =
         await ghataLocalExchangeEntriesWithExchange();
+
+    if (transactions.isEmpty && exchangeEntries.isEmpty) {
+      await ghataRefreshOfflineCache();
+
+      transactions =
+          await OfflineDatabase.instance.getRecords('transactions');
+
+      exchangeEntries =
+          await ghataLocalExchangeEntriesWithExchange();
+    } else {
+      ghataRefreshOfflineCache();
+    }
 
     final result = <String, Map<String, double>>{};
 
@@ -6637,8 +6748,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          child: Center(
-            child: ConstrainedBox(
+          child: Align(
+          alignment: Alignment.bottomCenter,
+          heightFactor: 1,
+          child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: Platform.isWindows ? 900 : double.infinity,
               ),
@@ -6710,6 +6823,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(
                         builder: (_) =>
                             DailyJournalScreen(),
+                      ),
+                    );
+                    refreshDashboard();
+                  },
+                ),
+              ),
+
+              Expanded(
+                child: _GhataBottomItem(
+                  icon: Icons.currency_exchange_rounded,
+                  label: ghataT(context, 'Exchange'),
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ExchangeScreen(),
                       ),
                     );
                     refreshDashboard();
@@ -6902,12 +7031,25 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
               ),
               Expanded(
                 child: _GhataBottomItem(
+                  icon: Icons.currency_exchange_rounded,
+                  label: ghataT(context, 'Exchange'),
+                  selected: widget.selectedIndex == 4,
+                  onTap: widget.selectedIndex == 4
+                      ? () {}
+                      : () => replaceWith(
+                            ExchangeScreen(),
+                          ),
+                ),
+              ),
+
+              Expanded(
+                child: _GhataBottomItem(
                   icon: Icons.bar_chart_rounded,
                   label: ghataT(context, 'Reports'),
-                  selected: widget.selectedIndex == 4,
+                  selected: widget.selectedIndex == 5,
                   onTap: !canReports
                       ? null
-                      : widget.selectedIndex == 4
+                      : widget.selectedIndex == 5
                           ? () {}
                           : () => replaceWith(
                                 ReportsScreen(),
@@ -9239,10 +9381,16 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
-    await ghataRefreshOfflineCache();
-
-    final local =
+    var local =
         await OfflineDatabase.instance.getRecords('customers');
+
+    if (local.isEmpty) {
+      await ghataRefreshCustomersCache();
+      local =
+          await OfflineDatabase.instance.getRecords('customers');
+    } else {
+      ghataRefreshCustomersCache();
+    }
 
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
@@ -9709,8 +9857,18 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                             (item) =>
                                 DropdownMenuItem<String>(
                               value: item.$1,
-                              child:
-                                  Text('${item.$2} ${item.$1}'),
+                              child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ghataCurrencyFlagWidget(
+                                  item.$1,
+                                  width: 26,
+                                  height: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Text(item.$1),
+                              ],
+                            ),
                             ),
                           )
                           .toList(),
@@ -10202,7 +10360,18 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       .map(
                         (item) => DropdownMenuItem<String>(
                           value: item.$1,
-                          child: Text('${item.$2} ${item.$1}'),
+                          child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ghataCurrencyFlagWidget(
+                                  item.$1,
+                                  width: 26,
+                                  height: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Text(item.$1),
+                              ],
+                            ),
                         ),
                       )
                       .toList(),
@@ -11070,8 +11239,14 @@ Future<void> shareTransactionReceiptPdf(
                       ),
                     ),
                     SizedBox(height: 5),
-                    Text(
-                      '${flagForCurrency(currency)}  $amount $currency',
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ghataCurrencyFlagWidget(currency),
+                        SizedBox(width: 8),
+                        Text('$amount $currency'),
+                      ],
+                    ),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: accent,
@@ -11332,7 +11507,18 @@ Future<void> shareTransactionReceiptPdf(
                         ...currencies.map(
                           (item) => DropdownMenuItem<String?>(
                             value: item.$1,
-                            child: Text('${item.$2} ${item.$1}'),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ghataCurrencyFlagWidget(
+                                  item.$1,
+                                  width: 26,
+                                  height: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Text(item.$1),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -11872,7 +12058,7 @@ Future<void> shareTransactionReceiptPdf(
                             if (journalToTime != null)
                               '– ${journalToTime!.format(context)}',
                             if (journalCurrencyFilter != null)
-                              '${flagForCurrency(journalCurrencyFilter!)} $journalCurrencyFilter',
+                              journalCurrencyFilter!,
                           ].join(' • '),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -12477,18 +12663,29 @@ Future<void> shareTransactionReceiptPdf(
                                                     ),
                                                   ),
                                                 ),
-                                                SizedBox(
-                                                  width: 90,
-                                                  child: Text(
-                                                    '$currency ${flagForCurrency(currency)}',
-                                                    textAlign: TextAlign.end,
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      fontWeight:
-                                                          FontWeight.w700,
+                                                  SizedBox(
+                                                    width: 90,
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment.end,
+                                                      children: [
+                                                        ghataCurrencyFlagWidget(
+                                                          currency,
+                                                          width: 22,
+                                                          height: 15,
+                                                        ),
+                                                        SizedBox(width: 5),
+                                                        Text(
+                                                          currency,
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
-                                                ),
                                                 Expanded(
                                                   flex: 2,
                                                   child: Text(
@@ -12889,10 +13086,16 @@ class _CustomersScreenState extends State<CustomersScreen> {
   String? pendingCustomerPhotoPath;
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
-    await ghataRefreshOfflineCache();
-
-    final local =
+    var local =
         await OfflineDatabase.instance.getRecords('customers');
+
+    if (local.isEmpty) {
+      await ghataRefreshCustomersCache();
+      local =
+          await OfflineDatabase.instance.getRecords('customers');
+    } else {
+      ghataRefreshCustomersCache();
+    }
 
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
@@ -13000,11 +13203,44 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
     String? editPhotoPath =
         await ghataLoadCustomerPhoto(id);
+    bool removeCustomerPhoto = false;
 
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(ghataT(context, 'Edit Customer')),
+        title: StatefulBuilder(
+          builder: (context, setTitleState) {
+            final editName = nameEditController.text.trim();
+            final editInitial =
+                editName.isEmpty ? '?' : editName.substring(0, 1).toUpperCase();
+
+            return Row(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  backgroundImage: editPhotoPath != null
+                      ? FileImage(File(editPhotoPath!))
+                      : null,
+                  child: editPhotoPath == null
+                      ? Text(
+                          editInitial,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    ghataT(context, 'Edit Customer'),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -13021,6 +13257,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           if (path != null) {
                             setPhotoState(() {
                               editPhotoPath = path;
+                              removeCustomerPhoto = false;
                             });
                           }
                         },
@@ -13063,6 +13300,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           if (path != null) {
                             setPhotoState(() {
                               editPhotoPath = path;
+                              removeCustomerPhoto = false;
                             });
                           }
                         },
@@ -13071,6 +13309,23 @@ class _CustomersScreenState extends State<CustomersScreen> {
                           ghataT(context, 'Change Photo'),
                         ),
                       ),
+                      if (editPhotoPath != null)
+                        TextButton.icon(
+                          onPressed: () {
+                            setPhotoState(() {
+                              editPhotoPath = null;
+                              removeCustomerPhoto = true;
+                            });
+                          },
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                          label: Text(
+                            ghataT(context, 'Remove Photo'),
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
                     ],
                   );
                 },
@@ -13215,7 +13470,9 @@ class _CustomersScreenState extends State<CustomersScreen> {
         },
       );
 
-      if (editPhotoPath != null &&
+      if (removeCustomerPhoto) {
+        await ghataDeleteCustomerPhoto(id);
+      } else if (editPhotoPath != null &&
           editPhotoPath!.isNotEmpty) {
         final existing =
             await ghataLoadCustomerPhoto(id);
@@ -13538,17 +13795,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
   String customerInitial(String name) {
     final value = name.trim();
     if (value.isEmpty) return '?';
-
-    final parts =
-        value.split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
-
-    if (parts.length == 1) {
-      return parts.first.substring(0, 1).toUpperCase();
-    }
-
-    return '${parts.first.substring(0, 1)}'
-            '${parts.last.substring(0, 1)}'
-        .toUpperCase();
+    return value.substring(0, 1).toUpperCase();
   }
 
   @override
@@ -14680,7 +14927,18 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           .map(
                             (item) => DropdownMenuItem<String>(
                               value: item.$1,
-                              child: Text('${item.$2} ${item.$1}'),
+                              child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ghataCurrencyFlagWidget(
+                                  item.$1,
+                                  width: 26,
+                                  height: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Text(item.$1),
+                              ],
+                            ),
                             ),
                           )
                           .toList(),
@@ -14953,14 +15211,117 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       text: customer['notes']?.toString() ?? '',
     );
 
+    String? editPhotoPath =
+        await ghataLoadCustomerPhoto(customerId);
+    final originalPhotoPath = editPhotoPath;
+    bool removeCustomerPhoto = false;
+
     final saved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(ghataT(context, 'Edit Customer')),
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundImage:
+                  editPhotoPath != null && editPhotoPath!.isNotEmpty
+                      ? FileImage(File(editPhotoPath!))
+                      : null,
+              child: editPhotoPath == null || editPhotoPath!.isEmpty
+                  ? Text(
+                      nameController.text.trim().isEmpty
+                          ? '?'
+                          : nameController.text
+                              .trim()
+                              .substring(0, 1)
+                              .toUpperCase(),
+                    )
+                  : null,
+            ),
+            SizedBox(width: 10),
+            Text(ghataT(context, 'Edit Customer')),
+          ],
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              StatefulBuilder(
+                builder: (context, setPhotoState) {
+                  final initial = nameController.text.trim().isEmpty
+                      ? '?'
+                      : nameController.text
+                          .trim()
+                          .substring(0, 1)
+                          .toUpperCase();
+
+                  return Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 42,
+                        backgroundImage:
+                            editPhotoPath != null &&
+                                    editPhotoPath!.isNotEmpty
+                                ? FileImage(File(editPhotoPath!))
+                                : null,
+                        child: editPhotoPath == null ||
+                                editPhotoPath!.isEmpty
+                            ? Text(
+                                initial,
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
+                      ),
+                      SizedBox(height: 10),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final picked =
+                                  await ghataPickCustomerPhoto(context);
+
+                              if (picked == null) return;
+
+                              setPhotoState(() {
+                                editPhotoPath = picked;
+                                removeCustomerPhoto = false;
+                              });
+                            },
+                            icon: Icon(Icons.photo_library_outlined),
+                            label: Text(
+                              ghataT(context, 'Change Photo'),
+                            ),
+                          ),
+                          if (editPhotoPath != null &&
+                              editPhotoPath!.isNotEmpty)
+                            TextButton.icon(
+                              onPressed: () {
+                                setPhotoState(() {
+                                  editPhotoPath = null;
+                                  removeCustomerPhoto = true;
+                                });
+                              },
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                              ),
+                              label: Text(
+                                ghataT(context, 'Remove Photo'),
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                        ],
+                      ),
+                      SizedBox(height: 14),
+                    ],
+                  );
+                },
+              ),
               TextField(
                 controller: nameController,
                 decoration: InputDecoration(
@@ -15095,6 +15456,17 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             : notesController.text.trim(),
         },
       );
+
+      if (removeCustomerPhoto) {
+        await ghataDeleteCustomerPhoto(customerId);
+      } else if (editPhotoPath != null &&
+          editPhotoPath!.isNotEmpty &&
+          editPhotoPath != originalPhotoPath) {
+        await ghataSaveCustomerPhoto(
+          customerId,
+          editPhotoPath!,
+        );
+      }
 
       ghataTrySync();
 
@@ -16205,29 +16577,55 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
               : customerName;
       final profileAddress =
           customerProfile?['address']?.toString().trim() ?? '';
+      final profileInitial =
+          profileName.trim().isEmpty
+              ? '?'
+              : profileName.trim().substring(0, 1).toUpperCase();
 
       return Scaffold(
         appBar: AppBar(
           titleSpacing: 0,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          title: Row(
             children: [
-              Text(
-                profileName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              CircleAvatar(
+                radius: 22,
+                backgroundImage: customerPhotoPath != null
+                    ? FileImage(File(customerPhotoPath!))
+                    : null,
+                child: customerPhotoPath == null
+                    ? Text(
+                        profileInitial,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      )
+                    : null,
               ),
-              if (profileAddress.isNotEmpty)
-                Text(
-                  profileAddress,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.normal,
-                  ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      profileName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (profileAddress.isNotEmpty)
+                      Text(
+                        profileAddress,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                  ],
                 ),
+              ),
             ],
           ),
           actions: [
@@ -16606,11 +17004,21 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           ),
                           ...ledgerCurrencies.map(
                             (currency) => DropdownMenuItem<String>(
-                              value: currency,
-                              child: Text(
-                                '${flagForCurrency(currency)} $currency',
+                              (currency) => DropdownMenuItem<String>(
+                                value: currency,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ghataCurrencyFlagWidget(
+                                      currency,
+                                      width: 24,
+                                      height: 16,
+                                    ),
+                                    SizedBox(width: 7),
+                                    Text(currency),
+                                  ],
+                                ),
                               ),
-                            ),
                           ),
                         ],
                         onChanged: (value) {
@@ -16837,8 +17245,14 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                           ),
                                         ),
                                         SizedBox(height: 2),
-                                        Text(
-                                          '${flagForCurrency(currency)} $currency',
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ghataCurrencyFlagWidget(currency),
+                                            SizedBox(width: 6),
+                                            Text(currency),
+                                          ],
+                                        ),
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: Theme.of(context)
@@ -17916,10 +18330,16 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   }
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
-    await ghataRefreshOfflineCache();
-
-    final local =
+    var local =
         await OfflineDatabase.instance.getRecords('customers');
+
+    if (local.isEmpty) {
+      await ghataRefreshCustomersCache();
+      local =
+          await OfflineDatabase.instance.getRecords('customers');
+    } else {
+      ghataRefreshCustomersCache();
+    }
 
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
@@ -18237,7 +18657,18 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                       .map(
                         (item) => DropdownMenuItem<String>(
                           value: item.$1,
-                          child: Text('${item.$2} ${item.$1}'),
+                          child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ghataCurrencyFlagWidget(
+                                  item.$1,
+                                  width: 26,
+                                  height: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Text(item.$1),
+                              ],
+                            ),
                         ),
                       )
                       .toList(),
@@ -18283,7 +18714,18 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                       .map(
                         (item) => DropdownMenuItem<String>(
                           value: item.$1,
-                          child: Text('${item.$2} ${item.$1}'),
+                          child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ghataCurrencyFlagWidget(
+                                  item.$1,
+                                  width: 26,
+                                  height: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Text(item.$1),
+                              ],
+                            ),
                         ),
                       )
                       .toList(),
@@ -18815,7 +19257,23 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
             items: currencies.map((item) {
               return DropdownMenuItem<String>(
                 value: item.$1,
-                child: Text('${item.$2} ${item.$1} - ${item.$3}'),
+                child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ghataCurrencyFlagWidget(
+                                item.$1,
+                                width: 26,
+                                height: 18,
+                              ),
+                              SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  '${item.$1} - ${item.$3}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
               );
             }).toList(),
             onChanged: (value) {
@@ -18853,7 +19311,23 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
             items: currencies.map((item) {
               return DropdownMenuItem<String>(
                 value: item.$1,
-                child: Text('${item.$2} ${item.$1} - ${item.$3}'),
+                child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ghataCurrencyFlagWidget(
+                                item.$1,
+                                width: 26,
+                                height: 18,
+                              ),
+                              SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  '${item.$1} - ${item.$3}',
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
               );
             }).toList(),
             onChanged: (value) {
@@ -19073,9 +19547,16 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                               ? Icons.trending_up
                               : Icons.trending_down,
                         ),
-                        title: Text(
-                          '${flagForCurrency(asset)} $asset / '
-                          '${flagForCurrency(settlement)} $settlement',
+                        title: Row(
+                          children: [
+                            ghataCurrencyFlagWidget(asset),
+                            SizedBox(width: 6),
+                            Text('$asset /'),
+                            SizedBox(width: 6),
+                            ghataCurrencyFlagWidget(settlement),
+                            SizedBox(width: 6),
+                            Text(settlement),
+                          ],
                         ),
                         subtitle: Text(text),
                         trailing: Text(
@@ -19179,11 +19660,11 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
                   final outText = outEntry == null
                       ? '-'
-                      : '${flagForCurrency(outCurrency)} ${outEntry['amount']} $outCurrency';
+                      : '${outEntry['amount']} $outCurrency';
 
                   final inText = inEntry == null
                       ? '-'
-                      : '${flagForCurrency(inCurrency)} ${inEntry['amount']} $inCurrency';
+                      : '${inEntry['amount']} $inCurrency';
 
                   final rate =
                       outEntry?['rate']?.toString() ??
@@ -19213,7 +19694,32 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                       leading: Icon(
                         Icons.currency_exchange_outlined,
                       ),
-                      title: Text('$outText → $inText'),
+                      title: Row(
+                        children: [
+                          if (outEntry != null) ...[
+                            ghataCurrencyFlagWidget(
+                              outCurrency,
+                              width: 24,
+                              height: 16,
+                            ),
+                            SizedBox(width: 6),
+                          ],
+                          Text(outText),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: Text('→'),
+                          ),
+                          if (inEntry != null) ...[
+                            ghataCurrencyFlagWidget(
+                              inCurrency,
+                              width: 24,
+                              height: 16,
+                            ),
+                            SizedBox(width: 6),
+                          ],
+                          Expanded(child: Text(inText)),
+                        ],
+                      ),
                       subtitle: Text(details.join(' • ')),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -19237,6 +19743,9 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
             },
           ),
         ],
+      ),
+      bottomNavigationBar: const _GhataAppBottomNav(
+        selectedIndex: 4,
       ),
     );
   }
@@ -19282,10 +19791,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
   ];
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
-    await ghataRefreshOfflineCache();
-
-    final local =
+    var local =
         await OfflineDatabase.instance.getRecords('customers');
+
+    if (local.isEmpty) {
+      await ghataRefreshCustomersCache();
+      local =
+          await OfflineDatabase.instance.getRecords('customers');
+    } else {
+      ghataRefreshCustomersCache();
+    }
 
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
@@ -19396,13 +19911,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return report;
   }
-
-  String flagForCurrency(String code) {
-    const flags = {
-      'AFN': '🇦🇫',
-      'PKR': '🇵🇰',
-      'USD': '🇺🇸',
-      'EUR': '🇪🇺',
+                                                                      ghataCurrencyFlagWidget(
+                                                                        currency,
+                                                                        width: 34,
+                                                                        height: 24,
+                                                                      ),
       'GBP': '🇬🇧',
       'AED': '🇦🇪',
       'SAR': '🇸🇦',
@@ -19712,13 +20225,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                                               children: [
                                                                 Row(
                                                                   children: [
-                                                                    Text(
-                                                                      flagForCurrency(
-                                                                          currency),
-                                                                      style: TextStyle(
-                                                                          fontSize:
-                                                                              25),
-                                                                    ),
+                                                                      ghataCurrencyFlagWidget(
+                                                                        currency,
+                                                                        width: 34,
+                                                                        height: 24,
+                                                                      ),
                                                                     SizedBox(
                                                                         width:
                                                                             8),
@@ -19922,7 +20433,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
 
       bottomNavigationBar: const _GhataAppBottomNav(
-        selectedIndex: 4,
+        selectedIndex: 5,
       ),
 );
   }
