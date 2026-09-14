@@ -4531,6 +4531,10 @@ Future<void> ghataRegisterCurrentDevice() async {
           existing['revoked_at']?.toString() ?? '';
 
       if (revokedAt.isNotEmpty) {
+        if (_ghataExplicitAuthInProgress) {
+          return;
+        }
+
         await Supabase.instance.client.auth.signOut(
           scope: SignOutScope.local,
         );
@@ -4879,7 +4883,21 @@ class _GhataAppState extends State<GhataApp>
       if (data.event == AuthChangeEvent.signedIn ||
           data.event == AuthChangeEvent.tokenRefreshed ||
           data.event == AuthChangeEvent.userUpdated) {
-        _startGhataAutomaticSync();
+        if (_ghataExplicitAuthInProgress) {
+          () async {
+            while (_ghataExplicitAuthInProgress) {
+              await Future.delayed(
+                const Duration(milliseconds: 100),
+              );
+            }
+
+            if (Supabase.instance.client.auth.currentUser != null) {
+              _startGhataAutomaticSync();
+            }
+          }();
+        } else {
+          _startGhataAutomaticSync();
+        }
       }
 
       if (data.event == AuthChangeEvent.signedOut) {
@@ -4937,6 +4955,8 @@ class _GhataAppState extends State<GhataApp>
   }
 }
 
+bool _ghataExplicitAuthInProgress = false;
+
 class LoginScreen extends StatefulWidget {
   LoginScreen({super.key});
 
@@ -4957,13 +4977,16 @@ class _LoginScreenState extends State<LoginScreen> {
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(ghataT(context, 'Please enter your email and password')),
+          content: Text(
+            ghataT(context, 'Please enter your email and password'),
+          ),
         ),
       );
       return;
     }
 
     setState(() => isLoading = true);
+    _ghataExplicitAuthInProgress = true;
 
     try {
       final response =
@@ -4973,78 +4996,120 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       final user = response.user;
+
       if (user == null) {
         throw StateError('Login succeeded without a user.');
       }
 
-      final deviceId = await GhataSecurity.deviceId();
-      final now = DateTime.now().toUtc().toIso8601String();
+      // Strict account isolation.
+      final localOwner =
+          await GhataSecurity.localAccountOwner();
 
-      final existingDevice =
-          await Supabase.instance.client
-              .from('user_devices')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('device_id', deviceId)
-              .maybeSingle();
-
-      if (existingDevice == null) {
-        await Supabase.instance.client
-            .from('user_devices')
-            .insert({
-              'user_id': user.id,
-              'device_id': deviceId,
-              'device_name': ghataDeviceDisplayName(),
-              'platform': ghataDevicePlatform(),
-              'last_seen': now,
-              'revoked_at': null,
-              'created_at': now,
-              'updated_at': now,
-            });
-      } else {
-        await Supabase.instance.client
-            .from('user_devices')
-            .update({
-              'device_name': ghataDeviceDisplayName(),
-              'platform': ghataDevicePlatform(),
-              'last_seen': now,
-              'revoked_at': null,
-              'updated_at': now,
-            })
-            .eq('user_id', user.id)
-            .eq('device_id', deviceId);
-      }
-
-      final localOwner = await GhataSecurity.localAccountOwner();
-
-      if (localOwner != null && localOwner != user.id) {
+      if (localOwner == null || localOwner != user.id) {
         await OfflineDatabase.instance.clearAllLocalData();
       }
 
       await GhataSecurity.setLocalAccountOwner(user.id);
 
-      // Upload any offline changes first, then restore the account cache.
-      await OfflineSyncService.instance.syncPending();
-      await ghataRefreshOfflineCache();
+      // Device registration must never break a successful login.
+      try {
+        final deviceId = await GhataSecurity.deviceId();
+        final now =
+            DateTime.now().toUtc().toIso8601String();
+
+        final existingDevice =
+            await Supabase.instance.client
+                .from('user_devices')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('device_id', deviceId)
+                .maybeSingle();
+
+        if (existingDevice == null) {
+          await Supabase.instance.client
+              .from('user_devices')
+              .insert({
+            'user_id': user.id,
+            'device_id': deviceId,
+            'device_name': ghataDeviceDisplayName(),
+            'platform': ghataDevicePlatform(),
+            'last_seen': now,
+            'revoked_at': null,
+            'created_at': now,
+            'updated_at': now,
+          });
+        } else {
+          await Supabase.instance.client
+              .from('user_devices')
+              .update({
+            'device_name': ghataDeviceDisplayName(),
+            'platform': ghataDevicePlatform(),
+            'last_seen': now,
+            'revoked_at': null,
+            'updated_at': now,
+          })
+              .eq('user_id', user.id)
+              .eq('device_id', deviceId);
+        }
+      } catch (e, st) {
+        debugPrint(
+          'Ghata device registration after login failed: $e',
+        );
+        debugPrintStack(stackTrace: st);
+      }
+
+      try {
+        await OfflineSyncService.instance.syncPending();
+      } catch (e, st) {
+        debugPrint(
+          'Ghata pending sync after login failed: $e',
+        );
+        debugPrintStack(stackTrace: st);
+      }
+
+      try {
+        await ghataRefreshOfflineCache();
+      } catch (e, st) {
+        debugPrint(
+          'Ghata cache refresh after login failed: $e',
+        );
+        debugPrintStack(stackTrace: st);
+      }
 
       if (!mounted) return;
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => HomeScreen()),
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(),
+        ),
         (route) => false,
       );
     } on AuthException catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('Ghata login error: $e');
+      debugPrintStack(stackTrace: st);
+
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ghataT(context, 'Unable to login. Please try again.'))),
+        SnackBar(
+          content: Text(
+            ghataT(
+              context,
+              'Unable to login. Please try again.',
+            ),
+          ),
+        ),
       );
     } finally {
+      _ghataExplicitAuthInProgress = false;
+
       if (mounted) {
         setState(() => isLoading = false);
       }
@@ -5201,7 +5266,11 @@ class _SignupScreenState extends State<SignupScreen> {
         password.isEmpty ||
         confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ghataT(context, 'Please fill in all fields'))),
+        SnackBar(
+          content: Text(
+            ghataT(context, 'Please fill in all fields'),
+          ),
+        ),
       );
       return;
     }
@@ -5209,7 +5278,12 @@ class _SignupScreenState extends State<SignupScreen> {
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(ghataT(context, 'Password must be at least 6 characters')),
+          content: Text(
+            ghataT(
+              context,
+              'Password must be at least 6 characters',
+            ),
+          ),
         ),
       );
       return;
@@ -5217,15 +5291,21 @@ class _SignupScreenState extends State<SignupScreen> {
 
     if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ghataT(context, 'Passwords do not match'))),
+        SnackBar(
+          content: Text(
+            ghataT(context, 'Passwords do not match'),
+          ),
+        ),
       );
       return;
     }
 
     setState(() => isLoading = true);
+    _ghataExplicitAuthInProgress = true;
 
     try {
-      final response = await Supabase.instance.client.auth.signUp(
+      final response =
+          await Supabase.instance.client.auth.signUp(
         email: email,
         password: password,
         data: {
@@ -5233,13 +5313,44 @@ class _SignupScreenState extends State<SignupScreen> {
         },
       );
 
-      if (!mounted) return;
+      final user = response.user;
 
-      if (response.user != null) {
+      if (user == null) {
+        throw StateError(
+          'Account creation returned no user.',
+        );
+      }
+
+      // If Supabase authenticated the new account immediately,
+      // isolate local data before opening Home.
+      if (response.session != null) {
+        final localOwner =
+            await GhataSecurity.localAccountOwner();
+
+        if (localOwner == null || localOwner != user.id) {
+          await OfflineDatabase.instance.clearAllLocalData();
+        }
+
+        await GhataSecurity.setLocalAccountOwner(user.id);
+
+        try {
+          await ghataRefreshOfflineCache();
+        } catch (e, st) {
+          debugPrint(
+            'Ghata new-account cache refresh failed: $e',
+          );
+          debugPrintStack(stackTrace: st);
+        }
+
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              ghataT(context, 'Account created successfully.'),
+              ghataT(
+                context,
+                'Account created successfully.',
+              ),
             ),
           ),
         );
@@ -5251,6 +5362,28 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           (route) => false,
         );
+      } else {
+        // Email confirmation is required.
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              ghataT(
+                context,
+                'Account created successfully.',
+              ),
+            ),
+          ),
+        );
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(),
+          ),
+          (route) => false,
+        );
       }
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -5258,15 +5391,25 @@ class _SignupScreenState extends State<SignupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('Ghata signup error: $e');
+      debugPrintStack(stackTrace: st);
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(ghataT(context, 'Something went wrong. Please try again.')),
+          content: Text(
+            ghataT(
+              context,
+              'Something went wrong. Please try again.',
+            ),
+          ),
         ),
       );
     } finally {
+      _ghataExplicitAuthInProgress = false;
+
       if (mounted) {
         setState(() => isLoading = false);
       }
@@ -6834,7 +6977,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
     if (user != null) {
       final localOwner = await GhataSecurity.localAccountOwner();
       final accountChanged =
-          localOwner != null && localOwner != user.id;
+          localOwner == null || localOwner != user.id;
 
       if (accountChanged) {
         await OfflineDatabase.instance.clearAllLocalData();
