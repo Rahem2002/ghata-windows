@@ -2479,6 +2479,14 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'بیک اپ بنائیں',
     'ar': 'إنشاء نسخة احتياطية',
   },
+
+  'Automatic backup stays updated. Create Backup exports the latest backup.': {
+    'en': 'Automatic backup stays updated. Create Backup exports the latest backup.',
+    'ps': 'اوتومات بیک اپ تل تازه ساتل کېږي. Create Backup وروستی بیک اپ فایل خوندي یا اکسپورټ کوي.',
+    'fa': 'پشتیبان خودکار همیشه به‌روز نگه داشته می‌شود. Create Backup آخرین نسخه پشتیبان را ذخیره یا صادر می‌کند.',
+    'ur': 'خودکار بیک اپ ہمیشہ تازہ رکھا جاتا ہے۔ Create Backup تازہ ترین بیک اپ کو محفوظ یا ایکسپورٹ کرتا ہے۔',
+    'ar': 'يتم تحديث النسخة الاحتياطية التلقائية باستمرار. يقوم Create Backup بحفظ أو تصدير أحدث نسخة احتياطية.',
+  },
   'Disable Staff': {
     'en': 'Disable Staff',
     'ps': 'کارکوونکی غیر فعال کړئ',
@@ -4940,7 +4948,31 @@ class _GhataAppState extends State<GhataApp>
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
-        colorSchemeSeed: Colors.blue,
+        scaffoldBackgroundColor: const Color(0xFFF6FFE8),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF63B32E),
+          brightness: Brightness.light,
+          surface: const Color(0xFFFFFEF7),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF2FFD8),
+          foregroundColor: Color(0xFF12351F),
+          elevation: 0,
+        ),
+        cardTheme: const CardThemeData(
+          color: Color(0xFFFFFEF7),
+          elevation: 1.5,
+          margin: EdgeInsets.zero,
+        ),
+        popupMenuTheme: const PopupMenuThemeData(
+          color: Color(0xFFFFFEF7),
+          elevation: 12,
+        ),
+        navigationBarTheme: const NavigationBarThemeData(
+          backgroundColor: Color(0xFFFFFEF7),
+          indicatorColor: Color(0xFFD9F7A7),
+        ),
+        dividerColor: const Color(0xFFDDECC8),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
@@ -6078,13 +6110,35 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
     setState(() => busy = true);
 
     try {
-      final backup = await _buildBackup();
+      // Backup B:
+      // Keep the automatic backup current, then export that exact latest file.
+      while (_ghataAutomaticBackupRunning) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
 
-      final bytes = Uint8List.fromList(
-        utf8.encode(
-          JsonEncoder.withIndent('  ').convert(backup),
-        ),
+      await ghataCreateAutomaticBackup();
+
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) {
+        throw StateError('No signed-in user.');
+      }
+
+      final root = await getApplicationDocumentsDirectory();
+      final safeUserId = user.id.replaceAll(
+        RegExp(r'[^A-Za-z0-9_-]'),
+        '_',
       );
+
+      final autoBackupFile = File(
+        '${root.path}/Ghata/backups/'
+        'Ghata_Auto_Latest_$safeUserId.json',
+      );
+
+      if (!await autoBackupFile.exists()) {
+        throw StateError('Automatic backup file was not created.');
+      }
+
+      final bytes = await autoBackupFile.readAsBytes();
 
       final now = DateTime.now();
       String two(int value) => value.toString().padLeft(2, '0');
@@ -6347,9 +6401,10 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
               leading: Icon(Icons.cloud_upload_outlined),
               title: Text(ghataT(context, 'Create Backup')),
               subtitle: Text(
-                Platform.isWindows
-                    ? 'Save a Ghata backup file on this computer.'
-                    : 'Export customers, transactions, exchanges and profile.',
+                ghataT(
+                  context,
+                  'Automatic backup stays updated. Create Backup exports the latest backup.',
+                ),
               ),
               trailing: busy
                   ? SizedBox(
@@ -7230,7 +7285,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late Future<Map<String, Map<String, double>>> dashboardFuture;
   String selectedDashboardCurrency = 'ALL';
-    String selectedRecentTransactionFilter = 'ALL';
+  String selectedRecentTransactionFilter = 'ALL';
+  String selectedRecentCurrency = 'ALL';
 
   @override
   void initState() {
@@ -7481,6 +7537,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final filtered = local.where((row) {
     final type = row['transaction_type']?.toString() ?? '';
+    final currency =
+        (row['currency'] ?? '').toString().toUpperCase();
+
+    if (selectedRecentCurrency != 'ALL' &&
+        currency != selectedRecentCurrency) {
+      return false;
+    }
 
     switch (selectedRecentTransactionFilter) {
       case 'MONEY_IN':
@@ -7494,13 +7557,6 @@ class _HomeScreenState extends State<HomeScreen> {
             type == 'loan_repayment_paid' ||
             type == 'loan_given' ||
             type == 'adjustment_out';
-
-      case 'LOANS':
-        return type == 'loan_given' ||
-            type == 'loan_received' ||
-            type == 'loan_repayment_received' ||
-            type == 'loan_repayment_paid';
-
       case 'ADJUSTMENTS':
         return type == 'adjustment_in' ||
             type == 'adjustment_out';
@@ -7537,65 +7593,120 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> showHomeMenu() async {
-    final choice = await showModalBottomSheet<String>(
-      isScrollControlled: true,
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+
+    if (overlay == null) return;
+
+    const menuWidth = 320.0;
+    const rightMargin = 8.0;
+
+    final topPosition =
+        MediaQuery.of(context).padding.top +
+        kToolbarHeight +
+        4;
+
+    final leftPosition =
+        overlay.size.width - menuWidth - rightMargin;
+
+    final choice = await showMenu<String>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: Text(
-                'Settings & Account',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+      elevation: 14,
+      color: Theme.of(context).colorScheme.surface,
+      constraints: const BoxConstraints(
+        minWidth: 290,
+        maxWidth: menuWidth,
+      ),
+      position: RelativeRect.fromLTRB(
+        leftPosition < 8 ? 8 : leftPosition,
+        topPosition,
+        rightMargin,
+        8,
+      ),
+      items: [
+        PopupMenuItem<String>(
+          enabled: false,
+          height: 54,
+          child: Text(
+            ghataT(context, 'Settings & Account'),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
-            ListTile(
-              leading: Icon(Icons.person_outline),
-              title: Text(ghataT(context, 'Profile & Business')),
-              onTap: () => Navigator.pop(context, 'profile'),
-            ),
-            ListTile(
-              leading: Icon(Icons.security_outlined),
-              title: Text(ghataT(context, 'Security')),
-              onTap: () => Navigator.pop(context, 'security'),
-            ),
-            ListTile(
-              leading: Icon(Icons.groups_outlined),
-              title: Text(ghataT(context, 'Staff & Roles')),
-              onTap: () => Navigator.pop(context, 'staff'),
-            ),
-            ListTile(
-              leading: Icon(Icons.cloud_outlined),
-              title: Text(ghataT(context, 'Backup & Restore')),
-              onTap: () => Navigator.pop(context, 'backup'),
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_outline),
-              title: Text(ghataT(context, 'Recycle Bin')),
-              onTap: () => Navigator.pop(context, 'recycle'),
-            ),
-            ListTile(
-              leading: Icon(Icons.info_outline_rounded),
-              title: Text(ghataT(context, 'About Ghata')),
-              onTap: () => Navigator.pop(context, 'about'),
-            ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.logout),
-              title: Text(ghataT(context, 'Sign Out')),
-              onTap: () => Navigator.pop(context, 'logout'),
-            ),
-            SizedBox(height: 8),
-          ],
+          ),
         ),
-      ),
-      ),
+        PopupMenuItem<String>(
+          value: 'profile',
+          child: Row(
+            children: [
+              const Icon(Icons.person_outline),
+              const SizedBox(width: 12),
+              Text(ghataT(context, 'Profile & Business')),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'security',
+          child: Row(
+            children: [
+              const Icon(Icons.security_outlined),
+              const SizedBox(width: 12),
+              Text(ghataT(context, 'Security')),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'staff',
+          child: Row(
+            children: [
+              const Icon(Icons.groups_outlined),
+              const SizedBox(width: 12),
+              Text(ghataT(context, 'Staff & Roles')),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'backup',
+          child: Row(
+            children: [
+              const Icon(Icons.cloud_outlined),
+              const SizedBox(width: 12),
+              Text(ghataT(context, 'Backup & Restore')),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'recycle',
+          child: Row(
+            children: [
+              const Icon(Icons.delete_outline),
+              const SizedBox(width: 12),
+              Text(ghataT(context, 'Recycle Bin')),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'about',
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline_rounded),
+              const SizedBox(width: 12),
+              Text(ghataT(context, 'About Ghata')),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<String>(
+          value: 'logout',
+          child: Row(
+            children: [
+              const Icon(Icons.logout),
+              const SizedBox(width: 12),
+              Text(ghataT(context, 'Sign Out')),
+            ],
+          ),
+        ),
+      ],
     );
 
     if (!mounted || choice == null) return;
@@ -8206,77 +8317,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               SizedBox(height: 4),
 
-              editPermissionButton(
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0xFF6C4DFF),
-                        Color(0xFF845EF7),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(17),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(17),
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ExchangeScreen(),
-                          ),
-                        );
-                        refreshDashboard();
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 17,
-                          vertical: 15,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.16),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.currency_exchange_rounded,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                ghataT(context, 'Exchange'),
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-
-              SizedBox(height: 22),
+SizedBox(height: 22),
 
               Row(
                 children: [
@@ -8315,15 +8356,60 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Text(ghataT(context, 'Money Out')),
                       ),
                       PopupMenuItem(
-                        value: 'LOANS',
-                        child: Text(ghataT(context, 'Loans')),
-                      ),
-                      PopupMenuItem(
                         value: 'ADJUSTMENTS',
                         child: Text(ghataT(context, 'Adjustments')),
                       ),
                     ],
                   ),
+                    PopupMenuButton<String>(
+                      tooltip: ghataT(context, 'Currency'),
+                      icon: Icon(
+                        selectedRecentCurrency == 'ALL'
+                            ? Icons.payments_outlined
+                            : Icons.payments_rounded,
+                      ),
+                      onSelected: (value) {
+                        setState(() {
+                          selectedRecentCurrency = value;
+                        });
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem<String>(
+                          value: 'ALL',
+                          child: Text(
+                            ghataT(context, 'All Currencies'),
+                          ),
+                        ),
+                        ...[
+                          'AFN',
+                          'PKR',
+                          'USD',
+                          'EUR',
+                          'GBP',
+                          'AED',
+                          'SAR',
+                          'KWD',
+                          'QAR',
+                          'OMR',
+                          'TRY',
+                          'CNY',
+                          'INR',
+                          'IRR',
+                        ].map(
+                          (code) => PopupMenuItem<String>(
+                            value: code,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ghataCurrencyFlagWidget(code),
+                                SizedBox(width: 8),
+                                Text(code),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   TextButton(
                     onPressed: () async {
                       await Navigator.push(
@@ -10852,7 +10938,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                                     spacing: 8,
                                     runSpacing: 4,
                                     children: [
-                                      TextButton(
+                    TextButton(
                                         onPressed: id.isEmpty
                                             ? null
                                             : () => restoreCustomer(id),
@@ -14986,9 +15072,10 @@ Future<String?> showCustomerCountryCodePicker(
                                 final selected = code == selectedCode;
 
                                 return ListTile(
-                                  leading: Text(
+                                  leading: ghataCountryFlagWidget(
                                     country['flag']!,
-                                    style: TextStyle(fontSize: 24),
+                                    width: 32,
+                                    height: 22,
                                   ),
                                   title: Text(country['name']!),
                                   subtitle: Text(code),
@@ -15053,6 +15140,85 @@ String buildCustomerPhone(String code, String number) {
   if (clean.isEmpty) return '';
 
   return '${code.replaceAll('-', '')}$clean';
+}
+
+
+String? ghataIsoCountryCodeFromFlag(String flag) {
+  final regional = flag.runes
+      .where(
+        (rune) =>
+            rune >= 0x1F1E6 &&
+            rune <= 0x1F1FF,
+      )
+      .toList();
+
+  if (regional.length != 2) return null;
+
+  return String.fromCharCodes(
+    regional.map(
+      (rune) => 65 + (rune - 0x1F1E6),
+    ),
+  );
+}
+
+Widget ghataCountryFlagWidget(
+  String flag, {
+  double width = 30,
+  double height = 20,
+}) {
+  final countryCode =
+      ghataIsoCountryCodeFromFlag(flag);
+
+  if (countryCode == null) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: const Icon(
+        Icons.public,
+        size: 17,
+      ),
+    );
+  }
+
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(3),
+    child: CountryFlag.fromCountryCode(
+      countryCode,
+      theme: ImageTheme(
+        width: width,
+        height: height,
+        shape: const RoundedRectangle(3),
+      ),
+    ),
+  );
+}
+
+Widget ghataPhoneFlagWidget(
+  String? phone, {
+  double width = 28,
+  double height = 18,
+}) {
+  final split = splitCustomerPhone(phone);
+  final code = split['code'] ?? '+93';
+
+  Map<String, String>? matched;
+
+  for (final country in customerCountryCodes) {
+    if (country['code'] == code) {
+      matched = country;
+      break;
+    }
+  }
+
+  matched ??= customerCountryCodes.firstWhere(
+    (country) => country['code'] == '+93',
+  );
+
+  return ghataCountryFlagWidget(
+    matched['flag'] ?? '',
+    width: width,
+    height: height,
+  );
 }
 
 class CustomersScreen extends StatefulWidget {
@@ -15358,8 +15524,17 @@ class _CustomersScreenState extends State<CustomersScreen> {
                               });
                             }
                           },
-                          child: Text(
-                            '${selectedCountry['flag']} $selectedEditCountryCode',
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ghataCountryFlagWidget(
+                                selectedCountry['flag']!,
+                                width: 28,
+                                height: 18,
+                              ),
+                              SizedBox(width: 6),
+                              Text(selectedEditCountryCode),
+                            ],
                           ),
                         ),
                       ),
@@ -15987,15 +16162,26 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                         ),
                                       ),
                                       if (phone.isNotEmpty) ...[
-                                        SizedBox(height: 3),
-                                        Text(
-                                          phone,
-                                          maxLines: 1,
-                                          overflow:
-                                              TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                      if (address.isNotEmpty) ...[
+                      SizedBox(height: 3),
+                      Row(
+                        children: [
+                          ghataPhoneFlagWidget(
+                            phone,
+                            width: 22,
+                            height: 14,
+                          ),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              phone,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (address.isNotEmpty) ...[
                                         SizedBox(height: 2),
                                         Row(
                                           children: [
@@ -17349,8 +17535,17 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                               });
                             }
                           },
-                          child: Text(
-                            '${selectedCountry['flag']} $selectedProfileCountryCode',
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ghataCountryFlagWidget(
+                                selectedCountry['flag']!,
+                                width: 28,
+                                height: 18,
+                              ),
+                              SizedBox(width: 6),
+                              Text(selectedProfileCountryCode),
+                            ],
                           ),
                         ),
                       ),
@@ -18563,6 +18758,8 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           customerProfile?['full_name']?.toString().trim().isNotEmpty == true
               ? customerProfile!['full_name'].toString()
               : customerName;
+      final profilePhone =
+          customerProfile?['phone']?.toString().trim() ?? '';
       final profileAddress =
           customerProfile?['address']?.toString().trim() ?? '';
       final profileInitial =
@@ -18601,6 +18798,29 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (profilePhone.isNotEmpty)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ghataPhoneFlagWidget(
+                            profilePhone,
+                            width: 22,
+                            height: 14,
+                          ),
+                          SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              profilePhone,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.normal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     if (profileAddress.isNotEmpty)
                       Text(
                         profileAddress,
@@ -18796,35 +19016,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.red,
                           side: BorderSide(color: Colors.red),
-                          minimumSize: Size.fromHeight(54),
-                          padding: EdgeInsets.symmetric(horizontal: 6),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 6),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: openCustomerExchange,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.currency_exchange_rounded,
-                              size: 18,
-                            ),
-                            SizedBox(height: 3),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                ghataT(context, 'Exchange'),
-                                maxLines: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.purple,
-                          side: BorderSide(color: Colors.purple),
                           minimumSize: Size.fromHeight(54),
                           padding: EdgeInsets.symmetric(horizontal: 6),
                         ),
