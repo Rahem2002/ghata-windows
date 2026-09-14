@@ -4372,7 +4372,7 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ar': 'الأجهزة النشطة',
   },
   'This device': {
-    'en': ghataT(context, 'This device'),
+    'en': 'This device',
     'ps': 'همدا وسیله',
     'fa': 'این دستگاه',
     'ur': 'یہ ڈیوائس',
@@ -4400,7 +4400,7 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ar': 'تسجيل خروج الجهاز',
   },
   'View signed-in devices and log out a specific device.': {
-    'en': ghataT(context, 'View signed-in devices and log out a specific device.'),
+    'en': 'View signed-in devices and log out a specific device.',
     'ps': 'لاګین شوې وسیلې وګورئ او ټاکلې وسیله وباسئ.',
     'fa': 'دستگاه‌های واردشده را ببینید و یک دستگاه مشخص را خارج کنید.',
     'ur': 'لاگ اِن ڈیوائسز دیکھیں اور کسی مخصوص ڈیوائس کو لاگ آؤٹ کریں۔',
@@ -6537,12 +6537,11 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
                                   child: Text(name),
                                 ),
                                 if (isCurrent)
-                                  const Padding(
-                                    padding:
-                                        EdgeInsets.only(left: 8),
-                                    child: Chip(
-                                      label: Text(
-                                        ghataT(context, 'This device'),
+                                  Padding(
+                                      padding: EdgeInsets.only(left: 8),
+                                      child: Chip(
+                                        label: Text(
+                                          ghataT(context, 'This device'),
                                       ),
                                     ),
                                   ),
@@ -13085,21 +13084,22 @@ Future<void> shareTransactionReceiptPdf(
                     ),
                     SizedBox(height: 5),
                     Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ghataCurrencyFlagWidget(currency),
-                        SizedBox(width: 8),
-                        Text('$amount $currency'),
-                      ],
-                    ),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 25,
-                        fontWeight: FontWeight.w800,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ghataCurrencyFlagWidget(currency),
+                          SizedBox(width: 8),
+                          Text(
+                            '$amount $currency',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: accent,
+                              fontSize: 25,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    SizedBox(height: 7),
+                      SizedBox(height: 7),
                     Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: 12,
@@ -18849,7 +18849,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           ),
                           ...ledgerCurrencies.map(
                             (currency) => DropdownMenuItem<String>(
-                              (currency) => DropdownMenuItem<String>(
                                 value: currency,
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -19097,13 +19096,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                             SizedBox(width: 6),
                                             Text(currency),
                                           ],
-                                        ),
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
                                         ),
                                       ],
                                     ),
@@ -21756,11 +21748,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return report;
   }
-                                                                      ghataCurrencyFlagWidget(
-                                                                        currency,
-                                                                        width: 34,
-                                                                        height: 24,
-                                                                      ),
+
+  String flagForCurrency(String code) {
+    const flags = {
+      'AFN': '🇦🇫',
+      'PKR': '🇵🇰',
+      'USD': '🇺🇸',
+      'EUR': '🇪🇺',
       'GBP': '🇬🇧',
       'AED': '🇦🇪',
       'SAR': '🇸🇦',
@@ -21772,7 +21766,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       'INR': '🇮🇳',
       'IRR': '🇮🇷',
     };
-
     return flags[code] ?? '💰';
   }
 
