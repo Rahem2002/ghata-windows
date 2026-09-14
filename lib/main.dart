@@ -9059,9 +9059,10 @@ class LanguageScreen extends StatelessWidget {
           final selected = currentLanguage == language.$1;
 
           return ListTile(
-            leading: Text(
-              language.$3,
-              style: TextStyle(fontSize: 30),
+            leading: ghataLanguageFlagWidget(
+              language.$1,
+              width: 32,
+              height: 22,
             ),
             title: Text(
               language.$2,
