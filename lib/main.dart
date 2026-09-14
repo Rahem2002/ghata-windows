@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:country_flags/country_flags.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -25,6 +26,60 @@ import 'package:share_plus/share_plus.dart';
 
 
 const _ghataUuid = Uuid();
+
+
+Widget ghataCurrencyFlagWidget(
+  String currency, {
+  double width = 26,
+  double height = 18,
+}) {
+  try {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(3),
+      child: CountryFlag.fromCurrencyCode(
+        currency.toUpperCase(),
+        theme: ImageTheme(
+          width: width,
+          height: height,
+          shape: const RoundedRectangle(3),
+        ),
+      ),
+    );
+  } catch (_) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: const Icon(Icons.public, size: 16),
+    );
+  }
+}
+
+
+Widget ghataLanguageFlagWidget(
+  String languageCode, {
+  double width = 26,
+  double height = 18,
+}) {
+  final countryCode = switch (languageCode) {
+    'en' => 'GB',
+    'ps' => 'AF',
+    'fa' => 'AF',
+    'ur' => 'PK',
+    'ar' => 'SA',
+    _ => 'GB',
+  };
+
+  return CountryFlag.fromCountryCode(
+    countryCode,
+    theme: ImageTheme(
+      width: width,
+      height: height,
+      shape: const RoundedRectangle(3),
+    ),
+  );
+}
+
+
 
 
 Future<pw.Font> ghataPdfUnicodeFont() async {
@@ -5876,9 +5931,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           ...availableDashboardCurrencies.map(
                             (code) => DropdownMenuItem<String>(
                               value: code,
-                              child: Text(
-                                '${dashboardFlag(code)} $code',
-                                maxLines: 1,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ghataCurrencyFlagWidget(code),
+                                  SizedBox(width: 7),
+                                  Text(code, maxLines: 1),
+                                ],
                               ),
                             ),
                           ),
@@ -5951,11 +6010,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              dashboardFlag(code),
-                              style: TextStyle(
-                                fontSize: isCashbox ? 19 : 15,
-                              ),
+                            ghataCurrencyFlagWidget(
+                              code,
+                              width: isCashbox ? 28 : 24,
+                              height: isCashbox ? 19 : 16,
                             ),
                             SizedBox(height: 2),
                             Text(
@@ -6082,11 +6140,56 @@ class _HomeScreenState extends State<HomeScreen> {
                   tooltip: ghataT(context, 'language'),
                   onSelected: appState?.changeLanguage,
                   itemBuilder: (context) => [
-                    PopupMenuItem(value: 'en', child: Text('🇬🇧 English')),
-                    PopupMenuItem(value: 'ps', child: Text('🇦🇫 پښتو')),
-                    PopupMenuItem(value: 'fa', child: Text('🇦🇫 دری')),
-                    PopupMenuItem(value: 'ur', child: Text('🇵🇰 اردو')),
-                    PopupMenuItem(value: 'ar', child: Text('🇸🇦 العربية')),
+                    PopupMenuItem(
+                      value: 'en',
+                      child: Row(
+                        children: [
+                          ghataLanguageFlagWidget('en'),
+                          SizedBox(width: 8),
+                          Text('English'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'ps',
+                      child: Row(
+                        children: [
+                          ghataLanguageFlagWidget('ps'),
+                          SizedBox(width: 8),
+                          Text('پښتو'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'fa',
+                      child: Row(
+                        children: [
+                          ghataLanguageFlagWidget('fa'),
+                          SizedBox(width: 8),
+                          Text('دری'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'ur',
+                      child: Row(
+                        children: [
+                          ghataLanguageFlagWidget('ur'),
+                          SizedBox(width: 8),
+                          Text('اردو'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'ar',
+                      child: Row(
+                        children: [
+                          ghataLanguageFlagWidget('ar'),
+                          SizedBox(width: 8),
+                          Text('العربية'),
+                        ],
+                      ),
+                    ),
                   ],
                   icon: Icon(Icons.language_rounded),
                 ),
@@ -6494,10 +6597,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                             ),
                                           ),
                                           SizedBox(height: 3),
-                                          Text(
-                                            dashboardFlag(currency),
-                                            style:
-                                                TextStyle(fontSize: 15),
+                                          ghataCurrencyFlagWidget(
+                                            currency,
+                                            width: 24,
+                                            height: 16,
                                           ),
                                         ],
                                       ),
@@ -6818,7 +6921,9 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
             return nav;
           }
 
-          return Center(
+          return Align(
+            alignment: Alignment.bottomCenter,
+            heightFactor: 1,
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: 900),
               child: nav,
@@ -8934,11 +9039,11 @@ class LanguageScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final languages = [
-      ('en', 'English', '🇬🇧'),
-      ('ps', 'پښتو', '🇦🇫'),
-      ('fa', 'دری', '🇦🇫'),
-      ('ur', 'اردو', '🇵🇰'),
-      ('ar', 'العربية', '🇸🇦'),
+      ('en', 'English'),
+      ('ps', 'پښتو'),
+      ('fa', 'دری'),
+      ('ur', 'اردو'),
+      ('ar', 'العربية'),
     ];
 
     return Scaffold(
@@ -9133,6 +9238,8 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
+    await ghataRefreshOfflineCache();
+
     final local =
         await OfflineDatabase.instance.getRecords('customers');
 
@@ -9140,8 +9247,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       (a, b) => (a['full_name']?.toString() ?? '')
           .compareTo(b['full_name']?.toString() ?? ''),
     );
-
-    ghataRefreshOfflineCache();
 
     return local;
   }
@@ -12054,9 +12159,10 @@ Future<void> shareTransactionReceiptPdf(
                                   children: [
                                     Row(
                                       children: [
-                                        Text(
-                                          flagForCurrency(e.key),
-                                          style: TextStyle(fontSize: 25),
+                                        ghataCurrencyFlagWidget(
+                                          e.key,
+                                          width: 32,
+                                          height: 22,
                                         ),
                                         SizedBox(width: 8),
                                         Text(
@@ -12782,6 +12888,8 @@ class _CustomersScreenState extends State<CustomersScreen> {
   String? pendingCustomerPhotoPath;
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
+    await ghataRefreshOfflineCache();
+
     final local =
         await OfflineDatabase.instance.getRecords('customers');
 
@@ -12789,8 +12897,6 @@ class _CustomersScreenState extends State<CustomersScreen> {
       (a, b) => (a['full_name']?.toString() ?? '')
           .compareTo(b['full_name']?.toString() ?? ''),
     );
-
-    ghataRefreshOfflineCache();
 
     return local;
   }
@@ -14186,8 +14292,13 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       .map(
                         (code) => DropdownMenuItem<String>(
                           value: code,
-                          child: Text(
-                            '${flagForCurrency(code)} $code',
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ghataCurrencyFlagWidget(code),
+                              SizedBox(width: 8),
+                              Text(code),
+                            ],
                           ),
                         ),
                       )
@@ -16423,9 +16534,10 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                             children: [
                               CircleAvatar(
                                 radius: 18,
-                                child: Text(
-                                  flagForCurrency(code),
-                                  style: TextStyle(fontSize: 18),
+                                child: ghataCurrencyFlagWidget(
+                                  code,
+                                  width: 26,
+                                  height: 18,
                                 ),
                               ),
                               SizedBox(width: 9),
@@ -17158,7 +17270,11 @@ class _LoansScreenState extends State<LoansScreen> {
             return Card(
               child: ListTile(
                 leading: CircleAvatar(
-                  child: Text(flagForCurrency(currency)),
+                  child: ghataCurrencyFlagWidget(
+                    currency,
+                    width: 26,
+                    height: 18,
+                  ),
                 ),
                 title: Text(
                   customer,
@@ -17252,7 +17368,11 @@ class _LoansScreenState extends State<LoansScreen> {
             return Card(
               child: ListTile(
                 leading: CircleAvatar(
-                  child: Text(flagForCurrency(currency)),
+                  child: ghataCurrencyFlagWidget(
+                    currency,
+                    width: 26,
+                    height: 18,
+                  ),
                 ),
                 title: Text('$label • $customer'),
                 subtitle: Text(details.join(' • ')),
@@ -17490,7 +17610,11 @@ class _CashboxScreenState extends State<CashboxScreen> {
             return Card(
               child: ListTile(
                 leading: CircleAvatar(
-                  child: Text(flagForCurrency(entry.key)),
+                  child: ghataCurrencyFlagWidget(
+                    entry.key,
+                    width: 26,
+                    height: 18,
+                  ),
                 ),
                 title: Text(entry.key),
                 subtitle: Text(
@@ -17791,6 +17915,8 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   }
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
+    await ghataRefreshOfflineCache();
+
     final local =
         await OfflineDatabase.instance.getRecords('customers');
 
@@ -17798,8 +17924,6 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       (a, b) => (a['full_name']?.toString() ?? '')
           .compareTo(b['full_name']?.toString() ?? ''),
     );
-
-    ghataRefreshOfflineCache();
 
     return local;
   }
@@ -19157,6 +19281,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
   ];
 
   Future<List<Map<String, dynamic>>> loadCustomers() async {
+    await ghataRefreshOfflineCache();
+
     final local =
         await OfflineDatabase.instance.getRecords('customers');
 
@@ -19164,8 +19290,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       (a, b) => (a['full_name']?.toString() ?? '')
           .compareTo(b['full_name']?.toString() ?? ''),
     );
-
-    ghataRefreshOfflineCache();
 
     return local;
   }
@@ -19382,7 +19506,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ...reportCurrencies.map(
                   (code) => DropdownMenuItem<String?>(
                     value: code,
-                    child: Text('${flagForCurrency(code)} $code'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ghataCurrencyFlagWidget(code),
+                        SizedBox(width: 8),
+                        Text(code),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -19741,7 +19872,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   margin: EdgeInsets.only(bottom: 10),
                   child: ExpansionTile(
                     leading: CircleAvatar(
-                      child: Text(flagForCurrency(currency)),
+                      child: ghataCurrencyFlagWidget(
+                        currency,
+                        width: 26,
+                        height: 18,
+                      ),
                     ),
                     title: Text(
                       currency,
