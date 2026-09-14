@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
@@ -150,94 +151,671 @@ Future<String?> ghataPickCustomerPhoto(BuildContext context) async {
   }
 }
 
+String ghataPhotoExtension(String path) {
+  final value = path.toLowerCase();
+  if (value.endsWith('.png')) return '.png';
+  if (value.endsWith('.webp')) return '.webp';
+  return '.jpg';
+}
+
+Future<String> ghataCustomerPhotoDirectory() async {
+  final root = await getApplicationDocumentsDirectory();
+  final dir = Directory('${root.path}/customer_photos');
+
+  if (!await dir.exists()) {
+    await dir.create(recursive: true);
+  }
+
+  return dir.path;
+}
+
 Future<String?> ghataSaveCustomerPhoto(
   String customerId,
   String sourcePath,
 ) async {
   try {
-    final directory = await getApplicationDocumentsDirectory();
-    final photoDirectory =
-        Directory('${directory.path}/customer_photos');
-
-    if (!await photoDirectory.exists()) {
-      await photoDirectory.create(recursive: true);
-    }
-
-    final extension = sourcePath.toLowerCase().endsWith('.png')
-        ? '.png'
-        : '.jpg';
-
-    final destination =
-        '${photoDirectory.path}/$customerId$extension';
-
     final source = File(sourcePath);
-
     if (!await source.exists()) return null;
 
-    final saved = await source.copy(destination);
+    final dir = await ghataCustomerPhotoDirectory();
+    final ext = ghataPhotoExtension(sourcePath);
+    final stamp =
+        DateTime.now().toUtc().millisecondsSinceEpoch;
+    final localPath =
+        '$dir/${customerId}_$stamp$ext';
+    final localFile = File(localPath);
 
-    // Local-only table: do not queue to Supabase.
-    await OfflineDatabase.instance.saveRecord(
-      'customer_photos',
-      {
-        'id': customerId,
-        'photo_path': saved.path,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      },
-      synced: true,
-    );
+    if (source.absolute.path != localFile.absolute.path) {
+      await source.copy(localPath);
+    }
 
-    return saved.path;
-  } catch (_) {
-    return null;
-  }
-}
-
-Future<String?> ghataLoadCustomerPhoto(String customerId) async {
-  try {
-    final record = await OfflineDatabase.instance.getRecord(
-      'customer_photos',
+    final customer =
+        await OfflineDatabase.instance.getRecord(
+      'customers',
       customerId,
+      includeDeleted: true,
     );
 
-    final path = record?['photo_path']?.toString() ?? '';
+    final previousCloudPath =
+        customer?['photo_path']?.toString() ?? '';
 
-    if (path.isEmpty) return null;
+    final user =
+        Supabase.instance.client.auth.currentUser;
 
-    final file = File(path);
+    if (user == null) {
+      await OfflineDatabase.instance.saveRecord(
+        'customer_photos',
+        {
+          'id': customerId,
+          'photo_path': localPath,
+          'cloud_path': previousCloudPath,
+          'updated_at':
+              DateTime.now().toUtc().toIso8601String(),
+        },
+        synced: true,
+      );
 
-    if (!await file.exists()) return null;
+      return localPath;
+    }
 
-    return path;
-  } catch (_) {
+    final cloudPath =
+        '${user.id}/customers/${customerId}_$stamp$ext';
+
+    try {
+      await Supabase.instance.client.storage
+          .from('ghata-media')
+          .upload(
+            cloudPath,
+            localFile,
+            fileOptions:
+                const FileOptions(upsert: true),
+          );
+
+      await Supabase.instance.client
+          .from('customers')
+          .update({
+            'photo_path': cloudPath,
+          })
+          .eq('id', customerId);
+
+      await OfflineDatabase.instance.updateLocalRecord(
+        'customers',
+        customerId,
+        {
+          'photo_path': cloudPath,
+        },
+      );
+
+      await OfflineDatabase.instance.saveRecord(
+        'customer_photos',
+        {
+          'id': customerId,
+          'photo_path': localPath,
+          'cloud_path': cloudPath,
+          'updated_at':
+              DateTime.now().toUtc().toIso8601String(),
+        },
+        synced: true,
+      );
+
+      if (previousCloudPath.isNotEmpty &&
+          previousCloudPath != cloudPath) {
+        try {
+          await Supabase.instance.client.storage
+              .from('ghata-media')
+              .remove([previousCloudPath]);
+        } catch (e) {
+          debugPrint(
+            'Old customer photo cleanup failed: $e',
+          );
+        }
+      }
+
+      ghataScheduleAutomaticBackup();
+    } catch (e) {
+      debugPrint(
+        'Customer cloud photo upload error: $e',
+      );
+
+      await OfflineDatabase.instance.saveRecord(
+        'customer_photos',
+        {
+          'id': customerId,
+          'photo_path': localPath,
+          'cloud_path': previousCloudPath,
+          'updated_at':
+              DateTime.now().toUtc().toIso8601String(),
+        },
+        synced: true,
+      );
+    }
+
+    return localPath;
+  } catch (e) {
+    debugPrint('Customer photo save error: $e');
     return null;
   }
 }
 
-Future<void> ghataDeleteCustomerPhoto(String customerId) async {
+Future<String?> ghataLoadCustomerPhoto(
+  String customerId,
+) async {
   try {
-    final record = await OfflineDatabase.instance.getRecord(
+    final cached =
+        await OfflineDatabase.instance.getRecord(
       'customer_photos',
       customerId,
       includeDeleted: true,
     );
 
-    final path = record?['photo_path']?.toString() ?? '';
+    final cachedLocalPath =
+        cached?['photo_path']?.toString() ?? '';
 
-    if (path.isNotEmpty) {
-      final file = File(path);
+    final cachedCloudPath =
+        cached?['cloud_path']?.toString() ?? '';
+
+    final customer =
+        await OfflineDatabase.instance.getRecord(
+      'customers',
+      customerId,
+      includeDeleted: true,
+    );
+
+    var cloudPath =
+        customer?['photo_path']?.toString() ?? '';
+
+    if (cloudPath.isEmpty &&
+        Supabase.instance.client.auth.currentUser !=
+            null) {
+      try {
+        final remote =
+            await Supabase.instance.client
+                .from('customers')
+                .select('photo_path')
+                .eq('id', customerId)
+                .maybeSingle();
+
+        cloudPath =
+            remote?['photo_path']?.toString() ?? '';
+      } catch (_) {}
+    }
+
+    if (cloudPath.isEmpty) {
+      if (cachedLocalPath.isNotEmpty) {
+        final oldFile = File(cachedLocalPath);
+
+        if (await oldFile.exists()) {
+          try {
+            await oldFile.delete();
+          } catch (_) {}
+        }
+      }
+
+      try {
+        await OfflineDatabase.instance
+            .permanentlyDeleteLocalOnlyRecord(
+          'customer_photos',
+          customerId,
+        );
+      } catch (_) {}
+
+      return null;
+    }
+
+    if (cachedLocalPath.isNotEmpty &&
+        cachedCloudPath == cloudPath &&
+        await File(cachedLocalPath).exists()) {
+      return cachedLocalPath;
+    }
+
+    final bytes =
+        await Supabase.instance.client.storage
+            .from('ghata-media')
+            .download(cloudPath);
+
+    final dir = await ghataCustomerPhotoDirectory();
+    final cloudName = cloudPath.split('/').last;
+    final localPath = '$dir/$cloudName';
+
+    if (cachedLocalPath.isNotEmpty &&
+        cachedLocalPath != localPath) {
+      final oldFile = File(cachedLocalPath);
+
+      if (await oldFile.exists()) {
+        try {
+          await oldFile.delete();
+        } catch (_) {}
+      }
+    }
+
+    await File(localPath).writeAsBytes(
+      bytes,
+      flush: true,
+    );
+
+    await OfflineDatabase.instance.saveRecord(
+      'customer_photos',
+      {
+        'id': customerId,
+        'photo_path': localPath,
+        'cloud_path': cloudPath,
+        'updated_at':
+            DateTime.now().toUtc().toIso8601String(),
+      },
+      synced: true,
+    );
+
+    return localPath;
+  } catch (e) {
+    debugPrint('Customer photo load error: $e');
+    return null;
+  }
+}
+
+Future<void> ghataDeleteCustomerPhoto(
+  String customerId,
+) async {
+  try {
+    final cached = await OfflineDatabase.instance.getRecord(
+      'customer_photos',
+      customerId,
+      includeDeleted: true,
+    );
+
+    final localPath =
+        cached?['photo_path']?.toString() ?? '';
+
+    if (localPath.isNotEmpty) {
+      final file = File(localPath);
+      if (await file.exists()) await file.delete();
+    }
+
+    final customer = await OfflineDatabase.instance.getRecord(
+      'customers',
+      customerId,
+      includeDeleted: true,
+    );
+
+    final cloudPath =
+        customer?['photo_path']?.toString() ?? '';
+
+    if (cloudPath.isNotEmpty) {
+      try {
+        await Supabase.instance.client.storage
+            .from('ghata-media')
+            .remove([cloudPath]);
+      } catch (_) {}
+    }
+
+    try {
+      await Supabase.instance.client
+          .from('customers')
+          .update({'photo_path': null})
+          .eq('id', customerId);
+    } catch (_) {}
+
+    try {
+      await OfflineDatabase.instance.updateLocalRecord(
+        'customers',
+        customerId,
+        {'photo_path': null},
+      );
+    } catch (_) {}
+
+    await OfflineDatabase.instance
+        .permanentlyDeleteLocalOnlyRecord(
+      'customer_photos',
+      customerId,
+    );
+
+    ghataScheduleAutomaticBackup();
+  } catch (e) {
+    debugPrint('Customer photo delete error: $e');
+  }
+}
+
+
+Future<String> ghataProfilePhotoDirectory() async {
+  final root = await getApplicationDocumentsDirectory();
+  final dir = Directory('${root.path}/profile_photos');
+
+  if (!await dir.exists()) {
+    await dir.create(recursive: true);
+  }
+
+  return dir.path;
+}
+
+Future<String?> ghataSaveProfilePhoto(
+  String sourcePath,
+) async {
+  try {
+    final user =
+        Supabase.instance.client.auth.currentUser;
+
+    if (user == null) return null;
+
+    final source = File(sourcePath);
+    if (!await source.exists()) return null;
+
+    final dir = await ghataProfilePhotoDirectory();
+    final ext = ghataPhotoExtension(sourcePath);
+    final stamp =
+        DateTime.now().toUtc().millisecondsSinceEpoch;
+    final localPath =
+        '$dir/${user.id}_avatar_$stamp$ext';
+    final localFile = File(localPath);
+
+    if (source.absolute.path != localFile.absolute.path) {
+      await source.copy(localPath);
+    }
+
+    final existing =
+        await OfflineDatabase.instance.getRecord(
+              'profiles',
+              user.id,
+              includeDeleted: true,
+            ) ??
+            <String, dynamic>{
+              'id': user.id,
+            };
+
+    final previousCloudPath =
+        existing['avatar_path']?.toString() ?? '';
+
+    final cloudPath =
+        '${user.id}/profile/avatar_$stamp$ext';
+
+    await Supabase.instance.client.storage
+        .from('ghata-media')
+        .upload(
+          cloudPath,
+          localFile,
+          fileOptions:
+              const FileOptions(upsert: true),
+        );
+
+    await Supabase.instance.client
+        .from('profiles')
+        .update({
+          'avatar_path': cloudPath,
+        })
+        .eq('id', user.id);
+
+    await OfflineDatabase.instance.saveRecord(
+      'profiles',
+      {
+        ...existing,
+        'id': user.id,
+        'avatar_path': cloudPath,
+      },
+      synced: true,
+    );
+
+    await OfflineDatabase.instance.saveRecord(
+      'profile_photos',
+      {
+        'id': user.id,
+        'photo_path': localPath,
+        'cloud_path': cloudPath,
+        'updated_at':
+            DateTime.now().toUtc().toIso8601String(),
+      },
+      synced: true,
+    );
+
+    if (previousCloudPath.isNotEmpty &&
+        previousCloudPath != cloudPath) {
+      try {
+        await Supabase.instance.client.storage
+            .from('ghata-media')
+            .remove([previousCloudPath]);
+      } catch (e) {
+        debugPrint(
+          'Old profile photo cleanup failed: $e',
+        );
+      }
+    }
+
+    ghataScheduleAutomaticBackup();
+
+    return localPath;
+  } catch (e) {
+    debugPrint('Profile photo save error: $e');
+    return null;
+  }
+}
+
+Future<String?> ghataLoadProfilePhoto() async {
+  try {
+    final user =
+        Supabase.instance.client.auth.currentUser;
+
+    if (user == null) return null;
+
+    final cached =
+        await OfflineDatabase.instance.getRecord(
+      'profile_photos',
+      user.id,
+      includeDeleted: true,
+    );
+
+    final cachedLocalPath =
+        cached?['photo_path']?.toString() ?? '';
+
+    final cachedCloudPath =
+        cached?['cloud_path']?.toString() ?? '';
+
+    final localProfile =
+        await OfflineDatabase.instance.getRecord(
+      'profiles',
+      user.id,
+      includeDeleted: true,
+    );
+
+    var cloudPath =
+        localProfile?['avatar_path']?.toString() ?? '';
+
+    if (cloudPath.isEmpty) {
+      try {
+        final remote =
+            await Supabase.instance.client
+                .from('profiles')
+                .select('avatar_path')
+                .eq('id', user.id)
+                .maybeSingle();
+
+        cloudPath =
+            remote?['avatar_path']?.toString() ?? '';
+      } catch (_) {}
+    }
+
+    if (cloudPath.isEmpty) {
+      if (cachedLocalPath.isNotEmpty) {
+        final oldFile = File(cachedLocalPath);
+
+        if (await oldFile.exists()) {
+          try {
+            await oldFile.delete();
+          } catch (_) {}
+        }
+      }
+
+      try {
+        await OfflineDatabase.instance
+            .permanentlyDeleteLocalOnlyRecord(
+          'profile_photos',
+          user.id,
+        );
+      } catch (_) {}
+
+      return null;
+    }
+
+    if (cachedLocalPath.isNotEmpty &&
+        cachedCloudPath == cloudPath &&
+        await File(cachedLocalPath).exists()) {
+      return cachedLocalPath;
+    }
+
+    final bytes =
+        await Supabase.instance.client.storage
+            .from('ghata-media')
+            .download(cloudPath);
+
+    final dir = await ghataProfilePhotoDirectory();
+    final cloudName = cloudPath.split('/').last;
+    final localPath =
+        '$dir/${user.id}_$cloudName';
+
+    if (cachedLocalPath.isNotEmpty &&
+        cachedLocalPath != localPath) {
+      final oldFile = File(cachedLocalPath);
+
+      if (await oldFile.exists()) {
+        try {
+          await oldFile.delete();
+        } catch (_) {}
+      }
+    }
+
+    await File(localPath).writeAsBytes(
+      bytes,
+      flush: true,
+    );
+
+    await OfflineDatabase.instance.saveRecord(
+      'profile_photos',
+      {
+        'id': user.id,
+        'photo_path': localPath,
+        'cloud_path': cloudPath,
+        'updated_at':
+            DateTime.now().toUtc().toIso8601String(),
+      },
+      synced: true,
+    );
+
+    return localPath;
+  } catch (e) {
+    debugPrint('Profile photo load error: $e');
+    return null;
+  }
+}
+
+Future<void> ghataDeleteProfilePhoto() async {
+  try {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final cached =
+        await OfflineDatabase.instance.getRecord(
+      'profile_photos',
+      user.id,
+      includeDeleted: true,
+    );
+
+    final localPath =
+        cached?['photo_path']?.toString() ?? '';
+
+    if (localPath.isNotEmpty) {
+      final file = File(localPath);
       if (await file.exists()) {
         await file.delete();
       }
     }
 
-    await OfflineDatabase.instance.permanentlyDeleteLocalOnlyRecord(
-      'customer_photos',
-      customerId,
+    final localProfile =
+        await OfflineDatabase.instance.getRecord(
+      'profiles',
+      user.id,
+      includeDeleted: true,
     );
-  } catch (_) {}
+
+    var cloudPath =
+        localProfile?['avatar_path']?.toString() ?? '';
+
+    if (cloudPath.isEmpty) {
+      final remote = await Supabase.instance.client
+          .from('profiles')
+          .select('avatar_path')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      cloudPath =
+          remote?['avatar_path']?.toString() ?? '';
+    }
+
+    if (cloudPath.isNotEmpty) {
+      try {
+        await Supabase.instance.client.storage
+            .from('ghata-media')
+            .remove([cloudPath]);
+      } catch (_) {}
+    }
+
+    await Supabase.instance.client
+        .from('profiles')
+        .update({
+          'avatar_path': null,
+        })
+        .eq('id', user.id);
+
+    final existing =
+        await OfflineDatabase.instance.getRecord(
+              'profiles',
+              user.id,
+              includeDeleted: true,
+            ) ??
+            <String, dynamic>{
+              'id': user.id,
+            };
+
+    await OfflineDatabase.instance.saveRecord(
+      'profiles',
+      {
+        ...existing,
+        'id': user.id,
+        'avatar_path': null,
+      },
+      synced: true,
+    );
+
+    await OfflineDatabase.instance
+        .permanentlyDeleteLocalOnlyRecord(
+      'profile_photos',
+      user.id,
+    );
+
+    ghataScheduleAutomaticBackup();
+  } catch (e) {
+    debugPrint('Profile photo delete error: $e');
+  }
 }
 
+
+Future<void> ghataRefreshTransactionsCache() async {
+  final user =
+      Supabase.instance.client.auth.currentUser;
+
+  if (user == null) return;
+
+  try {
+    final rows =
+        await Supabase.instance.client
+            .from('transactions')
+            .select();
+
+    await OfflineDatabase.instance.cacheServerRecords(
+      'transactions',
+      List<Map<String, dynamic>>.from(rows),
+    );
+  } catch (e) {
+    debugPrint(
+      'Transactions cache refresh error: $e',
+    );
+  }
+}
 
 
 Future<void> ghataRefreshCustomersCache() async {
@@ -272,7 +850,7 @@ Future<Map<String, dynamic>?> ghataLoadBusinessProfile() async {
       final data = await Supabase.instance.client
           .from('profiles')
           .select(
-            'full_name, username, business_name, business_phone, business_address, receipt_note',
+            'full_name, username, business_name, business_phone, business_address, receipt_note, avatar_path',
           )
           .eq('id', user.id)
           .maybeSingle();
@@ -296,9 +874,185 @@ Future<Map<String, dynamic>?> ghataLoadBusinessProfile() async {
 }
 
 
+Future<void>? _ghataFullSyncFuture;
+
+Future<void> ghataSyncAll() {
+  final existing = _ghataFullSyncFuture;
+  if (existing != null) return existing;
+
+  late final Future<void> syncFuture;
+
+  syncFuture = _ghataSyncAllImpl().whenComplete(() {
+    if (identical(_ghataFullSyncFuture, syncFuture)) {
+      _ghataFullSyncFuture = null;
+    }
+  });
+
+  _ghataFullSyncFuture = syncFuture;
+  return syncFuture;
+}
+
+Future<void> _ghataSyncAllImpl() async {
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return;
+
+  try {
+    // Important: upload local pending changes first.
+    await OfflineSyncService.instance.syncPending();
+  } catch (e) {
+    debugPrint('Ghata pending upload failed: $e');
+  }
+
+  try {
+    // Then pull the latest server state.
+    // cacheServerRecords protects unsynced local records.
+    await ghataRefreshOfflineCache();
+  } catch (e) {
+    debugPrint('Ghata server refresh failed: $e');
+  }
+}
+
+
+Timer? _ghataAutomaticBackupTimer;
+bool _ghataAutomaticBackupRunning = false;
+
+void ghataScheduleAutomaticBackup() {
+  _ghataAutomaticBackupTimer?.cancel();
+
+  _ghataAutomaticBackupTimer = Timer(
+    const Duration(seconds: 3),
+    () {
+      ghataCreateAutomaticBackup();
+    },
+  );
+}
+
+Future<Map<String, dynamic>> ghataBuildAutomaticBackup() async {
+  final user = Supabase.instance.client.auth.currentUser;
+
+  if (user == null) {
+    throw StateError('Not signed in.');
+  }
+
+  final customers =
+      await OfflineDatabase.instance.getRecords(
+    'customers',
+    includeDeleted: true,
+  );
+
+  final transactions =
+      await OfflineDatabase.instance.getRecords(
+    'transactions',
+    includeDeleted: true,
+  );
+
+  final exchanges =
+      await OfflineDatabase.instance.getRecords(
+    'exchanges',
+    includeDeleted: true,
+  );
+
+  final exchangeEntries =
+      await OfflineDatabase.instance.getRecords(
+    'exchange_entries',
+    includeDeleted: true,
+  );
+
+  final profile =
+      await OfflineDatabase.instance.getRecord(
+    'profiles',
+    user.id,
+    includeDeleted: true,
+  );
+
+  return <String, dynamic>{
+    'app': 'Ghata',
+    'backup_type': 'automatic',
+    'format_version': 1,
+    'created_at':
+        DateTime.now().toUtc().toIso8601String(),
+    'user_id': user.id,
+    'profile': profile,
+    'customers': customers,
+    'transactions': transactions,
+    'exchanges': exchanges,
+    'exchange_entries': exchangeEntries,
+  };
+}
+
+Future<void> ghataCreateAutomaticBackup() async {
+  if (_ghataAutomaticBackupRunning) {
+    return;
+  }
+
+  final user =
+      Supabase.instance.client.auth.currentUser;
+
+  if (user == null) {
+    return;
+  }
+
+  _ghataAutomaticBackupRunning = true;
+
+  try {
+    final backup =
+        await ghataBuildAutomaticBackup();
+
+    final root =
+        await getApplicationDocumentsDirectory();
+
+    final directory = Directory(
+      '${root.path}/Ghata/backups',
+    );
+
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+
+    final safeUserId = user.id.replaceAll(
+      RegExp(r'[^A-Za-z0-9_-]'),
+      '_',
+    );
+
+    final file = File(
+      '${directory.path}/'
+      'Ghata_Auto_Latest_$safeUserId.json',
+    );
+
+    final temp = File('${file.path}.tmp');
+
+    final content =
+        const JsonEncoder.withIndent(' ').convert(
+      backup,
+    );
+
+    await temp.writeAsString(
+      content,
+      flush: true,
+    );
+
+    if (await file.exists()) {
+      await file.delete();
+    }
+
+    await temp.rename(file.path);
+
+    debugPrint(
+      'Ghata automatic backup updated: '
+      '${file.path}',
+    );
+  } catch (e) {
+    debugPrint(
+      'Ghata automatic backup failed: $e',
+    );
+  } finally {
+    _ghataAutomaticBackupRunning = false;
+  }
+}
+
 Future<void> ghataTrySync() async {
   try {
-    await OfflineSyncService.instance.syncPending();
+    await ghataSyncAll();
   } catch (_) {
     // Offline is allowed. Pending operations remain queued.
   }
@@ -314,6 +1068,8 @@ Future<void> ghataSaveLocal(
     operationType: 'upsert',
   );
 
+  ghataScheduleAutomaticBackup();
+
   // Best effort only. Local save already succeeded.
   ghataTrySync();
 }
@@ -323,6 +1079,7 @@ Future<void> ghataSoftDeleteLocal(
   String id,
 ) async {
   await OfflineDatabase.instance.softDeleteLocalRecord(table, id);
+  ghataScheduleAutomaticBackup();
   ghataTrySync();
 }
 
@@ -397,6 +1154,22 @@ Future<void> _ghataOfflineCacheRefreshImpl() async {
     );
   } catch (e) {
     debugPrint('Ghata exchange entries cache refresh failed: $e');
+  }
+
+  try {
+    final profiles =
+        await Supabase.instance.client
+            .from('profiles')
+            .select();
+
+    await OfflineDatabase.instance.cacheServerRecords(
+      'profiles',
+      List<Map<String, dynamic>>.from(profiles),
+    );
+  } catch (e) {
+    debugPrint(
+      'Ghata profiles cache refresh failed: $e',
+    );
   }
 }
 
@@ -3617,6 +4390,195 @@ String ghataLanguageName(String code) {
   }
 }
 
+
+String ghataDevicePlatform() {
+  if (Platform.isWindows) return 'windows';
+  if (Platform.isAndroid) return 'android';
+  if (Platform.isIOS) return 'ios';
+  if (Platform.isMacOS) return 'macos';
+  if (Platform.isLinux) return 'linux';
+  return Platform.operatingSystem;
+}
+
+String ghataDeviceDisplayName() {
+  String base;
+
+  if (Platform.isWindows) {
+    base = 'Windows PC';
+  } else if (Platform.isAndroid) {
+    base = 'Android Device';
+  } else if (Platform.isIOS) {
+    base = 'iPhone / iPad';
+  } else if (Platform.isMacOS) {
+    base = 'Mac';
+  } else if (Platform.isLinux) {
+    base = 'Linux Device';
+  } else {
+    base = 'Ghata Device';
+  }
+
+  try {
+    final host = Platform.localHostname.trim();
+
+    if (host.isNotEmpty &&
+        host.toLowerCase() != 'localhost') {
+      return '$base • $host';
+    }
+  } catch (_) {}
+
+  return base;
+}
+
+Future<void> ghataRegisterCurrentDevice() async {
+  try {
+    final user =
+        Supabase.instance.client.auth.currentUser;
+
+    if (user == null) return;
+
+    final deviceId = await GhataSecurity.deviceId();
+
+    final existing =
+        await Supabase.instance.client
+            .from('user_devices')
+            .select(
+              'id, device_id, revoked_at',
+            )
+            .eq('user_id', user.id)
+            .eq('device_id', deviceId)
+            .maybeSingle();
+
+    if (existing != null) {
+      final revokedAt =
+          existing['revoked_at']?.toString() ?? '';
+
+      if (revokedAt.isNotEmpty) {
+        await Supabase.instance.client.auth.signOut(
+          scope: SignOutScope.local,
+        );
+        return;
+      }
+
+      final now =
+          DateTime.now().toUtc().toIso8601String();
+
+      await Supabase.instance.client
+          .from('user_devices')
+          .update({
+            'device_name':
+                ghataDeviceDisplayName(),
+            'platform':
+                ghataDevicePlatform(),
+            'last_seen': now,
+            'updated_at': now,
+          })
+          .eq('user_id', user.id)
+          .eq('device_id', deviceId);
+
+      return;
+    }
+
+    final now =
+        DateTime.now().toUtc().toIso8601String();
+
+    await Supabase.instance.client
+        .from('user_devices')
+        .insert({
+          'user_id': user.id,
+          'device_id': deviceId,
+          'device_name':
+              ghataDeviceDisplayName(),
+          'platform':
+              ghataDevicePlatform(),
+          'last_seen': now,
+          'created_at': now,
+          'updated_at': now,
+        });
+  } catch (e) {
+    debugPrint(
+      'Device registration error: $e',
+    );
+  }
+}
+
+Future<bool> ghataCheckCurrentDeviceRevocation() async {
+  final user = Supabase.instance.client.auth.currentUser;
+
+  if (user == null) return false;
+
+  try {
+    final deviceId = await GhataSecurity.deviceId();
+
+    final row = await Supabase.instance.client
+        .from('user_devices')
+        .select('revoked_at')
+        .eq('user_id', user.id)
+        .eq('device_id', deviceId)
+        .maybeSingle();
+
+    if (row == null) {
+      await ghataRegisterCurrentDevice();
+      return false;
+    }
+
+    final revokedAt =
+        row['revoked_at']?.toString();
+
+    if (revokedAt == null || revokedAt.isEmpty) {
+      return false;
+    }
+
+    try {
+      await Supabase.instance.client.auth.signOut(
+        scope: SignOutScope.local,
+      );
+    } catch (e) {
+      debugPrint(
+        'Ghata revoked-device local sign out failed: $e',
+      );
+    }
+
+    return true;
+  } catch (e) {
+    debugPrint(
+      'Ghata device revocation check failed: $e',
+    );
+    return false;
+  }
+}
+
+Future<void> ghataTouchCurrentDevice() async {
+  final user = Supabase.instance.client.auth.currentUser;
+
+  if (user == null) return;
+
+  try {
+    final revoked =
+        await ghataCheckCurrentDeviceRevocation();
+
+    if (revoked) return;
+
+    final deviceId = await GhataSecurity.deviceId();
+
+    await Supabase.instance.client
+        .from('user_devices')
+        .update(
+          <String, dynamic>{
+            'last_seen':
+                DateTime.now().toUtc().toIso8601String(),
+            'updated_at':
+                DateTime.now().toUtc().toIso8601String(),
+          },
+        )
+        .eq('user_id', user.id)
+        .eq('device_id', deviceId);
+  } catch (e) {
+    debugPrint(
+      'Ghata device last_seen update failed: $e',
+    );
+  }
+}
+
 class GhataApp extends StatefulWidget {
   GhataApp({super.key});
 
@@ -3624,7 +4586,8 @@ class GhataApp extends StatefulWidget {
   State<GhataApp> createState() => _GhataAppState();
 }
 
-class _GhataAppState extends State<GhataApp> {
+class _GhataAppState extends State<GhataApp>
+    with WidgetsBindingObserver {
   final navigatorKey = GlobalKey<NavigatorState>();
 
   static const _settingsStorage = FlutterSecureStorage();
@@ -3693,11 +4656,134 @@ class _GhataAppState extends State<GhataApp> {
     }
   }
 
+  Timer? _ghataSyncTimer;
+  RealtimeChannel? _ghataRealtimeChannel;
+
+  void _startGhataRealtimeSync() {
+    if (Supabase.instance.client.auth.currentUser == null) {
+      return;
+    }
+
+    if (_ghataRealtimeChannel != null) {
+      return;
+    }
+
+    final channel = Supabase.instance.client.channel(
+      'ghata-multidevice-sync',
+    );
+
+    void handleRealtimeChange(PostgresChangePayload payload) {
+      ghataTrySync();
+    }
+
+    channel
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'customers',
+          callback: handleRealtimeChange,
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'transactions',
+          callback: handleRealtimeChange,
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'exchanges',
+          callback: handleRealtimeChange,
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'exchange_entries',
+          callback: handleRealtimeChange,
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'profiles',
+          callback: handleRealtimeChange,
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'user_devices',
+          callback: (payload) {
+            ghataCheckCurrentDeviceRevocation();
+          },
+        )
+        .subscribe();
+
+    _ghataRealtimeChannel = channel;
+  }
+
+  Future<void> _stopGhataRealtimeSync() async {
+    final channel = _ghataRealtimeChannel;
+    _ghataRealtimeChannel = null;
+
+    if (channel != null) {
+      try {
+        await Supabase.instance.client.removeChannel(channel);
+      } catch (e) {
+        debugPrint('Ghata realtime channel cleanup failed: $e');
+      }
+    }
+  }
+
+  void _startGhataAutomaticSync() {
+    _ghataSyncTimer?.cancel();
+
+    if (Supabase.instance.client.auth.currentUser == null) {
+      return;
+    }
+
+    ghataRegisterCurrentDevice();
+    ghataTrySync();
+    _startGhataRealtimeSync();
+
+    _ghataSyncTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) {
+        if (Supabase.instance.client.auth.currentUser != null) {
+          ghataTouchCurrentDevice();
+          ghataTrySync();
+        }
+      },
+    );
+  }
+
+  void _stopGhataAutomaticSync() {
+    _ghataSyncTimer?.cancel();
+    _ghataSyncTimer = null;
+    _stopGhataRealtimeSync();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startGhataAutomaticSync();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _stopGhataAutomaticSync();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addObserver(this);
+
     _loadSavedAppearance();
+
+    if (Supabase.instance.client.auth.currentUser != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startGhataAutomaticSync();
+      });
+    }
 
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (data.event == AuthChangeEvent.passwordRecovery) {
@@ -3709,8 +4795,26 @@ class _GhataAppState extends State<GhataApp> {
             (route) => false,
           );
         });
+        return;
+      }
+
+      if (data.event == AuthChangeEvent.signedIn ||
+          data.event == AuthChangeEvent.tokenRefreshed ||
+          data.event == AuthChangeEvent.userUpdated) {
+        _startGhataAutomaticSync();
+      }
+
+      if (data.event == AuthChangeEvent.signedOut) {
+        _stopGhataAutomaticSync();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopGhataAutomaticSync();
+    super.dispose();
   }
 
   @override
@@ -3793,6 +4897,44 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = response.user;
       if (user == null) {
         throw StateError('Login succeeded without a user.');
+      }
+
+      final deviceId = await GhataSecurity.deviceId();
+      final now = DateTime.now().toUtc().toIso8601String();
+
+      final existingDevice =
+          await Supabase.instance.client
+              .from('user_devices')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('device_id', deviceId)
+              .maybeSingle();
+
+      if (existingDevice == null) {
+        await Supabase.instance.client
+            .from('user_devices')
+            .insert({
+              'user_id': user.id,
+              'device_id': deviceId,
+              'device_name': ghataDeviceDisplayName(),
+              'platform': ghataDevicePlatform(),
+              'last_seen': now,
+              'revoked_at': null,
+              'created_at': now,
+              'updated_at': now,
+            });
+      } else {
+        await Supabase.instance.client
+            .from('user_devices')
+            .update({
+              'device_name': ghataDeviceDisplayName(),
+              'platform': ghataDevicePlatform(),
+              'last_seen': now,
+              'revoked_at': null,
+              'updated_at': now,
+            })
+            .eq('user_id', user.id)
+            .eq('device_id', deviceId);
       }
 
       final localOwner = await GhataSecurity.localAccountOwner();
@@ -4303,6 +5445,24 @@ class GhataSecurity {
   static const _storage = FlutterSecureStorage();
   static const _biometricKey = 'ghata_biometric_enabled';
   static const _localAccountOwnerKey = 'ghata_local_account_owner';
+  static const _deviceIdKey = 'ghata_device_id';
+
+  static Future<String> deviceId() async {
+    final existing = await _storage.read(key: _deviceIdKey);
+
+    if (existing != null && existing.trim().isNotEmpty) {
+      return existing;
+    }
+
+    final id = const Uuid().v4();
+
+    await _storage.write(
+      key: _deviceIdKey,
+      value: id,
+    );
+
+    return id;
+  }
 
   static Future<String?> localAccountOwner() async {
     return _storage.read(key: _localAccountOwnerKey);
@@ -4925,7 +6085,8 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       await restoreRecords('exchanges', exchanges);
       await restoreRecords('exchange_entries', exchangeEntries);
 
-      ghataTrySync();
+      ghataScheduleAutomaticBackup();
+        ghataTrySync();
 
       if (!mounted) return;
 
@@ -5022,6 +6183,319 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 }
 
 
+
+class ActiveDevicesScreen extends StatefulWidget {
+  const ActiveDevicesScreen({super.key});
+
+  @override
+  State<ActiveDevicesScreen> createState() =>
+      _ActiveDevicesScreenState();
+}
+
+class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
+  bool loading = true;
+  String? currentDeviceId;
+  List<Map<String, dynamic>> devices = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadDevices();
+  }
+
+  IconData _platformIcon(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'windows':
+        return Icons.desktop_windows_outlined;
+      case 'android':
+        return Icons.android_outlined;
+      case 'ios':
+        return Icons.phone_iphone_outlined;
+      case 'macos':
+        return Icons.laptop_mac_outlined;
+      case 'linux':
+        return Icons.computer_outlined;
+      default:
+        return Icons.devices_other_outlined;
+    }
+  }
+
+  String _lastSeenText(dynamic value) {
+    final raw = value?.toString() ?? '';
+    final date = DateTime.tryParse(raw);
+
+    if (date == null) {
+      return 'Unknown';
+    }
+
+    final now = DateTime.now().toUtc();
+    final diff = now.difference(date.toUtc());
+
+    if (diff.inSeconds < 60) {
+      return 'Active now';
+    }
+
+    if (diff.inMinutes < 60) {
+      return '${diff.inMinutes} min ago';
+    }
+
+    if (diff.inHours < 24) {
+      return '${diff.inHours} h ago';
+    }
+
+    if (diff.inDays < 30) {
+      return '${diff.inDays} d ago';
+    }
+
+    return date.toLocal().toString().substring(0, 16);
+  }
+
+  Future<void> loadDevices() async {
+    if (mounted) {
+      setState(() => loading = true);
+    }
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user == null) {
+        if (mounted) {
+          setState(() {
+            devices = [];
+            loading = false;
+          });
+        }
+        return;
+      }
+
+      final id = await GhataSecurity.deviceId();
+
+      await ghataRegisterCurrentDevice();
+
+      final rows = await Supabase.instance.client
+          .from('user_devices')
+          .select()
+          .eq('user_id', user.id)
+          .order('last_seen', ascending: false);
+
+      if (!mounted) return;
+
+      setState(() {
+        currentDeviceId = id;
+        devices = List<Map<String, dynamic>>.from(rows);
+        loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() => loading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to load active devices: $e',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> revokeDevice(
+    Map<String, dynamic> device,
+  ) async {
+    final deviceId = device['device_id']?.toString() ?? '';
+
+    if (deviceId.isEmpty ||
+        deviceId == currentDeviceId) {
+      return;
+    }
+
+    final name =
+        device['device_name']?.toString() ?? 'Device';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Log Out Device'),
+        content: Text(
+          'Log out "$name" from your Ghata account?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, false),
+            child: Text(
+              ghataT(context, 'Cancel'),
+            ),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, true),
+            child: const Text('Log Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user == null) return;
+
+      final now =
+          DateTime.now().toUtc().toIso8601String();
+
+      await Supabase.instance.client
+          .from('user_devices')
+          .update(
+            <String, dynamic>{
+              'revoked_at': now,
+              'updated_at': now,
+            },
+          )
+          .eq('user_id', user.id)
+          .eq('device_id', deviceId);
+
+      await loadDevices();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Device logged out successfully.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Unable to log out device: $e',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Active Devices'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: loading ? null : loadDevices,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: loading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : RefreshIndicator(
+              onRefresh: loadDevices,
+              child: devices.isEmpty
+                  ? ListView(
+                      children: const [
+                        SizedBox(height: 140),
+                        Center(
+                          child: Text(
+                            'No active devices found.',
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: devices.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final device = devices[index];
+
+                        final deviceId =
+                            device['device_id']
+                                    ?.toString() ??
+                                '';
+
+                        final isCurrent =
+                            deviceId == currentDeviceId;
+
+                        final revokedAt =
+                            device['revoked_at']
+                                ?.toString();
+
+                        final revoked =
+                            revokedAt != null &&
+                                revokedAt.isNotEmpty;
+
+                        final platform =
+                            device['platform']
+                                    ?.toString() ??
+                                'unknown';
+
+                        final name =
+                            device['device_name']
+                                    ?.toString() ??
+                                'Unknown device';
+
+                        return Card(
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              child: Icon(
+                                _platformIcon(platform),
+                              ),
+                            ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(name),
+                                ),
+                                if (isCurrent)
+                                  const Padding(
+                                    padding:
+                                        EdgeInsets.only(left: 8),
+                                    child: Chip(
+                                      label: Text(
+                                        'This device',
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            subtitle: Text(
+                              revoked
+                                  ? 'Logged out'
+                                  : '${platform.toUpperCase()} • ${_lastSeenText(device['last_seen'])}',
+                            ),
+                            trailing: isCurrent || revoked
+                                ? null
+                                : IconButton(
+                                    tooltip:
+                                        'Log Out Device',
+                                    onPressed: () =>
+                                        revokeDevice(device),
+                                    icon: const Icon(
+                                      Icons.logout,
+                                    ),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+    );
+  }
+}
+
+
 class SecurityScreen extends StatefulWidget {
   SecurityScreen({super.key});
 
@@ -5103,9 +6577,32 @@ class _SecurityScreenState extends State<SecurityScreen> {
     if (confirmed != true || !mounted) return;
 
     try {
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user == null) return;
+
+      final currentDeviceId =
+          await GhataSecurity.deviceId();
+
+      final now =
+          DateTime.now().toUtc().toIso8601String();
+
+      await Supabase.instance.client
+          .from('user_devices')
+          .update(
+            <String, dynamic>{
+              'revoked_at': now,
+              'updated_at': now,
+            },
+          )
+          .eq('user_id', user.id)
+          .neq('device_id', currentDeviceId);
+
       await Supabase.instance.client.auth.signOut(
         scope: SignOutScope.others,
       );
+
+      await ghataTouchCurrentDevice();
 
       if (!mounted) return;
 
@@ -5185,6 +6682,25 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     value: appLockEnabled,
                     onChanged:
                         deviceAuthAvailable ? changeDeviceLock : null,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: Icon(Icons.devices_other_outlined),
+                    title: Text('Active Devices'),
+                    subtitle: Text(
+                      'View signed-in devices and log out a specific device.',
+                    ),
+                    trailing: Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const ActiveDevicesScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 SizedBox(height: 12),
@@ -5494,6 +7010,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late Future<Map<String, Map<String, double>>> dashboardFuture;
   String selectedDashboardCurrency = 'ALL';
+    String selectedRecentTransactionFilter = 'ALL';
 
   @override
   void initState() {
@@ -5717,10 +7234,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<List<Map<String, dynamic>>> loadRecentTransactions() async {
-  await ghataRefreshOfflineCache();
+  var local =
+      await OfflineDatabase.instance.getRecords(
+    'transactions',
+  );
 
-  final local =
-      await OfflineDatabase.instance.getRecords('transactions');
+  if (local.isEmpty) {
+    await ghataRefreshTransactionsCache();
+
+    local =
+        await OfflineDatabase.instance.getRecords(
+      'transactions',
+    );
+  } else {
+    ghataRefreshTransactionsCache();
+  }
 
   local.sort((a, b) {
     final ad =
@@ -5731,7 +7259,38 @@ class _HomeScreenState extends State<HomeScreen> {
     return bd.compareTo(ad);
   });
 
-  return local.take(5).toList();
+  final filtered = local.where((row) {
+    final type = row['transaction_type']?.toString() ?? '';
+
+    switch (selectedRecentTransactionFilter) {
+      case 'MONEY_IN':
+        return type == 'money_in' ||
+            type == 'loan_repayment_received' ||
+            type == 'loan_received' ||
+            type == 'adjustment_in';
+
+      case 'MONEY_OUT':
+        return type == 'money_out' ||
+            type == 'loan_repayment_paid' ||
+            type == 'loan_given' ||
+            type == 'adjustment_out';
+
+      case 'LOANS':
+        return type == 'loan_given' ||
+            type == 'loan_received' ||
+            type == 'loan_repayment_received' ||
+            type == 'loan_repayment_paid';
+
+      case 'ADJUSTMENTS':
+        return type == 'adjustment_in' ||
+            type == 'adjustment_out';
+
+      default:
+        return true;
+    }
+  }).toList();
+
+  return filtered.take(5).toList();
 }
 
   String homeTransactionLabel(String type) {
@@ -6509,6 +8068,41 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: 'Filter',
+                    icon: Icon(
+                      selectedRecentTransactionFilter == 'ALL'
+                          ? Icons.filter_alt_outlined
+                          : Icons.filter_alt_rounded,
+                    ),
+                    onSelected: (value) {
+                      setState(() {
+                        selectedRecentTransactionFilter = value;
+                      });
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'ALL',
+                        child: Text('All'),
+                      ),
+                      PopupMenuItem(
+                        value: 'MONEY_IN',
+                        child: Text(ghataT(context, 'Money In')),
+                      ),
+                      PopupMenuItem(
+                        value: 'MONEY_OUT',
+                        child: Text(ghataT(context, 'Money Out')),
+                      ),
+                      PopupMenuItem(
+                        value: 'LOANS',
+                        child: Text('Loans'),
+                      ),
+                      PopupMenuItem(
+                        value: 'ADJUSTMENTS',
+                        child: Text('Adjustments'),
+                      ),
+                    ],
                   ),
                   TextButton(
                     onPressed: () async {
@@ -7781,7 +9375,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool isLoading = true;
   bool isSaving = false;
+  bool isPhotoSaving = false;
   String email = '';
+  String? profilePhotoPath;
 
   @override
   void initState() {
@@ -7798,6 +9394,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       final data = await ghataLoadBusinessProfile();
+      final loadedProfilePhoto =
+          await ghataLoadProfilePhoto();
 
       if (!mounted) return;
 
@@ -7812,6 +9410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       setState(() {
         email = user.email ?? '';
+        profilePhotoPath = loadedProfilePhoto;
         isLoading = false;
       });
     } catch (_) {
@@ -7824,6 +9423,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
           content: Text(ghataT(context, 'Unable to load profile')),
         ),
       );
+    }
+  }
+
+  Future<void> changeProfilePhoto() async {
+    if (isPhotoSaving) return;
+
+    final picked =
+        await ghataPickCustomerPhoto(context);
+
+    if (picked == null || !mounted) return;
+
+    setState(() => isPhotoSaving = true);
+
+    try {
+      final saved =
+          await ghataSaveProfilePhoto(picked);
+
+      if (!mounted) return;
+
+      if (saved == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              ghataT(
+                context,
+                'Unable to save photo',
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        profilePhotoPath = saved;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ghataT(
+              context,
+              'Profile photo updated',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isPhotoSaving = false);
+      }
+    }
+  }
+
+  Future<void> removeProfilePhoto() async {
+    if (isPhotoSaving) return;
+
+    setState(() => isPhotoSaving = true);
+
+    try {
+      await ghataDeleteProfilePhoto();
+
+      if (!mounted) return;
+
+      setState(() {
+        profilePhotoPath = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ghataT(
+              context,
+              'Profile photo removed',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isPhotoSaving = false);
+      }
     }
   }
 
@@ -7990,12 +9671,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: EdgeInsets.all(24),
                 children: [
                   Center(
-                    child: CircleAvatar(
-                      radius: 45,
-                      child: Icon(Icons.person, size: 48),
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: isPhotoSaving
+                              ? null
+                              : changeProfilePhoto,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              CircleAvatar(
+                                radius: 48,
+                                backgroundImage:
+                                    profilePhotoPath != null &&
+                                            profilePhotoPath!
+                                                .isNotEmpty
+                                        ? FileImage(
+                                            File(
+                                              profilePhotoPath!,
+                                            ),
+                                          )
+                                        : null,
+                                child:
+                                    profilePhotoPath == null ||
+                                            profilePhotoPath!
+                                                .isEmpty
+                                        ? Icon(
+                                            Icons.person,
+                                            size: 48,
+                                          )
+                                        : null,
+                              ),
+                              Positioned(
+                                right: -2,
+                                bottom: -2,
+                                child: CircleAvatar(
+                                  radius: 16,
+                                  child: isPhotoSaving
+                                      ? SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child:
+                                              CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.camera_alt_rounded,
+                                          size: 17,
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          children: [
+                            TextButton.icon(
+                              onPressed: isPhotoSaving
+                                  ? null
+                                  : changeProfilePhoto,
+                              icon: Icon(
+                                Icons.photo_library_outlined,
+                              ),
+                              label: Text(
+                                ghataT(
+                                  context,
+                                  'Change Photo',
+                                ),
+                              ),
+                            ),
+                            if (profilePhotoPath != null &&
+                                profilePhotoPath!.isNotEmpty)
+                              TextButton.icon(
+                                onPressed: isPhotoSaving
+                                    ? null
+                                    : removeProfilePhoto,
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                ),
+                                label: Text(
+                                  ghataT(
+                                    context,
+                                    'Remove Photo',
+                                  ),
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 30),
+                  SizedBox(height: 22),
                   TextField(
                     controller: fullNameController,
                     decoration: InputDecoration(
@@ -8110,22 +9884,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: isSaving ? null : deleteAccount,
                     ),
                   ),
-                  SizedBox(height: 12),
-                    SizedBox(
-                      height: 52,
-                      child: OutlinedButton.icon(
-                        icon: Icon(Icons.delete_outline),
-                        label: Text(ghataT(context, 'Recycle Bin')),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RecycleBinScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+
                 ],
               ),
             ),
@@ -8308,6 +10067,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       id,
     );
 
+    ghataScheduleAutomaticBackup();
     ghataTrySync();
 
     if (!mounted) return;
@@ -8358,6 +10118,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       id,
     );
 
+    ghataScheduleAutomaticBackup();
     ghataTrySync();
 
     if (!mounted) return;
@@ -8413,6 +10174,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         id,
       );
 
+      ghataScheduleAutomaticBackup();
       ghataTrySync();
 
       if (!mounted) return;
@@ -8452,6 +10214,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       id,
     );
 
+    ghataScheduleAutomaticBackup();
     ghataTrySync();
 
     if (!mounted) return;
@@ -8510,6 +10273,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         id,
       );
 
+      ghataScheduleAutomaticBackup();
       ghataTrySync();
 
       if (!mounted) return;
@@ -8561,6 +10325,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         id,
       );
 
+      ghataScheduleAutomaticBackup();
       ghataTrySync();
 
       if (!mounted) return;
@@ -8683,6 +10448,8 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
           id,
         );
       }
+
+      ghataScheduleAutomaticBackup();
 
       ghataTrySync();
 
