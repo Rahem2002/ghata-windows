@@ -1227,10 +1227,6 @@ Future<List<Map<String, dynamic>>> ghataLocalFinancialRows() async {
     if ([
       'money_in',
       'money_out',
-      'loan_given',
-      'loan_received',
-      'loan_repayment_received',
-      'loan_repayment_paid',
       'adjustment_in',
       'adjustment_out',
     ].contains(type)) {
@@ -2065,34 +2061,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'حوالہ',
     'ar': 'المرجع',
   },
-  'Loan Given': {
-    'en': 'Loan Given',
-    'ps': 'ورکړل شوی پور',
-    'fa': 'قرض داده‌شده',
-    'ur': 'دیا گیا قرض',
-    'ar': 'قرض مُعطى',
-  },
-  'Loan Received': {
-    'en': 'Loan Received',
-    'ps': 'اخیستل شوی پور',
-    'fa': 'قرض دریافت‌شده',
-    'ur': 'لیا گیا قرض',
-    'ar': 'قرض مستلم',
-  },
-  'Repayment Received': {
-    'en': 'Repayment Received',
-    'ps': 'ترلاسه شوې د پور ورکړه',
-    'fa': 'بازپرداخت دریافت‌شده',
-    'ur': 'واپسی موصول',
-    'ar': 'دفعة مستلمة',
-  },
-  'Repayment Paid': {
-    'en': 'Repayment Paid',
-    'ps': 'ورکړل شوې د پور ورکړه',
-    'fa': 'بازپرداخت پرداخت‌شده',
-    'ur': 'واپسی ادا کی گئی',
-    'ar': 'دفعة مدفوعة',
-  },
   'Adjustment In': {
     'en': 'Adjustment In',
     'ps': 'داخل سمون',
@@ -2233,13 +2201,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'PIN برنامه',
     'ur': 'ایپ PIN',
     'ar': 'رمز التطبيق',
-  },
-  'Due Date': {
-    'en': 'Due Date',
-    'ps': 'د ورکړې نېټه',
-    'fa': 'تاریخ سررسید',
-    'ur': 'واجب الادا تاریخ',
-    'ar': 'تاريخ الاستحقاق',
   },
   'Due Soon': {
     'en': 'Due Soon',
@@ -2416,13 +2377,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'تبدیلیاں محفوظ کریں',
     'ar': 'حفظ التغييرات',
   },
-  'Search loans': {
-    'en': 'Search loans',
-    'ps': 'پورونه ولټوئ',
-    'fa': 'جستجوی قرض‌ها',
-    'ur': 'قرض تلاش کریں',
-    'ar': 'بحث القروض',
-  },
   'Use device biometrics to unlock Ghata.': {
     'en': 'Use device biometrics to unlock Ghata.',
     'ps': 'د ګهته د خلاصولو لپاره د وسیلې بایومیټریک وکاروئ.',
@@ -2528,13 +2482,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'جیمیل / ایمیل',
     'ur': 'جی میل / ای میل',
     'ar': 'Gmail / البريد',
-  },
-  'Loans & Debts': {
-    'en': 'Loans & Debts',
-    'ps': 'پورونه او قرضونه',
-    'fa': 'قرض‌ها و بدهی‌ها',
-    'ur': 'قرض اور واجبات',
-    'ar': 'القروض والديون',
   },
   'Profit / Loss': {
     'en': 'Profit / Loss',
@@ -2922,13 +2869,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'وقت',
     'ar': 'الوقت',
   },
-  'Loans': {
-    'en': 'Loans',
-    'ps': 'پورونه',
-    'fa': 'قرض‌ها',
-    'ur': 'قرض',
-    'ar': 'القروض',
-  },
   'Address': {
     'en': 'Address',
     'ps': 'پته',
@@ -2970,13 +2910,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'هیچ موجودی معوقی وجود ندارد.',
     'ur': 'کوئی بقایا بیلنس نہیں ہے۔',
     'ar': 'لا يوجد رصيد مستحق.',
-  },
-  'Customer, currency, type, due date...': {
-    'en': 'Customer, currency, type, due date...',
-    'ps': 'پېرودونکی، اسعار، ډول، د ورکړې نېټه...',
-    'fa': 'مشتری، ارز، نوع، تاریخ سررسید...',
-    'ur': 'گاہک، کرنسی، قسم، آخری تاریخ...',
-    'ar': 'العميل، العملة، النوع، تاريخ الاستحقاق...',
   },
   'Exchange removed from Recycle Bin.': {
     'en': 'Exchange removed from Recycle Bin.',
@@ -3075,13 +3008,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'ایمیل تأیید ارسال شد. ایمیل خود را بررسی کنید.',
     'ur': 'تصدیقی ای میل بھیج دی گئی ہے۔ اپنا ای میل چیک کریں۔',
     'ar': 'تم إرسال بريد التحقق. تحقق من بريدك الإلكتروني.',
-  },
-  'This customer has no loan to repay in this currency.': {
-    'en': 'This customer has no loan to repay in this currency.',
-    'ps': 'دا پېرودونکی په دې اسعارو کې د بېرته ورکولو پور نه لري.',
-    'fa': 'این مشتری در این ارز قرضی برای بازپرداخت ندارد.',
-    'ur': 'اس گاہک کے پاس اس کرنسی میں واپس کرنے کے لیے کوئی قرض نہیں۔',
-    'ar': 'لا يوجد على هذا العميل قرض للسداد بهذه العملة.',
   },
   'You do not owe this customer in this currency.': {
     'en': 'You do not owe this customer in this currency.',
@@ -3447,13 +3373,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'مستقل حذف کریں؟',
     'ar': 'حذف نهائي؟',
   },
-  'Loan Repayment Paid': {
-    'en': 'Loan Repayment Paid',
-    'ps': 'د پور ورکړل شوې تادیه',
-    'fa': 'بازپرداخت قرض پرداخت‌شده',
-    'ur': 'قرض کی واپسی ادا کی گئی',
-    'ar': 'دفعة قرض مدفوعة',
-  },
   'Move to Recycle Bin': {
     'en': 'Move to Recycle Bin',
     'ps': 'حذف شوو ته یې ولېږئ',
@@ -3516,13 +3435,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'به سطل بازیافت منتقل شود؟',
     'ur': 'ری سائیکل بن میں منتقل کریں؟',
     'ar': 'نقل إلى سلة المحذوفات؟',
-  },
-  'No loan history yet.': {
-    'en': 'No loan history yet.',
-    'ps': 'تر اوسه د پور تاریخچه نشته.',
-    'fa': 'هنوز سابقه قرض نیست.',
-    'ur': 'ابھی قرض کی تاریخ نہیں۔',
-    'ar': 'لا يوجد سجل قروض بعد.',
   },
   'No transactions yet.': {
     'en': 'No transactions yet.',
@@ -3651,19 +3563,12 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'ایک تبدیل شدہ مجموعی رقم میں نہیں ملاتا۔',
     'ar': 'في إجمالي واحد بعد التحويل.',
   },
-  'Use the Add button to record Money In, Money Out, loans, loan': {
-    'en': 'Use the Add button to record Money In, Money Out, loans, loan',
-    'ps': 'د Add تڼۍ له لارې داخلې او وتلې پیسې، پورونه او د پور',
-    'fa': 'با دکمه افزودن، پول ورودی و خروجی، قرض‌ها و بازپرداخت',
-    'ur': 'Add بٹن سے آمد رقم، خرج رقم، قرض اور قرض کی',
-    'ar': 'استخدم زر الإضافة لتسجيل الأموال الداخلة والخارجة والقروض',
-  },
-  'repayments and adjustments. Select the correct currency,': {
-    'en': 'repayments and adjustments. Select the correct currency,',
-    'ps': 'تادیات او سمونونه ثبت کړئ. سم اسعار وټاکئ،',
-    'fa': 'قرض و اصلاحات را ثبت کنید. ارز صحیح را انتخاب کنید،',
-    'ur': 'واپسی اور ایڈجسٹمنٹ درج کریں۔ درست کرنسی منتخب کریں،',
-    'ar': 'والدفعات والتسويات. اختر العملة الصحيحة،',
+  'Use the Add button to record Money In, Money Out and adjustments.': {
+    'en': 'Use the Add button to record Money In, Money Out and adjustments.',
+    'ps': 'د Add تڼۍ له لارې داخلې او وتلې پیسې او سمونونه ثبت کړئ.',
+    'fa': 'با دکمه افزودن، پول ورودی، پول خروجی و اصلاحات را ثبت کنید.',
+    'ur': 'Add بٹن سے آمد رقم، خرج رقم اور ایڈجسٹمنٹ درج کریں۔',
+    'ar': 'استخدم زر الإضافة لتسجيل الأموال الداخلة والخارجة والتسويات.',
   },
   'date, time and customer when required. You can also add a': {
     'en': 'date, time and customer when required. You can also add a',
@@ -3735,13 +3640,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'گھتہ وہ رقم ٹریک کرتا ہے جو گاہک آپ کو یا آپ گاہکوں کو دینے والے ہیں۔',
     'ar': 'تتابع غاتا الأموال التي يدين بها العملاء لك والتي تدين بها لهم.',
   },
-  'Loan repayments reduce the related balance while keeping': {
-    'en': 'Loan repayments reduce the related balance while keeping',
-    'ps': 'د پور تادیات اړوند بیلانس کموي، خو',
-    'fa': 'بازپرداخت قرض موجودی مربوط را کاهش می‌دهد، در حالی که',
-    'ur': 'قرض کی واپسی متعلقہ بیلنس کم کرتی ہے جبکہ',
-    'ar': 'تقلل دفعات القرض الرصيد المرتبط مع الاحتفاظ',
-  },
   'the accounting history available.': {
     'en': 'the accounting history available.',
     'ps': 'د حسابدارۍ تاریخچه خوندي پاتې کېږي.',
@@ -3784,12 +3682,12 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'کیش باکس کاروبار کی ریکارڈ شدہ نقد حرکت دکھاتا ہے۔',
     'ar': 'يمثل الصندوق حركة النقد المسجلة للنشاط.',
   },
-  'Reports summarize Money In, Money Out, exchanges, loans,': {
-    'en': 'Reports summarize Money In, Money Out, exchanges, loans,',
-    'ps': 'راپورونه داخلې او وتلې پیسې، تبادلې او پورونه لنډیز کوي،',
-    'fa': 'گزارش‌ها پول ورودی، خروجی، تبادلات و قرض‌ها را خلاصه می‌کنند،',
-    'ur': 'رپورٹس آمد رقم، خرج رقم، ایکسچینج اور قرض کا خلاصہ دیتے ہیں،',
-    'ar': 'تلخص التقارير الأموال الداخلة والخارجة والصرافة والقروض،',
+  'Reports summarize Money In, Money Out, exchanges and adjustments.': {
+    'en': 'Reports summarize Money In, Money Out, exchanges and adjustments.',
+    'ps': 'راپورونه داخلې او وتلې پیسې، تبادلې او سمونونه لنډیز کوي.',
+    'fa': 'گزارش‌ها پول ورودی، خروجی، تبادلات و اصلاحات را خلاصه می‌کنند.',
+    'ur': 'رپورٹس آمد رقم، خرج رقم، ایکسچینج اور ایڈجسٹمنٹ کا خلاصہ دیتے ہیں۔',
+    'ar': 'تلخص التقارير الأموال الداخلة والخارجة والصرافة والتسويات.',
   },
   'Ghata can prepare transaction receipts, customer statements': {
     'en': 'Ghata can prepare transaction receipts, customer statements',
@@ -4037,13 +3935,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'ایکسچینج کامیابی سے اپڈیٹ ہوگیا۔',
     'ar': 'تم تحديث الصرافة بنجاح.',
   },
-  'No outstanding loans or debts.': {
-    'en': 'No outstanding loans or debts.',
-    'ps': 'پاتې پور یا قرض نشته.',
-    'fa': 'قرض یا بدهی باقی نیست.',
-    'ur': 'کوئی بقایا قرض یا واجب الادا رقم نہیں۔',
-    'ar': 'لا توجد قروض أو ديون مستحقة.',
-  },
   'Password changed successfully.': {
     'en': 'Password changed successfully.',
     'ps': 'پاسورډ په بریالیتوب بدل شو.',
@@ -4184,13 +4075,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'دفتر حساب بارگذاری نمی‌شود',
     'ur': 'لیجر لوڈ نہیں ہوسکا',
     'ar': 'تعذر تحميل دفتر الحساب',
-  },  'Unable to load loans': {
-    'en': 'Unable to load loans',
-    'ps': 'پورونه نه شي پورته کېدای',
-    'fa': 'قرض‌ها بارگذاری نمی‌شوند',
-    'ur': 'قرض لوڈ نہیں ہوسکے',
-    'ar': 'تعذر تحميل القروض',
-  },  'Unable to load reports': {
     'en': 'Unable to load reports',
     'ps': 'راپورونه نه شي پورته کېدای',
     'fa': 'گزارش‌ها بارگذاری نمی‌شوند',
@@ -7384,8 +7268,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (customerId.isNotEmpty) {
         switch (type) {
           case 'money_in':
-          case 'loan_received':
-          case 'loan_repayment_received':
             changeCustomerBalance(
               customerId,
               currency,
@@ -7394,8 +7276,6 @@ class _HomeScreenState extends State<HomeScreen> {
             break;
 
           case 'money_out':
-          case 'loan_given':
-          case 'loan_repayment_paid':
             changeCustomerBalance(
               customerId,
               currency,
@@ -7407,19 +7287,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Cashbox accounting remains unchanged.
       switch (type) {
-        case 'loan_given':
           data['cashbox'] = data['cashbox']! - amount;
           break;
 
-        case 'loan_repayment_received':
           data['cashbox'] = data['cashbox']! + amount;
           break;
 
-        case 'loan_received':
           data['cashbox'] = data['cashbox']! + amount;
           break;
 
-        case 'loan_repayment_paid':
           data['cashbox'] = data['cashbox']! - amount;
           break;
 
@@ -7548,14 +7424,10 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (selectedRecentTransactionFilter) {
       case 'MONEY_IN':
         return type == 'money_in' ||
-            type == 'loan_repayment_received' ||
-            type == 'loan_received' ||
             type == 'adjustment_in';
 
       case 'MONEY_OUT':
         return type == 'money_out' ||
-            type == 'loan_repayment_paid' ||
-            type == 'loan_given' ||
             type == 'adjustment_out';
       case 'ADJUSTMENTS':
         return type == 'adjustment_in' ||
@@ -7575,14 +7447,6 @@ class _HomeScreenState extends State<HomeScreen> {
         return ghataT(context, 'Money In');
       case 'money_out':
         return ghataT(context, 'Money Out');
-      case 'loan_given':
-        return ghataT(context, 'Loan Given');
-      case 'loan_received':
-        return ghataT(context, 'Loan Received');
-      case 'loan_repayment_received':
-        return ghataT(context, 'Repayment Received');
-      case 'loan_repayment_paid':
-        return ghataT(context, 'Repayment Paid');
       case 'adjustment_in':
         return ghataT(context, 'Adjustment In');
       case 'adjustment_out':
@@ -8501,9 +8365,6 @@ SizedBox(height: 22),
 
                           final incoming =
                               type == 'money_in' ||
-                              type ==
-                                  'loan_repayment_received' ||
-                              type == 'loan_received' ||
                               type == 'adjustment_in';
 
                           final accent =
@@ -11004,11 +10865,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                     final typeLabel = switch (type) {
                       'money_in' => 'Money In',
                       'money_out' => 'Money Out',
-                      'loan_given' => 'Loan Given',
-                      'loan_received' => 'Loan Received',
-                      'loan_repayment_received' => 'Repayment Received',
-                      'loan_repayment_paid' => 'Repayment Paid',
-                      'adjustment_in' => 'Adjustment In',
+                                                                              'adjustment_in' => 'Adjustment In',
                       'adjustment_out' => 'Adjustment Out',
                       _ => type,
                     };
@@ -11359,16 +11216,12 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
       switch (type) {
         case 'money_in':
-        case 'loan_received':
-        case 'loan_repayment_received':
         case 'adjustment_in':
           moneyIn = amount;
           running[currency] = running[currency]! + amount;
           break;
 
         case 'money_out':
-        case 'loan_given':
-        case 'loan_repayment_paid':
         case 'adjustment_out':
           moneyOut = amount;
           running[currency] = running[currency]! - amount;
@@ -11406,7 +11259,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   String transactionType = 'money_in';
   String currency = 'AFN';
   DateTime selectedDate = DateTime.now();
-  DateTime? selectedDueDate;
   TimeOfDay selectedTime = TimeOfDay.now();
   bool isSaving = false;
   double? calculatorResult;
@@ -11646,22 +11498,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   }
 
   Future<void> saveTransaction() async {
-    const customerRequiredTypes = {
-      'loan_given',
-      'loan_received',
-      'loan_repayment_received',
-      'loan_repayment_paid',
-    };
-
-    if (customerRequiredTypes.contains(transactionType) &&
-        selectedCustomerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ghataT(context, 'Please select a customer for loan transactions.')),
-        ),
-      );
-      return;
-    }
 
     final amount = evaluateCalculatorExpression(amountController.text.trim());
 
@@ -11681,91 +11517,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       return;
     }
 
-    if (transactionType == 'loan_repayment_received' ||
-        transactionType == 'loan_repayment_paid') {
-      final allLoanData =
-          await OfflineDatabase.instance.getRecords('transactions');
-
-      final loanData = allLoanData.where((item) {
-        final itemCustomerId =
-            item['customer_id']?.toString() ?? '';
-        final itemCurrency =
-            item['currency']?.toString() ?? '';
-        final itemType =
-            item['transaction_type']?.toString() ?? '';
-
-        return itemCustomerId == selectedCustomerId &&
-            itemCurrency == currency &&
-            {
-              'loan_given',
-              'loan_received',
-              'loan_repayment_received',
-              'loan_repayment_paid',
-            }.contains(itemType);
-      }).toList();
-
-      double receivableBalance = 0;
-      double payableBalance = 0;
-
-      for (final item in List<Map<String, dynamic>>.from(loanData)) {
-        final type = item['transaction_type']?.toString() ?? '';
-        final value =
-            double.tryParse(item['amount']?.toString() ?? '0') ?? 0;
-
-        if (type == 'loan_given') receivableBalance += value;
-        if (type == 'loan_repayment_received') receivableBalance -= value;
-        if (type == 'loan_received') payableBalance += value;
-        if (type == 'loan_repayment_paid') payableBalance -= value;
-      }
-
-      if (transactionType == 'loan_repayment_received') {
-        if (receivableBalance <= 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'This customer has no loan to repay in this currency.',
-              ),
-            ),
-          );
-          return;
-        }
-
-        if (amount > receivableBalance) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Repayment cannot exceed ${receivableBalance.toStringAsFixed(2)} $currency.',
-              ),
-            ),
-          );
-          return;
-        }
-      }
-
-      if (transactionType == 'loan_repayment_paid') {
-        if (payableBalance <= 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'You do not owe this customer in this currency.',
-              ),
-            ),
-          );
-          return;
-        }
-
-        if (amount > payableBalance) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Repayment cannot exceed ${payableBalance.toStringAsFixed(2)} $currency.',
-              ),
-            ),
-          );
-          return;
-        }
-      }
-    }
 
     setState(() => isSaving = true);
 
@@ -11784,11 +11535,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
           'transaction_time':
               '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00',
           'transaction_type': transactionType,
-          'due_date': (transactionType == 'loan_given' ||
-                      transactionType == 'loan_received') &&
-                  selectedDueDate != null
-              ? '${selectedDueDate!.year}-${selectedDueDate!.month.toString().padLeft(2, '0')}-${selectedDueDate!.day.toString().padLeft(2, '0')}'
-              : null,
           'amount': amount,
           'currency': currency,
           'customer_id': selectedCustomerId,
@@ -11807,7 +11553,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       if (!mounted) return;
 
       amountController.clear();
-      selectedDueDate = null;
       selectedCustomerId = null;
       selectedCustomerName = null;
       descriptionController.clear();
@@ -11848,9 +11593,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final needsDueDate =
-              transactionType == 'loan_given' ||
-              transactionType == 'loan_received';
 
           return AlertDialog(
             title: Text(ghataT(context, 'Add Transaction')),
@@ -11881,9 +11623,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                         if (value == null) return;
                         setDialogState(() {
                           transactionType = value;
-                          if (!needsDueDate) {
-                            selectedDueDate = null;
-                          }
                         });
                       },
                     ),
@@ -12030,25 +11769,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       },
                     ),
 
-                    if (needsDueDate)
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          Icons.event_available_outlined,
-                        ),
-                        title: Text(ghataT(context, 'Due Date')),
-                        subtitle: Text(
-                          selectedDueDate == null
-                              ? 'Not set'
-                              : '${selectedDueDate!.year}-${selectedDueDate!.month.toString().padLeft(2, '0')}-${selectedDueDate!.day.toString().padLeft(2, '0')}',
-                        ),
-                        onTap: () async {
-                          await chooseDueDate();
-                          if (mounted) {
-                            setDialogState(() {});
-                          }
-                        },
-                      ),
 
                     ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -12144,28 +11864,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
     if (date != null) {
       setState(() => selectedDate = date);
-    }
-  }
-
-  Future<void> chooseDueDate() async {
-    final firstDueDate = DateTime(
-      selectedDate.year,
-      selectedDate.month,
-      selectedDate.day,
-    );
-
-    final date = await showDatePicker(
-      context: context,
-      initialDate: selectedDueDate != null &&
-              !selectedDueDate!.isBefore(firstDueDate)
-          ? selectedDueDate!
-          : firstDueDate,
-      firstDate: firstDueDate,
-      lastDate: DateTime(2100),
-    );
-
-    if (date != null) {
-      setState(() => selectedDueDate = date);
     }
   }
 
@@ -12343,9 +12041,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         ) ??
         DateTime.now();
 
-    DateTime? editDueDate = DateTime.tryParse(
-      transaction['due_date']?.toString() ?? '',
-    );
 
     final rawEditTime = transaction['transaction_time']?.toString() ?? '';
     final timeParts = rawEditTime.split(':');
@@ -12416,7 +12111,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                         if (value == 'adjustment_in' ||
                             value == 'adjustment_out') {
                           editCustomerId = null;
-                          editDueDate = null;
                         }
                       });
                     }
@@ -12474,48 +12168,10 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                     if (picked != null) {
                       setDialogState(() {
                         editDate = picked;
-                        if (editDueDate != null &&
-                            editDueDate!.isBefore(editDate)) {
-                          editDueDate = editDate;
-                        }
                       });
                     }
                   },
                 ),
-                if (editType == 'loan_given' ||
-                    editType == 'loan_received')
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.event_available),
-                    title: Text(ghataT(context, 'Due Date')),
-                    subtitle: Text(
-                      editDueDate == null
-                          ? 'Not set'
-                          : '${editDueDate!.year}-${editDueDate!.month.toString().padLeft(2, '0')}-${editDueDate!.day.toString().padLeft(2, '0')}',
-                    ),
-                    trailing: Icon(Icons.edit_calendar_outlined),
-                    onTap: () async {
-                      final firstDueDate = DateTime(
-                        editDate.year,
-                        editDate.month,
-                        editDate.day,
-                      );
-
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: editDueDate != null &&
-                                !editDueDate!.isBefore(firstDueDate)
-                            ? editDueDate!
-                            : firstDueDate,
-                        firstDate: firstDueDate,
-                        lastDate: DateTime(2100),
-                      );
-
-                      if (picked != null) {
-                        setDialogState(() => editDueDate = picked);
-                      }
-                    },
-                  ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.access_time),
@@ -12627,108 +12283,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       return;
     }
 
-    final customerId = editCustomerId;
-
-    final requiresCustomer = editType == 'loan_given' ||
-        editType == 'loan_received' ||
-        editType == 'loan_repayment_received' ||
-        editType == 'loan_repayment_paid';
-
-    if (requiresCustomer &&
-        (customerId == null || customerId.isEmpty)) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ghataT(context, 'Select a customer for loan and repayment transactions.'),
-          ),
-        ),
-      );
-
-      amountEditController.dispose();
-      descriptionEditController.dispose();
-      referenceEditController.dispose();
-      return;
-    }
-
-    if ((editType == 'loan_repayment_received' ||
-            editType == 'loan_repayment_paid') &&
-        customerId != null &&
-        customerId.isNotEmpty) {
-      final user = Supabase.instance.client.auth.currentUser;
-
-      if (user != null) {
-        final allLoanData =
-            await OfflineDatabase.instance.getRecords('transactions');
-
-        final loanData = allLoanData.where((item) {
-          final itemId = item['id']?.toString() ?? '';
-          final itemCustomerId =
-              item['customer_id']?.toString() ?? '';
-          final itemCurrency =
-              item['currency']?.toString() ?? '';
-          final itemType =
-              item['transaction_type']?.toString() ?? '';
-
-          return itemId != id &&
-              itemCustomerId == customerId &&
-              itemCurrency == editCurrency &&
-              {
-                'loan_given',
-                'loan_received',
-                'loan_repayment_received',
-                'loan_repayment_paid',
-              }.contains(itemType);
-        }).toList();
-
-        double receivableBalance = 0;
-        double payableBalance = 0;
-
-        for (final item in List<Map<String, dynamic>>.from(loanData)) {
-          final type = item['transaction_type']?.toString() ?? '';
-          final value =
-              double.tryParse(item['amount']?.toString() ?? '') ?? 0;
-
-          if (type == 'loan_given') receivableBalance += value;
-          if (type == 'loan_repayment_received') receivableBalance -= value;
-          if (type == 'loan_received') payableBalance += value;
-          if (type == 'loan_repayment_paid') payableBalance -= value;
-        }
-
-        if (editType == 'loan_repayment_received' &&
-            (receivableBalance <= 0 || amount > receivableBalance)) {
-          if (!mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                receivableBalance <= 0
-                    ? 'This customer has no loan to repay in this currency.'
-                    : 'Repayment cannot be greater than ${receivableBalance.toStringAsFixed(2)} $editCurrency.',
-              ),
-            ),
-          );
-          return;
-        }
-
-        if (editType == 'loan_repayment_paid' &&
-            (payableBalance <= 0 || amount > payableBalance)) {
-          if (!mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                payableBalance <= 0
-                    ? 'You do not owe this customer in this currency.'
-                    : 'Repayment cannot be greater than ${payableBalance.toStringAsFixed(2)} $editCurrency.',
-              ),
-            ),
-          );
-          return;
-        }
-      }
-    }
 
     try {
       await OfflineDatabase.instance.updateLocalRecord(
@@ -12741,11 +12295,6 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
             '${editDate.year}-${editDate.month.toString().padLeft(2, '0')}-${editDate.day.toString().padLeft(2, '0')}',
         'transaction_time':
             '${editTime.hour.toString().padLeft(2, '0')}:${editTime.minute.toString().padLeft(2, '0')}:00',
-        'due_date': (editType == 'loan_given' ||
-                editType == 'loan_received') &&
-            editDueDate != null
-            ? '${editDueDate!.year}-${editDueDate!.month.toString().padLeft(2, '0')}-${editDueDate!.day.toString().padLeft(2, '0')}'
-            : null,
         'customer_id': editCustomerId,
         'customer_name': editCustomerName,
         'description': descriptionEditController.text.trim().isEmpty
@@ -12843,10 +12392,6 @@ Future<void> shareTransactionReceiptPdf(
       final typeKey = switch (type) {
         'money_in' => 'Money In',
         'money_out' => 'Money Out',
-        'loan_given' => 'Loan Given',
-        'loan_received' => 'Loan Received',
-        'loan_repayment_received' => 'Repayment Received',
-        'loan_repayment_paid' => 'Repayment Paid',
         'adjustment_in' => 'Adjustment In',
         'adjustment_out' => 'Adjustment Out',
         _ => type.replaceAll('_', ' '),
@@ -12870,8 +12415,6 @@ Future<void> shareTransactionReceiptPdf(
       final ownerName = profile?['full_name']?.toString().trim() ?? '';
 
       final isPositive = type == 'money_in' ||
-          type == 'loan_received' ||
-          type == 'loan_repayment_received' ||
           type == 'adjustment_in';
 
       final accent = isPositive
@@ -13189,10 +12732,6 @@ Future<void> shareTransactionReceiptPdf(
     final typeKey = switch (type) {
       'money_in' => 'Money In',
       'money_out' => 'Money Out',
-      'loan_given' => 'Loan Given',
-      'loan_received' => 'Loan Received',
-      'loan_repayment_received' => 'Repayment Received',
-      'loan_repayment_paid' => 'Repayment Paid',
       'adjustment_in' => 'Adjustment In',
       'adjustment_out' => 'Adjustment Out',
       _ => type.replaceAll('_', ' '),
@@ -13206,8 +12745,6 @@ Future<void> shareTransactionReceiptPdf(
             : id.toUpperCase());
 
     final isPositive = type == 'money_in' ||
-        type == 'loan_received' ||
-        type == 'loan_repayment_received' ||
         type == 'adjustment_in';
 
     final accent = isPositive ? Colors.green : Colors.red;
@@ -13672,12 +13209,6 @@ Future<void> shareTransactionReceiptPdf(
         return switch (type) {
           'money_in' => ghataT(context, 'Money In'),
           'money_out' => ghataT(context, 'Money Out'),
-          'loan_given' => ghataT(context, 'Loan Given'),
-          'loan_received' => ghataT(context, 'Loan Received'),
-          'loan_repayment_received' =>
-            ghataT(context, 'Repayment Received'),
-          'loan_repayment_paid' =>
-            ghataT(context, 'Repayment Paid'),
           'adjustment_in' => ghataT(context, 'Adjustment In'),
           'adjustment_out' => ghataT(context, 'Adjustment Out'),
           _ => type.replaceAll('_', ' '),
@@ -14202,8 +13733,6 @@ Future<void> shareTransactionReceiptPdf(
                       filterOk = type == 'money_in';
                     } else if (selectedFilter == 'money_out') {
                       filterOk = type == 'money_out';
-                    } else if (selectedFilter == 'loan') {
-                      filterOk = type.startsWith('loan_');
                     } else if (selectedFilter == 'customer') {
                       filterOk = customer.trim().isNotEmpty;
                     }
@@ -14305,13 +13834,9 @@ Future<void> shareTransactionReceiptPdf(
                     );
 
                     if (type == 'money_in' ||
-                        type == 'loan_received' ||
-                        type == 'loan_repayment_received' ||
                         type == 'adjustment_in') {
                       values['in'] = values['in']! + amount;
                     } else if (type == 'money_out' ||
-                        type == 'loan_given' ||
-                        type == 'loan_repayment_paid' ||
                         type == 'adjustment_out') {
                       values['out'] = values['out']! + amount;
                     }
@@ -14646,12 +14171,6 @@ Future<void> shareTransactionReceiptPdf(
                                         final label = switch (type) {
                                           'money_in' => 'Money In',
                                           'money_out' => 'Money Out',
-                                          'loan_given' => 'Loan Given',
-                                          'loan_received' => 'Loan Received',
-                                          'loan_repayment_received' =>
-                                            'Repayment Received',
-                                          'loan_repayment_paid' =>
-                                            'Repayment Paid',
                                           'adjustment_in' => 'Adjustment In',
                                           'adjustment_out' => 'Adjustment Out',
                                           _ => type.replaceAll('_', ' '),
@@ -16324,10 +15843,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     final allowed = {
       'money_in',
       'money_out',
-      'loan_given',
-      'loan_received',
-      'loan_repayment_received',
-      'loan_repayment_paid',
     };
 
     final rows = local.where((row) {
@@ -16502,16 +16017,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           balances[currency] = balances[currency]! - amount;
           break;
 
-        // Keep old loan records readable for existing users.
-        case 'loan_received':
-        case 'loan_repayment_received':
-          balances[currency] = balances[currency]! + amount;
-          break;
-
-        case 'loan_given':
-        case 'loan_repayment_paid':
-          balances[currency] = balances[currency]! - amount;
-          break;
 
         default:
           break;
@@ -16905,15 +16410,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
       switch (type) {
         case 'money_in':
-        case 'loan_received':
-        case 'loan_repayment_received':
           moneyIn = amount;
           running[currency] = running[currency]! + amount;
           break;
 
         case 'money_out':
-        case 'loan_given':
-        case 'loan_repayment_paid':
           moneyOut = amount;
           running[currency] = running[currency]! - amount;
           break;
@@ -17277,7 +16778,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                               'transaction_time':
                                   '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}:00',
                               'transaction_type': type,
-                              'due_date': null,
                               'amount': amount,
                               'currency': selectedCurrency,
                               'customer_id': customerId,
@@ -18287,11 +17787,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         return switch (type) {
           'money_in' => 'Money In',
           'money_out' => 'Money Out',
-          'loan_given' => 'Loan Given',
-          'loan_received' => 'Loan Received',
-          'loan_repayment_received' => 'Repayment Received',
-          'loan_repayment_paid' => 'Repayment Paid',
-          _ => type.replaceAll('_', ' '),
+                  _ => type.replaceAll('_', ' '),
         };
       }
 
@@ -19503,572 +18999,6 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   }
 }
 
-class LoansScreen extends StatefulWidget {
-  LoansScreen({super.key});
-
-  @override
-  State<LoansScreen> createState() => _LoansScreenState();
-}
-
-class _LoansScreenState extends State<LoansScreen> {
-  final loanSearchController = TextEditingController();
-  String loanFilter = 'all';
-
-  @override
-  void dispose() {
-    loanSearchController.dispose();
-    super.dispose();
-  }
-
-  Future<List<Map<String, dynamic>>> loadLoans() async {
-  ghataRefreshOfflineCache();
-
-  final local =
-      await OfflineDatabase.instance.getRecords('transactions');
-
-  final allowed = {
-    'loan_given',
-    'loan_received',
-    'loan_repayment_received',
-    'loan_repayment_paid',
-  };
-
-  final rows = local.where((row) {
-    return allowed.contains(
-      row['transaction_type']?.toString() ?? '',
-    );
-  }).toList();
-
-  rows.sort((a, b) {
-    final ad =
-        '${a['transaction_date'] ?? ''} ${a['transaction_time'] ?? ''} ${a['created_at'] ?? ''}';
-    final bd =
-        '${b['transaction_date'] ?? ''} ${b['transaction_time'] ?? ''} ${b['created_at'] ?? ''}';
-
-    return bd.compareTo(ad);
-  });
-
-  return rows;
-}
-
-  Map<String, Map<String, dynamic>> calculateLoanBalances(
-    List<Map<String, dynamic>> transactions,
-  ) {
-    final grouped = <String, List<Map<String, dynamic>>>{};
-
-    for (final transaction in transactions) {
-      final customerId = transaction['customer_id']?.toString();
-      final currency = transaction['currency']?.toString() ?? '';
-
-      if (customerId == null ||
-          customerId.isEmpty ||
-          currency.isEmpty) {
-        continue;
-      }
-
-      final key = '$customerId|$currency';
-      grouped.putIfAbsent(key, () => []).add(transaction);
-    }
-
-    final balances = <String, Map<String, dynamic>>{};
-
-    for (final entry in grouped.entries) {
-      final items = [...entry.value];
-
-      items.sort((a, b) {
-        final aKey =
-            '${a['transaction_date'] ?? ''} ${a['transaction_time'] ?? ''}';
-        final bKey =
-            '${b['transaction_date'] ?? ''} ${b['transaction_time'] ?? ''}';
-        return aKey.compareTo(bKey);
-      });
-
-      final customerId = items.first['customer_id'].toString();
-      final customerName =
-          items.last['customer_name']?.toString() ?? 'Unknown Customer';
-      final currency = items.first['currency']?.toString() ?? '';
-
-      final receivableLots = <Map<String, dynamic>>[];
-      final payableLots = <Map<String, dynamic>>[];
-
-      for (final transaction in items) {
-        final type =
-            transaction['transaction_type']?.toString() ?? '';
-        final amount = double.tryParse(
-              transaction['amount']?.toString() ?? '0',
-            ) ??
-            0;
-
-        if (amount <= 0) continue;
-
-        if (type == 'loan_given') {
-          receivableLots.add({
-            'remaining': amount,
-            'due_date': transaction['due_date']?.toString() ?? '',
-          });
-        } else if (type == 'loan_repayment_received') {
-          var payment = amount;
-
-          for (final lot in receivableLots) {
-            if (payment <= 0) break;
-
-            final remaining = lot['remaining'] as double;
-            if (remaining <= 0) continue;
-
-            final used = payment > remaining ? remaining : payment;
-            lot['remaining'] = remaining - used;
-            payment -= used;
-          }
-        } else if (type == 'loan_received') {
-          payableLots.add({
-            'remaining': amount,
-            'due_date': transaction['due_date']?.toString() ?? '',
-          });
-        } else if (type == 'loan_repayment_paid') {
-          var payment = amount;
-
-          for (final lot in payableLots) {
-            if (payment <= 0) break;
-
-            final remaining = lot['remaining'] as double;
-            if (remaining <= 0) continue;
-
-            final used = payment > remaining ? remaining : payment;
-            lot['remaining'] = remaining - used;
-            payment -= used;
-          }
-        }
-      }
-
-      final receivable = receivableLots.fold<double>(
-        0,
-        (sum, lot) => sum + (lot['remaining'] as double),
-      );
-
-      final payable = payableLots.fold<double>(
-        0,
-        (sum, lot) => sum + (lot['remaining'] as double),
-      );
-
-      String? oldestReceivableDueDate;
-      for (final lot in receivableLots) {
-        final remaining = lot['remaining'] as double;
-        final dueDate = lot['due_date']?.toString() ?? '';
-
-        if (remaining <= 0 || dueDate.isEmpty) continue;
-        if (oldestReceivableDueDate == null ||
-            dueDate.compareTo(oldestReceivableDueDate) < 0) {
-          oldestReceivableDueDate = dueDate;
-        }
-      }
-
-      String? oldestPayableDueDate;
-      for (final lot in payableLots) {
-        final remaining = lot['remaining'] as double;
-        final dueDate = lot['due_date']?.toString() ?? '';
-
-        if (remaining <= 0 || dueDate.isEmpty) continue;
-        if (oldestPayableDueDate == null ||
-            dueDate.compareTo(oldestPayableDueDate) < 0) {
-          oldestPayableDueDate = dueDate;
-        }
-      }
-
-      if (receivable > 0.000001) {
-        balances['${entry.key}|receive'] = {
-          'customer_id': customerId,
-          'customer_name': customerName,
-          'currency': currency,
-          'balance': receivable,
-          'direction': 'receive',
-          'due_date': oldestReceivableDueDate,
-        };
-      }
-
-      if (payable > 0.000001) {
-        balances['${entry.key}|pay'] = {
-          'customer_id': customerId,
-          'customer_name': customerName,
-          'currency': currency,
-          'balance': payable,
-          'direction': 'pay',
-          'due_date': oldestPayableDueDate,
-        };
-      }
-    }
-
-    return balances;
-  }
-
-  String flagForCurrency(String code) {
-    const flags = {
-      'AFN': '🇦🇫',
-      'PKR': '🇵🇰',
-      'USD': '🇺🇸',
-      'EUR': '🇪🇺',
-      'GBP': '🇬🇧',
-      'AED': '🇦🇪',
-      'SAR': '🇸🇦',
-      'KWD': '🇰🇼',
-      'QAR': '🇶🇦',
-      'OMR': '🇴🇲',
-      'TRY': '🇹🇷',
-      'CNY': '🇨🇳',
-      'INR': '🇮🇳',
-      'IRR': '🇮🇷',
-    };
-
-    return flags[code] ?? '💰';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(ghataT(context, 'Loans & Debts')),
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: loadLoans(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: Text(
-                  "${ghataT(context, 'Unable to load loans')}: ${snapshot.error}",
-                ),
-              ),
-            );
-          }
-
-          final loans = snapshot.data ?? [];
-
-          final query = loanSearchController.text.trim().toLowerCase();
-
-          final filteredLoans = query.isEmpty
-              ? loans
-              : loans.where((loan) {
-                  final customer =
-                      loan['customer_name']?.toString().toLowerCase() ?? '';
-                  final currency =
-                      loan['currency']?.toString().toLowerCase() ?? '';
-                  final type =
-                      loan['transaction_type']?.toString().toLowerCase() ?? '';
-                  final description =
-                      loan['description']?.toString().toLowerCase() ?? '';
-                  final dueDate =
-                      loan['due_date']?.toString().toLowerCase() ?? '';
-
-                  return customer.contains(query) ||
-                      currency.contains(query) ||
-                      type.contains(query) ||
-                      description.contains(query) ||
-                      dueDate.contains(query);
-                }).toList();
-
-          final balances = calculateLoanBalances(loans);
-
-          final now = DateTime.now();
-          final today = DateTime(now.year, now.month, now.day);
-
-          final remaining = balances.values.where((item) {
-            final balance = item['balance'] as double;
-
-            if (query.isNotEmpty) {
-              final customer =
-                  item['customer_name']?.toString().toLowerCase() ?? '';
-              final currency =
-                  item['currency']?.toString().toLowerCase() ?? '';
-
-              if (!customer.contains(query) &&
-                  !currency.contains(query)) {
-                return false;
-              }
-            }
-            final dueDate = item['due_date']?.toString() ?? '';
-            final due =
-                dueDate.isNotEmpty ? DateTime.tryParse(dueDate) : null;
-
-            final isOverdue =
-                due != null && due.isBefore(today);
-
-            final daysUntilDue =
-                due == null ? null : due.difference(today).inDays;
-
-            final isDueSoon =
-                daysUntilDue != null &&
-                daysUntilDue >= 0 &&
-                daysUntilDue <= 3;
-
-            switch (loanFilter) {
-              case 'receive':
-                return item['direction'] == 'receive';
-              case 'pay':
-                return item['direction'] == 'pay';
-              case 'overdue':
-                return isOverdue;
-              case 'due_soon':
-                return isDueSoon && !isOverdue;
-              default:
-                return true;
-            }
-          }).toList();
-
-          final balanceCards = remaining.map((item) {
-            final customer =
-                item['customer_name']?.toString() ??
-                    'Unknown Customer';
-
-            final currency =
-                item['currency']?.toString() ?? '';
-
-            final balance =
-                item['balance'] as double;
-
-            final youReceive = item['direction'] == 'receive';
-
-            final dueDate = item['due_date']?.toString() ?? '';
-            final due = dueDate.isNotEmpty
-                ? DateTime.tryParse(dueDate)
-                : null;
-
-            final now = DateTime.now();
-            final today = DateTime(now.year, now.month, now.day);
-
-            final isOverdue =
-                due != null && due.isBefore(today);
-            final isDueToday =
-                due != null && due.isAtSameMomentAs(today);
-            final daysUntilDue =
-                due == null ? null : due.difference(today).inDays;
-            final isDueSoon =
-                daysUntilDue != null &&
-                daysUntilDue >= 1 &&
-                daysUntilDue <= 3;
-
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(
-                  child: ghataCurrencyFlagWidget(
-                    currency,
-                    width: 26,
-                    height: 18,
-                  ),
-                ),
-                title: Text(
-                  customer,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: Text(
-                  [
-                    youReceive ? 'You Receive' : 'You Pay',
-                    if (dueDate.isNotEmpty) 'Due: $dueDate',
-                    if (isOverdue)
-                      'Overdue'
-                    else if (isDueToday)
-                      'Due Today'
-                    else if (isDueSoon)
-                      'Due Soon',
-                  ].join(' • '),
-                ),
-                trailing: Text(
-                  '${balance.abs().toStringAsFixed(2)} $currency',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CustomerLedgerScreen(
-                        customerId:
-                            item['customer_id'].toString(),
-                        customerName: customer,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            );
-          }).toList();
-
-          final historyCards = filteredLoans.map((loan) {
-            final type =
-                loan['transaction_type']?.toString() ?? '';
-            final customer =
-                loan['customer_name']?.toString() ??
-                    'Unknown Customer';
-            final currency =
-                loan['currency']?.toString() ?? '';
-            final amount =
-                double.tryParse(loan['amount']?.toString() ?? '0') ??
-                    0;
-            final date =
-                loan['transaction_date']?.toString() ?? '';
-            final rawTime =
-                loan['transaction_time']?.toString() ?? '';
-            final time =
-                rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
-            final description =
-                loan['description']?.toString() ?? '';
-            final dueDate =
-                loan['due_date']?.toString() ?? '';
-
-            String label;
-            switch (type) {
-              case 'loan_given':
-                label = 'Loan Given';
-                break;
-              case 'loan_received':
-                label = 'Loan Received';
-                break;
-              case 'loan_repayment_received':
-                label = 'Repayment Received';
-                break;
-              case 'loan_repayment_paid':
-                label = 'Repayment Paid';
-                break;
-              default:
-                label = type.replaceAll('_', ' ');
-            }
-
-            final details = <String>[
-              if (date.isNotEmpty) date,
-              if (time.isNotEmpty) time,
-              if ((type == 'loan_given' || type == 'loan_received') &&
-                  dueDate.isNotEmpty)
-                'Due: $dueDate',
-              if (description.isNotEmpty) description,
-            ];
-
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(
-                  child: ghataCurrencyFlagWidget(
-                    currency,
-                    width: 26,
-                    height: 18,
-                  ),
-                ),
-                title: Text('$label • $customer'),
-                subtitle: Text(details.join(' • ')),
-                trailing: Text(
-                  '${amount.toStringAsFixed(2)} $currency',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                onTap: () {
-                  final customerId = loan['customer_id']?.toString();
-                  if (customerId == null || customerId.isEmpty) return;
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CustomerLedgerScreen(
-                        customerId: customerId,
-                        customerName: customer,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            );
-          }).toList();
-
-          return ListView(
-            padding: EdgeInsets.all(16),
-            children: [
-              TextField(
-                controller: loanSearchController,
-                decoration: InputDecoration(
-                  labelText: ghataT(context, 'Search loans'),
-                  hintText: ghataT(context, 'Customer, currency, type, due date...'),
-                  prefixIcon: Icon(Icons.search),
-                  suffixIcon: loanSearchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(Icons.clear),
-                          onPressed: () {
-                            loanSearchController.clear();
-                            setState(() {});
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ChoiceChip(
-                    label: Text(ghataT(context, 'All')),
-                    selected: loanFilter == 'all',
-                    onSelected: (_) => setState(() => loanFilter = 'all'),
-                  ),
-                  ChoiceChip(
-                    label: Text(ghataT(context, 'You Receive')),
-                    selected: loanFilter == 'receive',
-                    onSelected: (_) => setState(() => loanFilter = 'receive'),
-                  ),
-                  ChoiceChip(
-                    label: Text(ghataT(context, 'You Pay')),
-                    selected: loanFilter == 'pay',
-                    onSelected: (_) => setState(() => loanFilter = 'pay'),
-                  ),
-                  ChoiceChip(
-                    label: Text(ghataT(context, 'Overdue')),
-                    selected: loanFilter == 'overdue',
-                    onSelected: (_) => setState(() => loanFilter = 'overdue'),
-                  ),
-                  ChoiceChip(
-                    label: Text(ghataT(context, 'Due Soon')),
-                    selected: loanFilter == 'due_soon',
-                    onSelected: (_) => setState(() => loanFilter = 'due_soon'),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16),
-              if (balanceCards.isEmpty)
-                Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: Text(ghataT(context, 'No outstanding loans or debts.')),
-                )
-              else
-                ...balanceCards,
-              SizedBox(height: 12),
-              Text(
-                ghataT(context, 'History'),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 8),
-              if (historyCards.isEmpty)
-                Text(ghataT(context, 'No loan history yet.'))
-              else
-                ...historyCards,
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
 class CashboxScreen extends StatefulWidget {
   CashboxScreen({super.key});
 
@@ -20106,14 +19036,6 @@ class _CashboxScreenState extends State<CashboxScreen> {
       if (type == 'money_in') {
         balances[currency] = balances[currency]! + amount;
       } else if (type == 'money_out') {
-        balances[currency] = balances[currency]! - amount;
-      } else if (type == 'loan_given') {
-        balances[currency] = balances[currency]! - amount;
-      } else if (type == 'loan_received') {
-        balances[currency] = balances[currency]! + amount;
-      } else if (type == 'loan_repayment_received') {
-        balances[currency] = balances[currency]! + amount;
-      } else if (type == 'loan_repayment_paid') {
         balances[currency] = balances[currency]! - amount;
       } else if (type == 'adjustment_in') {
         balances[currency] = balances[currency]! + amount;
@@ -20256,22 +19178,6 @@ class _CashboxScreenState extends State<CashboxScreen> {
                 break;
               case 'money_out':
                 label = 'Money Out';
-                isIn = false;
-                break;
-              case 'loan_given':
-                label = 'Loan Given';
-                isIn = false;
-                break;
-              case 'loan_received':
-                label = 'Loan Received';
-                isIn = true;
-                break;
-              case 'loan_repayment_received':
-                label = 'Loan Repayment Received';
-                isIn = true;
-                break;
-              case 'loan_repayment_paid':
-                label = 'Loan Repayment Paid';
                 isIn = false;
                 break;
               case 'adjustment_in':
@@ -22049,10 +20955,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
           'money_out': 0,
           'exchange_in': 0,
           'exchange_out': 0,
-          'loan_given': 0,
-          'loan_received': 0,
-          'loan_repayment_received': 0,
-          'loan_repayment_paid': 0,
           'adjustment_in': 0,
           'adjustment_out': 0,
           'net_cash_flow': 0,
@@ -22066,14 +20968,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
       }
 
       if (type == 'money_in' ||
-          type == 'loan_received' ||
-          type == 'loan_repayment_received' ||
           type == 'exchange_in' ||
           type == 'adjustment_in') {
         row['net_cash_flow'] = row['net_cash_flow']! + amount;
       } else if (type == 'money_out' ||
-          type == 'loan_given' ||
-          type == 'loan_repayment_paid' ||
           type == 'exchange_out' ||
           type == 'adjustment_out') {
         row['net_cash_flow'] = row['net_cash_flow']! - amount;
@@ -22578,15 +21476,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       row('Money Out', 'money_out'),
                       row('Exchange In', 'exchange_in'),
                       row('Exchange Out', 'exchange_out'),
-                      row('Loan Given', 'loan_given'),
-                      row('Loan Received', 'loan_received'),
                       row(
-                        'Repayment Received',
-                        'loan_repayment_received',
                       ),
                       row(
-                        'Repayment Paid',
-                        'loan_repayment_paid',
                       ),
                       row('Adjustment In', 'adjustment_in'),
                       row('Adjustment Out', 'adjustment_out'),
