@@ -45,8 +45,8 @@ class OfflineSyncService {
           await OfflineDatabase.instance
               .failOperation(operationId, e);
 
-          // Stop here so operations remain in their original order.
-          break;
+          // Keep syncing independent operations.
+          continue;
         }
       }
     } finally {
@@ -79,6 +79,37 @@ class OfflineSyncService {
     );
   }
 
+  Future<void> _ensureExchangeParent(
+    Map<String, dynamic> entry,
+  ) async {
+    final exchangeId = entry['exchange_id']?.toString() ?? '';
+
+    if (exchangeId.isEmpty) {
+      throw StateError('Exchange entry is missing exchange_id.');
+    }
+
+    final parent = await OfflineDatabase.instance.getRecord(
+      'exchanges',
+      exchangeId,
+      includeDeleted: true,
+    );
+
+    if (parent == null) {
+      throw StateError(
+        'Exchange parent $exchangeId is missing from local data.',
+      );
+    }
+
+    await Supabase.instance.client
+        .from('exchanges')
+        .upsert(parent);
+
+    await OfflineDatabase.instance.markSynced(
+      'exchanges',
+      exchangeId,
+    );
+  }
+
   Future<void> _syncTableOperation(
     Map<String, dynamic> operation,
   ) async {
@@ -106,6 +137,10 @@ class OfflineSyncService {
 
     switch (type) {
       case 'upsert':
+        if (table == 'exchange_entries') {
+          await _ensureExchangeParent(payload);
+        }
+
         await Supabase.instance.client
             .from(table)
             .upsert(payload);

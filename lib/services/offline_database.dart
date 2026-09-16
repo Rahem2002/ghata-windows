@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart' as ffi;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OfflineDatabase {
   OfflineDatabase._();
@@ -28,7 +29,7 @@ class OfflineDatabase {
         ? await ffi.databaseFactoryFfi.openDatabase(
             path,
             options: ffi.OpenDatabaseOptions(
-              version: 2,
+              version: 3,
               onCreate: (db, version) async {
                 await _createTables(db);
               },
@@ -53,12 +54,15 @@ class OfflineDatabase {
                     ON offline_operations(created_at)
                   ''');
                 }
+                  if (oldVersion < 3) {
+                    await _upgradeToV3(db);
+                  }
               },
             ),
           )
         : await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await _createTables(db);
       },
@@ -84,23 +88,205 @@ class OfflineDatabase {
             ON offline_operations(created_at)
           ''');
         }
+          if (oldVersion < 3) {
+            await _upgradeToV3(db);
+          }
       },
     );
 
     return _database!;
   }
 
-  Future<void> _createTables(Database db) async {
+  Future<void> _upgradeToV3(Database db) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    final ownerId = user?.id ?? '';
+
+    final recordColumns = await db.rawQuery(
+      'PRAGMA table_info(offline_records)',
+    );
+
+    final recordHasUserId =
+        recordColumns.any((row) => row['name']?.toString() == 'user_id');
+
+    if (!recordHasUserId) {
+      await db.execute(
+        'ALTER TABLE offline_records ADD COLUMN user_id TEXT',
+      );
+    }
+
+    final operationColumns = await db.rawQuery(
+      'PRAGMA table_info(offline_operations)',
+    );
+
+    final operationHasUserId =
+        operationColumns.any((row) => row['name']?.toString() == 'user_id');
+
+    if (!operationHasUserId) {
+      await db.execute(
+        'ALTER TABLE offline_operations ADD COLUMN user_id TEXT',
+      );
+    }
+
+    final records = await db.query('offline_records');
+
+    for (final row in records) {
+      final localId = row['local_id'];
+      final rawPayload = row['payload']?.toString();
+
+      if (localId == null || rawPayload == null || rawPayload.isEmpty) {
+        continue;
+      }
+
+      String userId = '';
+
+      try {
+        final payload = Map<String, dynamic>.from(
+          jsonDecode(rawPayload) as Map,
+        );
+
+        userId = payload['user_id']?.toString().trim() ?? '';
+      } catch (_) {}
+
+      if (userId.isEmpty) {
+        userId = ownerId;
+      }
+
+      if (userId.isNotEmpty) {
+        await db.update(
+          'offline_records',
+          {'user_id': userId},
+          where: 'local_id = ?',
+          whereArgs: [localId],
+        );
+      }
+    }
+
+    await db.execute('DROP TABLE IF EXISTS offline_records_v3');
+
     await db.execute('''
-      CREATE TABLE offline_records (
+      CREATE TABLE offline_records_v3 (
         local_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
         table_name TEXT NOT NULL,
         record_id TEXT NOT NULL,
         payload TEXT NOT NULL,
         sync_status INTEGER NOT NULL DEFAULT 0,
         deleted INTEGER NOT NULL DEFAULT 0,
         updated_at TEXT NOT NULL,
-        UNIQUE(table_name, record_id)
+        UNIQUE(user_id, table_name, record_id)
+      )
+    ''');
+
+    await db.execute('''
+      INSERT INTO offline_records_v3 (
+        local_id,
+        user_id,
+        table_name,
+        record_id,
+        payload,
+        sync_status,
+        deleted,
+        updated_at
+      )
+      SELECT
+        local_id,
+        user_id,
+        table_name,
+        record_id,
+        payload,
+        sync_status,
+        deleted,
+        updated_at
+      FROM offline_records
+      WHERE user_id IS NOT NULL AND user_id <> ''
+    ''');
+
+    await db.execute('DROP TABLE offline_records');
+
+    await db.execute(
+      'ALTER TABLE offline_records_v3 RENAME TO offline_records',
+    );
+
+    await db.execute('''
+      CREATE INDEX idx_offline_records_table
+      ON offline_records(table_name)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX idx_offline_records_sync
+      ON offline_records(sync_status)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX idx_offline_records_user
+      ON offline_records(user_id)
+    ''');
+
+    final operations = await db.query('offline_operations');
+
+    for (final row in operations) {
+      final operationId = row['operation_id'];
+      if (operationId == null) continue;
+
+      String userId = row['user_id']?.toString().trim() ?? '';
+
+      if (userId.isEmpty) {
+        for (final field in ['payload', 'rpc_params']) {
+          final raw = row[field]?.toString();
+          if (raw == null || raw.isEmpty) continue;
+
+          try {
+            final data = Map<String, dynamic>.from(
+              jsonDecode(raw) as Map,
+            );
+
+            userId = data['user_id']?.toString().trim() ?? '';
+
+            if (userId.isNotEmpty) break;
+          } catch (_) {}
+        }
+      }
+
+      if (userId.isEmpty) {
+        userId = ownerId;
+      }
+
+      if (userId.isNotEmpty) {
+        await db.update(
+          'offline_operations',
+          {'user_id': userId},
+          where: 'operation_id = ?',
+          whereArgs: [operationId],
+        );
+      }
+    }
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_offline_operations_user
+      ON offline_operations(user_id)
+    ''');
+  }
+
+  String _requireUserId() {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      throw StateError('No authenticated account for offline data.');
+    }
+    return user.id;
+  }
+
+  Future<void> _createTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE offline_records (
+        local_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+        table_name TEXT NOT NULL,
+        record_id TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        sync_status INTEGER NOT NULL DEFAULT 0,
+        deleted INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL,
+        UNIQUE(user_id, table_name, record_id)
       )
     ''');
 
@@ -117,6 +303,7 @@ class OfflineDatabase {
     await db.execute('''
       CREATE TABLE offline_operations (
         operation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
         operation_type TEXT NOT NULL,
         table_name TEXT,
         record_id TEXT,
@@ -141,6 +328,7 @@ class OfflineDatabase {
     bool synced = false,
   }) async {
     final db = await database;
+    final userId = _requireUserId();
 
     final id = data['id']?.toString();
 
@@ -182,13 +370,14 @@ class OfflineDatabase {
     bool includeDeleted = false,
   }) async {
     final db = await database;
+    final userId = _requireUserId();
 
     final rows = await db.query(
       'offline_records',
       where: includeDeleted
-          ? 'table_name = ?'
-          : 'table_name = ? AND deleted = 0',
-      whereArgs: [table],
+          ? 'user_id = ? AND table_name = ?'
+          : 'user_id = ? AND table_name = ? AND deleted = 0',
+      whereArgs: [userId, table],
       orderBy: 'updated_at DESC',
     );
 
@@ -205,13 +394,14 @@ class OfflineDatabase {
     bool includeDeleted = false,
   }) async {
     final db = await database;
+    final userId = _requireUserId();
 
     final rows = await db.query(
       'offline_records',
       where: includeDeleted
-          ? 'table_name = ? AND record_id = ?'
-          : 'table_name = ? AND record_id = ? AND deleted = 0',
-      whereArgs: [table, id],
+          ? 'user_id = ? AND table_name = ? AND record_id = ?'
+          : 'user_id = ? AND table_name = ? AND record_id = ? AND deleted = 0',
+      whereArgs: [userId, table, id],
       limit: 1,
     );
 
@@ -311,11 +501,12 @@ class OfflineDatabase {
     String id,
   ) async {
     final db = await database;
+    final userId = _requireUserId();
 
     await db.delete(
       'offline_records',
-      where: 'table_name = ? AND record_id = ?',
-      whereArgs: [table, id],
+      where: 'user_id = ? AND table_name = ? AND record_id = ?',
+      whereArgs: [userId, table, id],
     );
   }
 
@@ -324,11 +515,12 @@ class OfflineDatabase {
     String id,
   ) async {
     final db = await database;
+    final userId = _requireUserId();
 
     await db.delete(
       'offline_records',
-      where: 'table_name = ? AND record_id = ?',
-      whereArgs: [table, id],
+      where: 'user_id = ? AND table_name = ? AND record_id = ?',
+      whereArgs: [userId, table, id],
     );
 
     await queueOperation(
@@ -347,10 +539,12 @@ class OfflineDatabase {
     Map<String, dynamic>? rpcParams,
   }) async {
     final db = await database;
+    final userId = _requireUserId();
 
     await db.insert(
       'offline_operations',
       {
+        'user_id': userId,
         'operation_type': operationType,
         'table_name': table,
         'record_id': recordId,
@@ -377,20 +571,24 @@ class OfflineDatabase {
 
   Future<List<Map<String, dynamic>>> pendingOperations() async {
     final db = await database;
+    final userId = _requireUserId();
 
     return db.query(
       'offline_operations',
+      where: 'user_id = ?',
+      whereArgs: [userId],
       orderBy: 'operation_id ASC',
     );
   }
 
   Future<void> completeOperation(int operationId) async {
     final db = await database;
+    final userId = _requireUserId();
 
     await db.delete(
       'offline_operations',
-      where: 'operation_id = ?',
-      whereArgs: [operationId],
+      where: 'user_id = ? AND operation_id = ?',
+      whereArgs: [userId, operationId],
     );
   }
 
@@ -399,15 +597,16 @@ class OfflineDatabase {
     Object error,
   ) async {
     final db = await database;
+    final userId = _requireUserId();
 
     await db.rawUpdate(
       '''
       UPDATE offline_operations
       SET attempts = attempts + 1,
           last_error = ?
-      WHERE operation_id = ?
+      WHERE user_id = ? AND operation_id = ?
       ''',
-      [error.toString(), operationId],
+      [error.toString(), userId, operationId],
     );
   }
 
@@ -416,12 +615,13 @@ class OfflineDatabase {
     String id,
   ) async {
     final db = await database;
+    final userId = _requireUserId();
 
     await db.update(
       'offline_records',
       {'sync_status': 1},
-      where: 'table_name = ? AND record_id = ?',
-      whereArgs: [table, id],
+      where: 'user_id = ? AND table_name = ? AND record_id = ?',
+      whereArgs: [userId, table, id],
     );
   }
 
@@ -430,6 +630,7 @@ class OfflineDatabase {
     List<dynamic> records,
   ) async {
     final db = await database;
+    final userId = _requireUserId();
 
     for (final item in records) {
       if (item is! Map) continue;
@@ -446,8 +647,8 @@ class OfflineDatabase {
         'offline_operations',
         columns: ['operation_id'],
         where:
-            'operation_type = ? AND table_name = ? AND record_id = ?',
-        whereArgs: ['delete', table, id],
+              'user_id = ? AND operation_type = ? AND table_name = ? AND record_id = ?',
+          whereArgs: [userId, 'delete', table, id],
         limit: 1,
       );
 
@@ -458,8 +659,8 @@ class OfflineDatabase {
       final existing = await db.query(
         'offline_records',
         columns: ['sync_status'],
-        where: 'table_name = ? AND record_id = ?',
-        whereArgs: [table, id],
+          where: 'user_id = ? AND table_name = ? AND record_id = ?',
+          whereArgs: [userId, table, id],
         limit: 1,
       );
 
@@ -485,11 +686,58 @@ class OfflineDatabase {
     });
   }
 
+
+  Future<Map<String, dynamic>> syncDiagnostics() async {
+    final db = await database;
+    final userId = _requireUserId();
+
+    final operations = await db.query(
+      'offline_operations',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'operation_id ASC',
+    );
+
+    int failed = 0;
+    int attempted = 0;
+    final problems = <Map<String, dynamic>>[];
+
+    for (final operation in operations) {
+      final attempts =
+          int.tryParse(operation['attempts']?.toString() ?? '0') ?? 0;
+      final error =
+          operation['last_error']?.toString().trim() ?? '';
+
+      if (attempts > 0) attempted++;
+      if (error.isNotEmpty) failed++;
+
+      if (attempts > 0 || error.isNotEmpty) {
+        problems.add(<String, dynamic>{
+          'operation_id': operation['operation_id'],
+          'operation_type': operation['operation_type'],
+          'table_name': operation['table_name'],
+          'record_id': operation['record_id'],
+          'attempts': attempts,
+          'last_error': error,
+        });
+      }
+    }
+
+    return <String, dynamic>{
+      'pending': operations.length,
+      'attempted': attempted,
+      'failed': failed,
+      'problems': problems,
+    };
+  }
+
   Future<int> pendingOperationCount() async {
     final db = await database;
+    final userId = _requireUserId();
 
     final result = await db.rawQuery(
-      'SELECT COUNT(*) AS total FROM offline_operations',
+      'SELECT COUNT(*) AS total FROM offline_operations WHERE user_id = ?',
+      [userId],
     );
 
     return Sqflite.firstIntValue(result) ?? 0;

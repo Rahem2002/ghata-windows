@@ -236,7 +236,8 @@ Future<String?> ghataSaveCustomerPhoto(
           .update({
             'photo_path': cloudPath,
           })
-          .eq('id', customerId);
+          .eq('id', customerId)
+            .eq('user_id', user.id);
 
       await OfflineDatabase.instance.updateLocalRecord(
         'customers',
@@ -324,8 +325,9 @@ Future<String?> ghataLoadCustomerPhoto(
     var cloudPath =
         customer?['photo_path']?.toString() ?? '';
 
+      final photoUser = Supabase.instance.client.auth.currentUser;
     if (cloudPath.isEmpty &&
-        Supabase.instance.client.auth.currentUser !=
+        photoUser !=
             null) {
       try {
         final remote =
@@ -333,6 +335,7 @@ Future<String?> ghataLoadCustomerPhoto(
                 .from('customers')
                 .select('photo_path')
                 .eq('id', customerId)
+                  .eq('user_id', photoUser.id)
                 .maybeSingle();
 
         cloudPath =
@@ -415,6 +418,7 @@ Future<String?> ghataLoadCustomerPhoto(
 Future<void> ghataDeleteCustomerPhoto(
   String customerId,
 ) async {
+      final photoUser = Supabase.instance.client.auth.currentUser;
   try {
     final cached = await OfflineDatabase.instance.getRecord(
       'customer_photos',
@@ -451,6 +455,7 @@ Future<void> ghataDeleteCustomerPhoto(
       await Supabase.instance.client
           .from('customers')
           .update({'photo_path': null})
+            .eq('user_id', photoUser?.id ?? '')
           .eq('id', customerId);
     } catch (_) {}
 
@@ -804,7 +809,7 @@ Future<void> ghataRefreshTransactionsCache() async {
     final rows =
         await Supabase.instance.client
             .from('transactions')
-            .select();
+            .select().eq('user_id', user.id);
 
     await OfflineDatabase.instance.cacheServerRecords(
       'transactions',
@@ -824,7 +829,7 @@ Future<void> ghataRefreshCustomersCache() async {
 
   try {
     final rows =
-        await Supabase.instance.client.from('customers').select();
+        await Supabase.instance.client.from('customers').select().eq('user_id', user.id);
 
     await OfflineDatabase.instance.cacheServerRecords(
       'customers',
@@ -1110,7 +1115,7 @@ Future<void> _ghataOfflineCacheRefreshImpl() async {
 
   try {
     final customers =
-        await Supabase.instance.client.from('customers').select();
+        await Supabase.instance.client.from('customers').select().eq('user_id', user.id);
 
     await OfflineDatabase.instance.cacheServerRecords(
       'customers',
@@ -1122,7 +1127,7 @@ Future<void> _ghataOfflineCacheRefreshImpl() async {
 
   try {
     final transactions =
-        await Supabase.instance.client.from('transactions').select();
+        await Supabase.instance.client.from('transactions').select().eq('user_id', user.id);
 
     await OfflineDatabase.instance.cacheServerRecords(
       'transactions',
@@ -1132,35 +1137,52 @@ Future<void> _ghataOfflineCacheRefreshImpl() async {
     debugPrint('Ghata transactions cache refresh failed: $e');
   }
 
-  try {
-    final exchanges =
-        await Supabase.instance.client.from('exchanges').select();
+    final exchangeIds = <String>[];
 
-    await OfflineDatabase.instance.cacheServerRecords(
-      'exchanges',
-      List<Map<String, dynamic>>.from(exchanges),
-    );
-  } catch (e) {
-    debugPrint('Ghata exchanges cache refresh failed: $e');
-  }
+    try {
+      final exchanges =
+          await Supabase.instance.client
+              .from('exchanges')
+              .select()
+              .eq('user_id', user.id);
 
-  try {
-    final entries =
-        await Supabase.instance.client.from('exchange_entries').select();
+      exchangeIds.addAll(
+        List<Map<String, dynamic>>.from(exchanges)
+            .map((row) => row['id']?.toString() ?? '')
+            .where((id) => id.isNotEmpty),
+      );
 
-    await OfflineDatabase.instance.cacheServerRecords(
-      'exchange_entries',
-      List<Map<String, dynamic>>.from(entries),
-    );
-  } catch (e) {
-    debugPrint('Ghata exchange entries cache refresh failed: $e');
-  }
+      await OfflineDatabase.instance.cacheServerRecords(
+        'exchanges',
+        List<Map<String, dynamic>>.from(exchanges),
+      );
+    } catch (e) {
+      debugPrint('Ghata exchanges cache refresh failed: $e');
+    }
+
+    try {
+      final entries = exchangeIds.isEmpty
+          ? <Map<String, dynamic>>[]
+          : List<Map<String, dynamic>>.from(
+              await Supabase.instance.client
+                  .from('exchange_entries')
+                  .select()
+                  .inFilter('exchange_id', exchangeIds),
+            );
+
+      await OfflineDatabase.instance.cacheServerRecords(
+        'exchange_entries',
+        entries,
+      );
+    } catch (e) {
+      debugPrint('Ghata exchange entries cache refresh failed: $e');
+    }
 
   try {
     final profiles =
         await Supabase.instance.client
             .from('profiles')
-            .select();
+            .select().eq('id', user.id);
 
     await OfflineDatabase.instance.cacheServerRecords(
       'profiles',
@@ -1211,7 +1233,7 @@ Future<List<Map<String, dynamic>>>
 }
 
 Future<List<Map<String, dynamic>>> ghataLocalFinancialRows() async {
-  await ghataRefreshOfflineCache();
+  ghataRefreshOfflineCache();
 
   final transactionData =
       await OfflineDatabase.instance.getRecords('transactions');
@@ -1801,6 +1823,41 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'مجموع موجودی',
     'ur': 'کل بیلنس',
     'ar': 'إجمالي الرصيد',
+  },
+  'Customer Photo': {
+    'en': 'Customer Photo',
+    'ps': 'د پېرودونکي عکس',
+    'fa': 'عکس مشتری',
+    'ur': 'گاہک کی تصویر',
+    'ar': 'صورة العميل',
+  },
+  'Summary by Currency': {
+    'en': 'Summary by Currency',
+    'ps': 'د اسعارو له مخې لنډیز',
+    'fa': 'خلاصه بر اساس ارز',
+    'ur': 'کرنسی کے لحاظ سے خلاصہ',
+    'ar': 'الملخص حسب العملة',
+  },
+  'From Date': {
+    'en': 'From Date',
+    'ps': 'له نېټې',
+    'fa': 'از تاریخ',
+    'ur': 'تاریخ سے',
+    'ar': 'من تاريخ',
+  },
+  'To Date': {
+    'en': 'To Date',
+    'ps': 'تر نېټې',
+    'fa': 'تا تاریخ',
+    'ur': 'تاریخ تک',
+    'ar': 'إلى تاريخ',
+  },
+  'Save Statement (PDF)': {
+    'en': 'Save Statement (PDF)',
+    'ps': 'حساب پاڼه خوندي کړئ (PDF)',
+    'fa': 'ذخیره صورت‌حساب (PDF)',
+    'ur': 'اسٹیٹمنٹ محفوظ کریں (PDF)',
+    'ar': 'حفظ كشف الحساب (PDF)',
   },
   'Money In': {
     'en': 'Money In',
@@ -4333,6 +4390,263 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'پروفائل تصویر',
     'ar': 'صورة الملف الشخصي',
   },
+  'Everything is synced': {'en':'Everything is synced','ps':'ټول معلومات همغږي دي','fa':'همه اطلاعات همگام است','ur':'تمام معلومات ہم آہنگ ہیں','ar':'تمت مزامنة جميع البيانات'},
+  'Log Out Device': {'en':'Log Out Device','ps':'وسیله وباسئ','fa':'خروج دستگاه','ur':'ڈیوائس لاگ آؤٹ کریں','ar':'تسجيل خروج الجهاز'},
+  'Sync Problem': {
+    'en': 'Sync Problem',
+    'ps': 'د همغږۍ ستونزه',
+    'fa': 'مشکل همگام‌سازی',
+    'ur': 'سنک کا مسئلہ',
+    'ar': 'مشكلة المزامنة',
+  },
+  'Sync Status': {
+    'en': 'Sync Status',
+    'ps': 'د همغږۍ حالت',
+    'fa': 'وضعیت همگام‌سازی',
+    'ur': 'سنک کی حالت',
+    'ar': 'حالة المزامنة',
+  },
+  'Offline Sync Queue': {
+    'en': 'Offline Sync Queue',
+    'ps': 'د افلاین همغږۍ کتار',
+    'fa': 'صف همگام‌سازی آفلاین',
+    'ur': 'آف لائن سنک قطار',
+    'ar': 'قائمة انتظار المزامنة دون اتصال',
+  },
+  'Pending': {
+    'en': 'Pending',
+    'ps': 'پاتې',
+    'fa': 'در انتظار',
+    'ur': 'زیر التوا',
+    'ar': 'قيد الانتظار',
+  },
+  'Attempted': {
+    'en': 'Attempted',
+    'ps': 'هڅه شوي',
+    'fa': 'تلاش‌شده',
+    'ur': 'کوشش شدہ',
+    'ar': 'تمت المحاولة',
+  },
+  'Failed': {
+    'en': 'Failed',
+    'ps': 'ناکام',
+    'fa': 'ناموفق',
+    'ur': 'ناکام',
+    'ar': 'فشل',
+  },
+  'First Sync Problem': {
+    'en': 'First Sync Problem',
+    'ps': 'د همغږۍ لومړۍ ستونزه',
+    'fa': 'اولین مشکل همگام‌سازی',
+    'ur': 'پہلا سنک مسئلہ',
+    'ar': 'أول مشكلة مزامنة',
+  },
+  'Operation': {
+    'en': 'Operation',
+    'ps': 'عملیات',
+    'fa': 'عملیات',
+    'ur': 'عمل',
+    'ar': 'العملية',
+  },
+  'Table': {
+    'en': 'Table',
+    'ps': 'جدول',
+    'fa': 'جدول',
+    'ur': 'ٹیبل',
+    'ar': 'الجدول',
+  },
+  'Record ID': {
+    'en': 'Record ID',
+    'ps': 'د ریکارډ پېژند',
+    'fa': 'شناسه رکورد',
+    'ur': 'ریکارڈ آئی ڈی',
+    'ar': 'معرّف السجل',
+  },
+  'Attempts': {
+    'en': 'Attempts',
+    'ps': 'هڅې',
+    'fa': 'تلاش‌ها',
+    'ur': 'کوششیں',
+    'ar': 'المحاولات',
+  },
+  'Error': {
+    'en': 'Error',
+    'ps': 'تېروتنه',
+    'fa': 'خطا',
+    'ur': 'خرابی',
+    'ar': 'خطأ',
+  },
+  'Unknown error': {
+    'en': 'Unknown error',
+    'ps': 'نامعلومه تېروتنه',
+    'fa': 'خطای ناشناخته',
+    'ur': 'نامعلوم خرابی',
+    'ar': 'خطأ غير معروف',
+  },
+  'No failed sync operation found': {
+    'en': 'No failed sync operation found',
+    'ps': 'د همغږۍ کوم ناکام عملیات ونه موندل شول',
+    'fa': 'هیچ عملیات ناموفق همگام‌سازی یافت نشد',
+    'ur': 'کوئی ناکام سنک عمل نہیں ملا',
+    'ar': 'لم يتم العثور على عملية مزامنة فاشلة',
+  },
+  'This screen is read-only and does not change your data.': {
+    'en': 'This screen is read-only and does not change your data.',
+    'ps': 'دا سکرین یوازې د کتلو لپاره دی او ستاسو معلومات نه بدلوي.',
+    'fa': 'این صفحه فقط برای مشاهده است و اطلاعات شما را تغییر نمی‌دهد.',
+    'ur': 'یہ اسکرین صرف دیکھنے کے لیے ہے اور آپ کا ڈیٹا تبدیل نہیں کرتی۔',
+    'ar': 'هذه الشاشة للقراءة فقط ولا تغيّر بياناتك.',
+  },
+  'Diagnostics error': {
+    'en': 'Diagnostics error',
+    'ps': 'د تشخیص تېروتنه',
+    'fa': 'خطای تشخیص',
+    'ur': 'تشخیصی خرابی',
+    'ar': 'خطأ التشخيص',
+  },
+  'Check pending or failed data synchronization.': {
+    'en': 'Check pending or failed data synchronization.',
+    'ps': 'پاتې یا ناکامه د معلوماتو همغږي وګورئ.',
+    'fa': 'همگام‌سازی در انتظار یا ناموفق اطلاعات را بررسی کنید.',
+    'ur': 'زیر التوا یا ناکام ڈیٹا سنک چیک کریں۔',
+    'ar': 'تحقق من مزامنة البيانات المعلقة أو الفاشلة.',
+  },
+  'Log Out': {'en':'Log Out','ps':'وتل','fa':'خروج','ur':'لاگ آؤٹ','ar':'تسجيل الخروج'},
+  'Active now': {
+    'en': 'Active now',
+    'ps': 'اوس فعال',
+    'fa': 'اکنون فعال',
+    'ur': 'ابھی فعال',
+    'ar': 'نشط الآن',
+  },
+  'Android Device': {
+    'en': 'Android Device',
+    'ps': 'انډرایډ وسیله',
+    'fa': 'دستگاه اندروید',
+    'ur': 'اینڈرائیڈ ڈیوائس',
+    'ar': 'جهاز أندرويد',
+  },
+  'View devices signed in to your Ghata account.': {
+    'en': 'View devices signed in to your Ghata account.',
+    'ps': 'هغه وسایل وګورئ چې ستاسو د ګهته حساب ته ننوتلي دي.',
+    'fa': 'دستگاه‌های واردشده به حساب غته خود را مشاهده کنید.',
+    'ur': 'اپنے غتہ اکاؤنٹ میں سائن اِن ڈیوائسز دیکھیں۔',
+    'ar': 'اعرض الأجهزة المسجّل دخولها إلى حساب غتة الخاص بك.',
+  },
+
+  'Unknown': {
+    'en': 'Unknown',
+    'ps': 'نامعلوم',
+    'fa': 'نامعلوم',
+    'ur': 'نامعلوم',
+    'ar': 'غير معروف',
+  },
+  'min ago': {
+    'en': 'min ago',
+    'ps': 'دقیقې مخکې',
+    'fa': 'دقیقه پیش',
+    'ur': 'منٹ پہلے',
+    'ar': 'دقيقة مضت',
+  },
+  'h ago': {
+    'en': 'h ago',
+    'ps': 'ساعته مخکې',
+    'fa': 'ساعت پیش',
+    'ur': 'گھنٹے پہلے',
+    'ar': 'ساعة مضت',
+  },
+  'd ago': {
+    'en': 'd ago',
+    'ps': 'ورځې مخکې',
+    'fa': 'روز پیش',
+    'ur': 'دن پہلے',
+    'ar': 'يوم مضى',
+  },
+  'Log out device confirmation': {
+    'en': 'Log out this device from your Ghata account?',
+    'ps': 'دا وسیله له خپل ګهته حساب څخه وباسئ؟',
+    'fa': 'این دستگاه از حساب غته شما خارج شود؟',
+    'ur': 'اس ڈیوائس کو اپنے غتہ اکاؤنٹ سے لاگ آؤٹ کریں؟',
+    'ar': 'تسجيل خروج هذا الجهاز من حساب غتة الخاص بك؟',
+  },
+  'Device logged out successfully.': {
+    'en': 'Device logged out successfully.',
+    'ps': 'وسیله په بریالیتوب سره ووتله.',
+    'fa': 'دستگاه با موفقیت خارج شد.',
+    'ur': 'ڈیوائس کامیابی سے لاگ آؤٹ ہو گئی۔',
+    'ar': 'تم تسجيل خروج الجهاز بنجاح.',
+  },
+  'Unable to load active devices': {
+    'en': 'Unable to load active devices',
+    'ps': 'د فعالو وسیلو پورته کول ممکن نه شول',
+    'fa': 'بارگذاری دستگاه‌های فعال ممکن نشد',
+    'ur': 'فعال ڈیوائسز لوڈ نہیں ہو سکیں',
+    'ar': 'تعذر تحميل الأجهزة النشطة',
+  },
+  'Unable to log out device': {
+    'en': 'Unable to log out device',
+    'ps': 'له وسیلې څخه وتل ممکن نه شول',
+    'fa': 'خروج دستگاه ممکن نشد',
+    'ur': 'ڈیوائس لاگ آؤٹ نہیں ہو سکی',
+    'ar': 'تعذر تسجيل خروج الجهاز',
+  },
+
+  'Restore failed': {
+    'en': 'Restore failed',
+    'ps': 'بیا راګرځول ناکام شول',
+    'fa': 'بازیابی ناموفق بود',
+    'ur': 'بحالی ناکام ہو گئی',
+    'ar': 'فشلت الاستعادة',
+  },
+  'Unable to open email app.': {
+    'en': 'Unable to open email app.',
+    'ps': 'د ایمیل اپ خلاصول ممکن نه شول.',
+    'fa': 'باز کردن برنامه ایمیل ممکن نشد.',
+    'ur': 'ای میل ایپ نہیں کھل سکی۔',
+    'ar': 'تعذر فتح تطبيق البريد الإلكتروني.',
+  },
+  'Unable to open WhatsApp.': {
+    'en': 'Unable to open WhatsApp.',
+    'ps': 'د WhatsApp خلاصول ممکن نه شول.',
+    'fa': 'باز کردن WhatsApp ممکن نشد.',
+    'ur': 'WhatsApp نہیں کھل سکا۔',
+    'ar': 'تعذر فتح WhatsApp.',
+  },
+  'No journal records to print.': {
+    'en': 'No journal records to print.',
+    'ps': 'د چاپ لپاره د ورځپاڼې ریکارډونه نشته.',
+    'fa': 'هیچ رکورد روزنامه‌ای برای چاپ وجود ندارد.',
+    'ur': 'پرنٹ کرنے کے لیے کوئی روزنامچہ ریکارڈ نہیں ہے۔',
+    'ar': 'لا توجد سجلات يومية للطباعة.',
+  },
+  'Unable to print Daily Journal': {
+    'en': 'Unable to print Daily Journal',
+    'ps': 'د ورځپاڼې چاپ ممکن نه شو',
+    'fa': 'چاپ روزنامه ممکن نشد',
+    'ur': 'روزنامچہ پرنٹ نہیں ہو سکا',
+    'ar': 'تعذرت طباعة اليومية',
+  },
+  'Print Full Journal': {
+    'en': 'Print Full Journal',
+    'ps': 'بشپړه ورځپاڼه چاپ کړئ',
+    'fa': 'چاپ کامل روزنامه',
+    'ur': 'مکمل روزنامچہ پرنٹ کریں',
+    'ar': 'طباعة اليومية كاملة',
+  },
+  'Print Statement': {
+    'en': 'Print Statement',
+    'ps': 'حساب پاڼه چاپ کړئ',
+    'fa': 'چاپ صورت‌حساب',
+    'ur': 'اسٹیٹمنٹ پرنٹ کریں',
+    'ar': 'طباعة كشف الحساب',
+  },
+  'WhatsApp': {
+    'en': 'WhatsApp',
+    'ps': 'WhatsApp',
+    'fa': 'WhatsApp',
+    'ur': 'WhatsApp',
+    'ar': 'WhatsApp',
+  },
 };
 String ghataT(BuildContext context, String key) {
   final code = Localizations.localeOf(context).languageCode;
@@ -4647,7 +4961,12 @@ class _GhataAppState extends State<GhataApp>
     );
 
     void handleRealtimeChange(PostgresChangePayload payload) {
-      ghataTrySync();
+      // Multi-device sync: upload this device's pending work first,
+      // then pull the latest account data into the local cache.
+      Future<void>(() async {
+        await ghataTrySync();
+        await ghataRefreshOfflineCache();
+      });
     }
 
     channel
@@ -4917,14 +5236,8 @@ class _LoginScreenState extends State<LoginScreen> {
         throw StateError('Login succeeded without a user.');
       }
 
-      // Strict account isolation.
-      final localOwner =
-          await GhataSecurity.localAccountOwner();
-
-      if (localOwner == null || localOwner != user.id) {
-        await OfflineDatabase.instance.clearAllLocalData();
-      }
-
+      // Offline data is isolated by user_id, so switching accounts
+      // must not erase another account's local records.
       await GhataSecurity.setLocalAccountOwner(user.id);
 
       // Device registration must never break a successful login.
@@ -5240,13 +5553,8 @@ class _SignupScreenState extends State<SignupScreen> {
       // If Supabase authenticated the new account immediately,
       // isolate local data before opening Home.
       if (response.session != null) {
-        final localOwner =
-            await GhataSecurity.localAccountOwner();
-
-        if (localOwner == null || localOwner != user.id) {
-          await OfflineDatabase.instance.clearAllLocalData();
-        }
-
+        // Keep other accounts' offline records intact.
+        // OfflineDatabase scopes reads and writes by current user_id.
         await GhataSecurity.setLocalAccountOwner(user.id);
 
         try {
@@ -5632,11 +5940,11 @@ class GhataSecurity {
     }
   }
 
-  static Future<bool> authenticateBiometric() async {
+  static Future<bool> authenticateBiometric(String localizedReason) async {
     try {
       final auth = LocalAuthentication();
       return await auth.authenticate(
-        localizedReason: 'Unlock Ghata',
+        localizedReason: localizedReason,
         options: AuthenticationOptions(
           biometricOnly: false,
           stickyAuth: true,
@@ -6170,6 +6478,37 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       final exchangeEntries =
           _validatedList(backup, 'exchange_entries');
 
+      void validateOwnedRecords(
+        String section,
+        List<Map<String, dynamic>> records,
+      ) {
+        for (final record in records) {
+          if (record['user_id']?.toString() != user.id) {
+            throw Exception(
+              'Backup contains $section data from another account.',
+            );
+          }
+        }
+      }
+
+      validateOwnedRecords('customer', customers);
+      validateOwnedRecords('transaction', transactions);
+      validateOwnedRecords('exchange', exchanges);
+
+      final exchangeIds = exchanges
+          .map((record) => record['id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet();
+
+      for (final entry in exchangeEntries) {
+        final exchangeId = entry['exchange_id']?.toString() ?? '';
+        if (exchangeId.isEmpty || !exchangeIds.contains(exchangeId)) {
+          throw Exception(
+            'Backup contains an exchange entry without a valid owned exchange.',
+          );
+        }
+      }
+
       Map<String, dynamic>? profile;
 
       if (backup['profile'] != null) {
@@ -6261,7 +6600,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Restore failed: $e'),
+          content: Text("${ghataT(context, 'Restore failed')}: $e"),
         ),
       );
     } finally {
@@ -6380,31 +6719,31 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
     }
   }
 
-  String _lastSeenText(dynamic value) {
+  String _lastSeenText(BuildContext context, dynamic value) {
     final raw = value?.toString() ?? '';
     final date = DateTime.tryParse(raw);
 
     if (date == null) {
-      return 'Unknown';
+      return ghataT(context, 'Unknown');
     }
 
     final now = DateTime.now().toUtc();
     final diff = now.difference(date.toUtc());
 
     if (diff.inSeconds < 60) {
-      return 'Active now';
+      return ghataT(context, 'Active now');
     }
 
     if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} min ago';
+      return '${diff.inMinutes} ${ghataT(context, 'min ago')}';
     }
 
     if (diff.inHours < 24) {
-      return '${diff.inHours} h ago';
+      return '${diff.inHours} ${ghataT(context, 'h ago')}';
     }
 
     if (diff.inDays < 30) {
-      return '${diff.inDays} d ago';
+      return '${diff.inDays} ${ghataT(context, 'd ago')}';
     }
 
     return date.toLocal().toString().substring(0, 16);
@@ -6453,7 +6792,7 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Unable to load active devices: $e',
+            '''${ghataT(context, 'Unable to load active devices')}: $e''',
           ),
         ),
       );
@@ -6476,9 +6815,9 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Log Out Device'),
+        title: Text(ghataT(context, 'Log Out Device')),
         content: Text(
-          'Log out "$name" from your Ghata account?',
+          '${ghataT(context, 'Log out device confirmation')} "$name"?',
         ),
         actions: [
           TextButton(
@@ -6491,7 +6830,7 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
           FilledButton(
             onPressed: () =>
                 Navigator.pop(dialogContext, true),
-            child: const Text('Log Out'),
+            child: Text(ghataT(context, 'Log Out')),
           ),
         ],
       ),
@@ -6523,9 +6862,9 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Device logged out successfully.',
+            ghataT(context, 'Device logged out successfully.'),
           ),
         ),
       );
@@ -6535,7 +6874,7 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Unable to log out device: $e',
+            '''${ghataT(context, 'Unable to log out device')}: $e''',
           ),
         ),
       );
@@ -6549,7 +6888,7 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
         title: Text(ghataT(context, 'Active Devices')),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: ghataT(context, 'Refresh'),
             onPressed: loading ? null : loadDevices,
             icon: const Icon(Icons.refresh),
           ),
@@ -6632,7 +6971,7 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
                             subtitle: Text(
                               revoked
                                   ? ghataT(context, 'Logged out')
-                                  : '${platform.toUpperCase()} • ${_lastSeenText(device['last_seen'])}',
+                                  : '${platform.toUpperCase()} • ${_lastSeenText(context, device['last_seen'])}',
                             ),
                             trailing: isCurrent || revoked
                                 ? null
@@ -6654,6 +6993,245 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
   }
 }
 
+
+
+class SyncDiagnosticsScreen extends StatefulWidget {
+  const SyncDiagnosticsScreen({super.key});
+
+  @override
+  State<SyncDiagnosticsScreen> createState() =>
+      _SyncDiagnosticsScreenState();
+}
+
+class _SyncDiagnosticsScreenState extends State<SyncDiagnosticsScreen> {
+  bool loading = true;
+  Map<String, dynamic>? diagnostics;
+  String? loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    loadDiagnostics();
+  }
+
+  Future<void> loadDiagnostics({bool syncFirst = false}) async {
+    setState(() {
+      loading = true;
+      loadError = null;
+    });
+
+    try {
+      if (syncFirst) {
+        await OfflineSyncService.instance.syncPending();
+      }
+
+      final result =
+          await OfflineDatabase.instance.syncDiagnostics();
+
+      if (!mounted) return;
+
+      setState(() {
+        diagnostics = result;
+        loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        loadError = e.toString();
+        loading = false;
+      });
+    }
+  }
+
+  Widget diagnosticRow(String label, Object? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 150,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(
+            child: SelectableText(value?.toString() ?? '-'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final data = diagnostics;
+    final problems = data?['problems'] is List
+        ? (data!['problems'] as List)
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    final pending = data?['pending'] ?? 0;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(ghataT(context, 'Sync Status')),
+        actions: [
+          IconButton(
+            tooltip: ghataT(context, 'Refresh'),
+            onPressed: loading
+                ? null
+                : () => loadDiagnostics(syncFirst: true),
+            icon: const Icon(Icons.sync),
+          ),
+        ],
+      ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: ListView(
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ghataT(context, 'Offline Sync Queue'),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge,
+                            ),
+                            const SizedBox(height: 14),
+                            diagnosticRow(
+                              ghataT(context, 'Pending'),
+                              pending,
+                            ),
+                            diagnosticRow(
+                              ghataT(context, 'Attempted'),
+                              data?['attempted'] ?? 0,
+                            ),
+                            diagnosticRow(
+                              ghataT(context, 'Failed'),
+                              data?['failed'] ?? 0,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (problems.isEmpty)
+                      Card(
+                        child: ListTile(
+                          leading: Icon(
+                            pending == 0
+                                ? Icons.check_circle_outline
+                                : Icons.schedule_outlined,
+                          ),
+                          title: Text(
+                            pending == 0
+                                ? ghataT(context, 'Everything is synced')
+                                : ghataT(
+                                    context,
+                                    'Sync operations are pending',
+                                  ),
+                          ),
+                          subtitle: Text(
+                            pending == 0
+                                ? ghataT(
+                                    context,
+                                    'There are no pending or failed sync operations.',
+                                  )
+                                : ghataT(
+                                    context,
+                                    'Pending changes will sync when the connection is available.',
+                                  ),
+                          ),
+                        ),
+                      )
+                    else
+                      ...problems.asMap().entries.map((entry) {
+                        final problem = entry.value;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${ghataT(context, 'Sync Problem')} ${entry.key + 1}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  diagnosticRow(
+                                    ghataT(context, 'Operation'),
+                                    problem['operation_type'],
+                                  ),
+                                  diagnosticRow(
+                                    ghataT(context, 'Table'),
+                                    problem['table_name'],
+                                  ),
+                                  diagnosticRow(
+                                    ghataT(context, 'Record ID'),
+                                    problem['record_id'],
+                                  ),
+                                  diagnosticRow(
+                                    ghataT(context, 'Attempts'),
+                                    problem['attempts'],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    ghataT(context, 'Error'),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  SelectableText(
+                                    problem['last_error']
+                                            ?.toString() ??
+                                        ghataT(
+                                          context,
+                                          'Unknown error',
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    if (loadError != null) ...[
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: SelectableText(
+                            "${ghataT(context, 'Diagnostics error')}: $loadError",
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+}
 
 class SecurityScreen extends StatefulWidget {
   SecurityScreen({super.key});
@@ -6700,7 +7278,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
       }
 
       final authenticated =
-          await GhataSecurity.authenticateBiometric();
+          await GhataSecurity.authenticateBiometric(ghataT(context, 'Unlock Ghata'));
 
       if (!authenticated) return;
     }
@@ -6799,7 +7377,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
       return;
     }
 
-    final success = await GhataSecurity.authenticateBiometric();
+    final success = await GhataSecurity.authenticateBiometric(ghataT(context, 'Unlock Ghata'));
 
     if (!mounted) return;
 
@@ -6918,18 +7496,17 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
       final accountChanged =
           localOwner == null || localOwner != user.id;
 
-      if (accountChanged) {
-        await OfflineDatabase.instance.clearAllLocalData();
-      }
-
+      // Do not clear local data when the account changes.
+      // Each account has its own user_id-scoped offline records.
       await GhataSecurity.setLocalAccountOwner(user.id);
 
-      if (accountChanged) {
-        await ghataRefreshOfflineCache();
-      } else {
-        ghataTrySync();
-        await ghataRefreshOfflineCache();
-      }
+        // Do not block Windows startup on Supabase/network work.
+        Future<void>(() async {
+          if (!accountChanged) {
+            await ghataTrySync();
+          }
+          await ghataRefreshOfflineCache();
+        });
     }
 
     () async {
@@ -6969,7 +7546,7 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
     });
 
     final success =
-        await GhataSecurity.authenticateBiometric();
+        await GhataSecurity.authenticateBiometric(ghataT(context, 'Unlock Ghata'));
 
     if (!mounted) return;
 
@@ -7540,6 +8117,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         PopupMenuItem<String>(
+          value: 'sync_status',
+          child: Row(
+            children: [
+              const Icon(Icons.sync_outlined),
+              const SizedBox(width: 12),
+              Text(ghataT(context, 'Sync Status')),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
           value: 'recycle',
           child: Row(
             children: [
@@ -7585,6 +8172,8 @@ class _HomeScreenState extends State<HomeScreen> {
       screen = StaffManagementScreen();
     } else if (choice == 'backup') {
       screen = BackupRestoreScreen();
+    } else if (choice == 'sync_status') {
+      screen = const SyncDiagnosticsScreen();
     } else if (choice == 'recycle') {
       screen = RecycleBinScreen();
     } else if (choice == 'about') {
@@ -9076,7 +9665,7 @@ class AboutGhataScreen extends StatelessWidget {
                             if (!opened && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Unable to open email app.'),
+                                  content: Text(ghataT(context, 'Unable to open email app.')),
                                 ),
                               );
                             }
@@ -9084,7 +9673,7 @@ class AboutGhataScreen extends StatelessWidget {
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Unable to open email app.'),
+                                content: Text(ghataT(context, 'Unable to open email app.')),
                               ),
                             );
                           }
@@ -9148,7 +9737,7 @@ class AboutGhataScreen extends StatelessWidget {
                             if (!opened && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Unable to open WhatsApp.'),
+                                  content: Text(ghataT(context, 'Unable to open WhatsApp.')),
                                 ),
                               );
                             }
@@ -9156,7 +9745,7 @@ class AboutGhataScreen extends StatelessWidget {
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Unable to open WhatsApp.'),
+                                content: Text(ghataT(context, 'Unable to open WhatsApp.')),
                               ),
                             );
                           }
@@ -9220,7 +9809,7 @@ class AboutGhataScreen extends StatelessWidget {
                             if (!opened && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Unable to open WhatsApp.'),
+                                  content: Text(ghataT(context, 'Unable to open WhatsApp.')),
                                 ),
                               );
                             }
@@ -9228,7 +9817,7 @@ class AboutGhataScreen extends StatelessWidget {
                             if (!context.mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Unable to open WhatsApp.'),
+                                content: Text(ghataT(context, 'Unable to open WhatsApp.')),
                               ),
                             );
                           }
@@ -9700,15 +10289,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) throw Exception('Not logged in');
 
-      await Supabase.instance.client
-          .from('profiles')
-          .update({
-            'business_name': businessNameController.text.trim(),
-            'business_phone': businessPhoneController.text.trim(),
-            'business_address': businessAddressController.text.trim(),
-            'receipt_note': receiptNoteController.text.trim(),
-          })
-          .eq('id', user.id);
+        await Supabase.instance.client.rpc(
+          'update_my_business_profile',
+          params: {
+            'new_business_name': businessNameController.text.trim(),
+            'new_business_phone': businessPhoneController.text.trim(),
+            'new_business_address': businessAddressController.text.trim(),
+            'new_receipt_note': receiptNoteController.text.trim(),
+          },
+        );
 
       if (!mounted) return;
 
@@ -10308,6 +10897,30 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
   }
 }
 
+  Future<void> permanentlyDeleteExchangeData(String exchangeId) async {
+    final entries = await OfflineDatabase.instance.getRecords(
+      'exchange_entries',
+      includeDeleted: true,
+    );
+
+    for (final entry in entries) {
+      if (entry['exchange_id']?.toString() != exchangeId) continue;
+
+      final entryId = entry['id']?.toString() ?? '';
+      if (entryId.isEmpty) continue;
+
+      await OfflineDatabase.instance.permanentlyDeleteLocalRecord(
+        'exchange_entries',
+        entryId,
+      );
+    }
+
+    await OfflineDatabase.instance.permanentlyDeleteLocalRecord(
+      'exchanges',
+      exchangeId,
+    );
+  }
+
   Future<void> permanentlyDeleteExchange(
     String id,
     String label,
@@ -10336,10 +10949,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     if (confirmed != true) return;
 
     try {
-      await OfflineDatabase.instance.permanentlyDeleteLocalRecord(
-        'exchanges',
-        id,
-      );
+      await permanentlyDeleteExchangeData(id);
 
       ghataScheduleAutomaticBackup();
       ghataTrySync();
@@ -10610,10 +11220,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       for (final exchange in selectedExchanges) {
         final id = exchange['id']?.toString() ?? '';
         if (id.isEmpty) continue;
-        await OfflineDatabase.instance.permanentlyDeleteLocalRecord(
-          'exchanges',
-          id,
-        );
+        await permanentlyDeleteExchangeData(id);
       }
 
       ghataScheduleAutomaticBackup();
@@ -11309,13 +11916,9 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     var local =
         await OfflineDatabase.instance.getRecords('customers');
 
-    if (local.isEmpty) {
-      await ghataRefreshCustomersCache();
-      local =
-          await OfflineDatabase.instance.getRecords('customers');
-    } else {
-      ghataRefreshCustomersCache();
-    }
+    // Offline-first: never block Reports while waiting for Supabase.
+    // Show local SQLite data immediately and refresh in the background.
+    ghataRefreshCustomersCache();
 
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
@@ -13189,7 +13792,7 @@ Future<void> shareTransactionReceiptPdf(
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('No journal records to print.'),
+            content: Text(ghataT(context, 'No journal records to print.')),
           ),
         );
         return;
@@ -13534,7 +14137,7 @@ Future<void> shareTransactionReceiptPdf(
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Unable to print Daily Journal: $e'),
+          content: Text("${ghataT(context, 'Unable to print Daily Journal')}: $e"),
         ),
       );
     }
@@ -13551,7 +14154,7 @@ Future<void> shareTransactionReceiptPdf(
         actions: [
           if (Platform.isWindows)
             IconButton(
-              tooltip: 'Print Full Journal',
+              tooltip: ghataT(context, 'Print Full Journal'),
               icon: Icon(Icons.print_outlined),
               onPressed: printFullDailyJournal,
             ),
@@ -13990,7 +14593,7 @@ Future<void> shareTransactionReceiptPdf(
                       ],
 
                       Text(
-                        'Transactions',
+                        ghataT(context, 'Transactions'),
                         style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.bold,
@@ -18357,7 +18960,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       children: [
                         Icon(Icons.print_outlined),
                         SizedBox(width: 10),
-                        Text('Print Statement'),
+                        Text(ghataT(context, 'Print Statement')),
                       ],
                     ),
                   ),
@@ -18365,7 +18968,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                   value: 'pdf',
                   child: Text(
                     Platform.isWindows
-                        ? 'Save Statement (PDF)'
+                        ? ghataT(context, 'Save Statement (PDF)')
                         : ghataT(context, 'Full Statement (PDF)'),
                   ),
                 ),
@@ -18379,7 +18982,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     children: [
                       Icon(Icons.chat_outlined, color: Colors.green),
                       SizedBox(width: 10),
-                      Text('WhatsApp'),
+                      Text(ghataT(context, 'WhatsApp')),
                     ],
                   ),
                 ),
@@ -18529,7 +19132,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                       color: Colors.green,
                     ),
                     label: Text(
-                      'WhatsApp',
+                      ghataT(context, 'WhatsApp'),
                       style: TextStyle(
                         color: Colors.green,
                         fontWeight: FontWeight.bold,
@@ -19173,19 +19776,19 @@ class _CashboxScreenState extends State<CashboxScreen> {
 
             switch (type) {
               case 'money_in':
-                label = 'Money In';
+                label = ghataT(context, 'Money In');
                 isIn = true;
                 break;
               case 'money_out':
-                label = 'Money Out';
+                label = ghataT(context, 'Money Out');
                 isIn = false;
                 break;
               case 'adjustment_in':
-                label = 'Adjustment In';
+                label = ghataT(context, 'Adjustment In');
                 isIn = true;
                 break;
               case 'adjustment_out':
-                label = 'Adjustment Out';
+                label = ghataT(context, 'Adjustment Out');
                 isIn = false;
                 break;
               case 'exchange_in':
@@ -20564,7 +21167,9 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
             onPressed: isSaving ? null : saveExchange,
             icon: Icon(Icons.currency_exchange_rounded),
             label: Text(
-              isSaving ? 'Saving...' : 'Record Exchange',
+              isSaving
+                  ? ghataT(context, 'Saving...')
+                  : ghataT(context, 'Record Exchange'),
             ),
           ),
           ),
@@ -20666,7 +21271,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
               Icon(Icons.history_rounded),
               SizedBox(width: 8),
               Text(
-            'Recent Exchanges',
+            ghataT(context, 'Recent Exchanges'),
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -20850,6 +21455,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String? selectedCurrency;
   String? selectedCustomerId;
 
+  // Keep customer reports separate from Daily Journal.
+  String reportScope = 'customers';
+
   final reportCurrencies = [
     'AFN',
     'PKR',
@@ -20871,13 +21479,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     var local =
         await OfflineDatabase.instance.getRecords('customers');
 
-    if (local.isEmpty) {
-      await ghataRefreshCustomersCache();
-      local =
-          await OfflineDatabase.instance.getRecords('customers');
-    } else {
-      ghataRefreshCustomersCache();
-    }
+    // Offline-first: use SQLite immediately.
+    ghataRefreshCustomersCache();
 
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
@@ -20901,11 +21504,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
       }
 
       final transactionCustomerId =
-          transaction['customer_id']?.toString();
+          transaction['customer_id']?.toString().trim() ?? '';
+      final hasCustomer = transactionCustomerId.isNotEmpty;
 
-      if (selectedCustomerId != null &&
-          transactionCustomerId != selectedCustomerId) {
-        return false;
+      if (reportScope == 'journal') {
+        // Daily Journal = records without customer_id.
+        if (hasCustomer) return false;
+      } else {
+        // Customer reports = customer-linked records only.
+        if (!hasCustomer) return false;
+
+        if (selectedCustomerId != null &&
+            transactionCustomerId != selectedCustomerId) {
+          return false;
+        }
       }
 
       final rawDate = transaction['transaction_date']?.toString();
@@ -21018,7 +21630,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     icon: Icon(Icons.date_range),
                     label: Text(
                       fromDate == null
-                          ? 'From date'
+                          ? ghataT(context, 'From Date')
                           : '${fromDate!.year}-${fromDate!.month.toString().padLeft(2, '0')}-${fromDate!.day.toString().padLeft(2, '0')}',
                     ),
                     onPressed: () async {
@@ -21040,7 +21652,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     icon: Icon(Icons.event),
                     label: Text(
                       toDate == null
-                          ? 'To date'
+                          ? ghataT(context, 'To Date')
                           : '${toDate!.year}-${toDate!.month.toString().padLeft(2, '0')}-${toDate!.day.toString().padLeft(2, '0')}',
                     ),
                     onPressed: () async {
@@ -21106,6 +21718,35 @@ class _ReportsScreenState extends State<ReportsScreen> {
               },
             ),
           ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SegmentedButton<String>(
+                segments: [
+                  ButtonSegment<String>(
+                    value: 'customers',
+                    icon: Icon(Icons.people_outline),
+                    label: Text(ghataT(context, 'Customers')),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'journal',
+                    icon: Icon(Icons.menu_book_outlined),
+                    label: Text(ghataT(context, 'Daily Journal')),
+                  ),
+                ],
+                selected: {reportScope},
+                onSelectionChanged: (selection) {
+                  if (selection.isEmpty) return;
+
+                  setState(() {
+                    reportScope = selection.first;
+                    if (reportScope == 'journal') {
+                      selectedCustomerId = null;
+                    }
+                  });
+                },
+              ),
+            ),
+            if (reportScope == 'customers')
           Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: FutureBuilder<List<Map<String, dynamic>>>(
