@@ -3131,6 +3131,27 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'ایکسچینج حذف کریں',
     'ar': 'حذف الصرافة',
   },
+  'Exchange In': {
+    'en': 'Exchange In',
+    'ps': 'داخلي تبادله',
+    'fa': 'تبادله ورودی',
+    'ur': 'اندر آنے والا تبادلہ',
+    'ar': 'تبادل وارد',
+  },
+  'Exchange Out': {
+    'en': 'Exchange Out',
+    'ps': 'وتلې تبادله',
+    'fa': 'تبادله خروجی',
+    'ur': 'باہر جانے والا تبادلہ',
+    'ar': 'تبادل صادر',
+  },
+  'Net Cash Flow': {
+    'en': 'Net Cash Flow',
+    'ps': 'خالص نغدي جریان',
+    'fa': 'جریان خالص نقدی',
+    'ur': 'خالص نقد بہاؤ',
+    'ar': 'صافي التدفق النقدي',
+  },
   'Detailed Report': {
     'en': 'Detailed Report',
     'ps': 'تفصیلي راپور',
@@ -9414,13 +9435,30 @@ SizedBox(height: 22),
                                 borderRadius:
                                     BorderRadius.circular(16),
                                 onTap: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          DailyJournalScreen(),
-                                    ),
-                                  );
+                                  final isExchange =
+                                      row['_is_exchange'] == true;
+                                  final transactionId =
+                                      row['id']?.toString() ?? '';
+                                  final exchangeId =
+                                      row['exchange_id']?.toString() ?? '';
+
+                                  if (isExchange &&
+                                      exchangeId.isNotEmpty) {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ExchangeScreen(
+                                          initialExchangeId: exchangeId,
+                                        ),
+                                      ),
+                                    );
+                                  } else if (transactionId.isNotEmpty) {
+                                    await ghataShowTransactionReceipt(
+                                      context,
+                                      row,
+                                    );
+                                  }
+
                                   refreshDashboard();
                                 },
                                 child: Padding(
@@ -12357,6 +12395,226 @@ class LanguageScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> ghataShowTransactionReceipt(
+  BuildContext context,
+  Map<String, dynamic> transaction,
+) async {
+  final id = transaction['id']?.toString() ?? '';
+  final reference = transaction['reference_no']?.toString() ?? '';
+  final customer = transaction['customer_name']?.toString() ?? '';
+  final type = transaction['transaction_type']?.toString() ?? '';
+  final amount = transaction['amount']?.toString() ?? '0';
+  final currency =
+      transaction['currency']?.toString().toUpperCase() ?? '';
+  final date = transaction['transaction_date']?.toString() ?? '';
+  final rawTime = transaction['transaction_time']?.toString() ?? '';
+  final time =
+      rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
+  final description =
+      transaction['description']?.toString() ?? '';
+
+  final typeLabel = switch (type) {
+    'money_in' => ghataT(context, 'Money In'),
+    'money_out' => ghataT(context, 'Money Out'),
+    'adjustment_in' => ghataT(context, 'Adjustment In'),
+    'adjustment_out' => ghataT(context, 'Adjustment Out'),
+    _ => type.replaceAll('_', ' '),
+  };
+
+  final receiptNo = reference.isNotEmpty
+      ? reference
+      : (id.length > 8
+          ? id.substring(0, 8).toUpperCase()
+          : id.toUpperCase());
+
+  final isPositive =
+      type == 'money_in' || type == 'adjustment_in';
+  final accent = isPositive ? Colors.green : Colors.red;
+
+  Widget receiptRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 105,
+            child: Text(
+              label,
+              style: TextStyle(
+                color:
+                    Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style:
+                  const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (sheetContext) => SafeArea(
+      child: SingleChildScrollView(
+        padding:
+            const EdgeInsets.fromLTRB(18, 4, 18, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment:
+              CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3157D5),
+                borderRadius:
+                    BorderRadius.circular(18),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    'ګهته • Ghata',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    ghataT(
+                      context,
+                      'Transaction Receipt',
+                    ),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color:
+                    Theme.of(context).colorScheme.surface,
+                borderRadius:
+                    BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant,
+                ),
+              ),
+              child: Column(
+                children: [
+                  receiptRow(
+                    ghataT(context, 'Reference'),
+                    receiptNo,
+                  ),
+                  if (customer.isNotEmpty)
+                    receiptRow(
+                      ghataT(context, 'Customer'),
+                      customer,
+                    ),
+                  receiptRow(
+                    ghataT(context, 'Type'),
+                    typeLabel,
+                  ),
+                  receiptRow(
+                    ghataT(context, 'Date'),
+                    time.isEmpty
+                        ? date
+                        : '$date  $time',
+                  ),
+                  if (description.isNotEmpty)
+                    receiptRow(
+                      ghataT(context, 'Description'),
+                      description,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 18,
+              ),
+              decoration: BoxDecoration(
+                color:
+                    accent.withValues(alpha: 0.08),
+                borderRadius:
+                    BorderRadius.circular(16),
+                border: Border.all(
+                  color:
+                      accent.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    ghataT(context, 'Amount'),
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '$amount $currency',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 25,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius:
+                          BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      typeLabel,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class DailyJournalScreen extends StatefulWidget {
@@ -20162,6 +20420,18 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
                             return GestureDetector(
                               behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                if (transaction['_is_exchange'] == true) {
+                                  showCustomerTransactionActions(
+                                    transaction,
+                                  );
+                                } else {
+                                  ghataShowTransactionReceipt(
+                                    context,
+                                    transaction,
+                                  );
+                                }
+                              },
                               onLongPress: () =>
                                   showCustomerTransactionActions(
                                 transaction,
@@ -22990,7 +23260,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                                 SizedBox(height: 22),
 
               Text(
-                'Detailed Report',
+                ghataT(context, 'Detailed Report'),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -23037,21 +23307,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                     ),
                     subtitle: Text(
-                      'Net Cash Flow: ${data['net_cash_flow']!.toStringAsFixed(2)}',
+                      '${ghataT(context, 'Net Cash Flow')}: ${data['net_cash_flow']!.toStringAsFixed(2)}',
                     ),
                     childrenPadding:
                         EdgeInsets.fromLTRB(16, 0, 16, 16),
                     children: [
-                      row('Money In', 'money_in'),
-                      row('Money Out', 'money_out'),
-                      row('Exchange In', 'exchange_in'),
-                      row('Exchange Out', 'exchange_out'),
-                      row(
-                      ),
-                      row(
-                      ),
-                      row('Adjustment In', 'adjustment_in'),
-                      row('Adjustment Out', 'adjustment_out'),
+                      row(ghataT(context, 'Money In'), 'money_in'),
+                      row(ghataT(context, 'Money Out'), 'money_out'),
+                      row(ghataT(context, 'Exchange In'), 'exchange_in'),
+                      row(ghataT(context, 'Exchange Out'), 'exchange_out'),
+                      row(ghataT(context, 'Adjustment In'), 'adjustment_in'),
+                      row(ghataT(context, 'Adjustment Out'), 'adjustment_out'),
                     ],
                   ),
                 );
