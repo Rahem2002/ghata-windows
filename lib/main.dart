@@ -12,7 +12,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:printing/printing.dart';
@@ -299,8 +298,9 @@ Future<String?> ghataSaveCustomerPhoto(
 }
 
 Future<String?> ghataLoadCustomerPhoto(
-  String customerId,
-) async {
+  String customerId, {
+  void Function(String localPath)? onBackgroundLoaded,
+}) async {
   try {
     final cached =
         await OfflineDatabase.instance.getRecord(
@@ -312,8 +312,11 @@ Future<String?> ghataLoadCustomerPhoto(
     final cachedLocalPath =
         cached?['photo_path']?.toString() ?? '';
 
-    final cachedCloudPath =
-        cached?['cloud_path']?.toString() ?? '';
+    // Offline-first: if a valid local photo exists, return it immediately.
+    if (cachedLocalPath.isNotEmpty &&
+        await File(cachedLocalPath).exists()) {
+      return cachedLocalPath;
+    }
 
     final customer =
         await OfflineDatabase.instance.getRecord(
@@ -322,95 +325,68 @@ Future<String?> ghataLoadCustomerPhoto(
       includeDeleted: true,
     );
 
-    var cloudPath =
+    final localCloudPath =
         customer?['photo_path']?.toString() ?? '';
 
-      final photoUser = Supabase.instance.client.auth.currentUser;
-    if (cloudPath.isEmpty &&
-        photoUser !=
-            null) {
+    // Do not block the UI on Supabase or Storage.
+    Future<void>(() async {
       try {
-        final remote =
-            await Supabase.instance.client
-                .from('customers')
-                .select('photo_path')
-                .eq('id', customerId)
-                  .eq('user_id', photoUser.id)
-                .maybeSingle();
+        final photoUser =
+            Supabase.instance.client.auth.currentUser;
+        if (photoUser == null) return;
 
-        cloudPath =
-            remote?['photo_path']?.toString() ?? '';
-      } catch (_) {}
-    }
+        var cloudPath = localCloudPath;
 
-    if (cloudPath.isEmpty) {
-      if (cachedLocalPath.isNotEmpty) {
-        final oldFile = File(cachedLocalPath);
+        if (cloudPath.isEmpty) {
+          final remote = await Supabase.instance.client
+              .from('customers')
+              .select('photo_path')
+              .eq('id', customerId)
+              .eq('user_id', photoUser.id)
+              .maybeSingle();
 
-        if (await oldFile.exists()) {
-          try {
-            await oldFile.delete();
-          } catch (_) {}
+          cloudPath =
+              remote?['photo_path']?.toString() ?? '';
         }
-      }
 
-      try {
-        await OfflineDatabase.instance
-            .permanentlyDeleteLocalOnlyRecord(
-          'customer_photos',
-          customerId,
-        );
-      } catch (_) {}
+        if (cloudPath.isEmpty) return;
 
-      return null;
-    }
-
-    if (cachedLocalPath.isNotEmpty &&
-        cachedCloudPath == cloudPath &&
-        await File(cachedLocalPath).exists()) {
-      return cachedLocalPath;
-    }
-
-    final bytes =
-        await Supabase.instance.client.storage
+        final bytes = await Supabase.instance.client.storage
             .from('ghata-media')
             .download(cloudPath);
 
-    final dir = await ghataCustomerPhotoDirectory();
-    final cloudName = cloudPath.split('/').last;
-    final localPath = '$dir/$cloudName';
+        final dir = await ghataCustomerPhotoDirectory();
+        final cloudName = cloudPath.split('/').last;
+        final localPath = '$dir/$cloudName';
 
-    if (cachedLocalPath.isNotEmpty &&
-        cachedLocalPath != localPath) {
-      final oldFile = File(cachedLocalPath);
+        await File(localPath).writeAsBytes(
+          bytes,
+          flush: true,
+        );
 
-      if (await oldFile.exists()) {
-        try {
-          await oldFile.delete();
-        } catch (_) {}
+        await OfflineDatabase.instance.saveRecord(
+          'customer_photos',
+          {
+            'id': customerId,
+            'photo_path': localPath,
+            'cloud_path': cloudPath,
+            'updated_at':
+                DateTime.now().toUtc().toIso8601String(),
+          },
+          synced: true,
+        );
+
+        onBackgroundLoaded?.call(localPath);
+      } catch (e) {
+        debugPrint(
+          'Customer photo background refresh failed: $e',
+        );
       }
-    }
+    });
 
-    await File(localPath).writeAsBytes(
-      bytes,
-      flush: true,
-    );
-
-    await OfflineDatabase.instance.saveRecord(
-      'customer_photos',
-      {
-        'id': customerId,
-        'photo_path': localPath,
-        'cloud_path': cloudPath,
-        'updated_at':
-            DateTime.now().toUtc().toIso8601String(),
-      },
-      synced: true,
-    );
-
-    return localPath;
+    return null;
   } catch (e) {
-    debugPrint('Customer photo load error: $e');
+    debugPrint('Customer photo local load error: $e');
     return null;
   }
 }
@@ -591,7 +567,9 @@ Future<String?> ghataSaveProfilePhoto(
   }
 }
 
-Future<String?> ghataLoadProfilePhoto() async {
+Future<String?> ghataLoadProfilePhoto({
+  void Function(String localPath)? onBackgroundLoaded,
+}) async {
   try {
     final user =
         Supabase.instance.client.auth.currentUser;
@@ -608,8 +586,11 @@ Future<String?> ghataLoadProfilePhoto() async {
     final cachedLocalPath =
         cached?['photo_path']?.toString() ?? '';
 
-    final cachedCloudPath =
-        cached?['cloud_path']?.toString() ?? '';
+    // Offline-first: use the cached local avatar immediately.
+    if (cachedLocalPath.isNotEmpty &&
+        await File(cachedLocalPath).exists()) {
+      return cachedLocalPath;
+    }
 
     final localProfile =
         await OfflineDatabase.instance.getRecord(
@@ -618,92 +599,64 @@ Future<String?> ghataLoadProfilePhoto() async {
       includeDeleted: true,
     );
 
-    var cloudPath =
+    final localCloudPath =
         localProfile?['avatar_path']?.toString() ?? '';
 
-    if (cloudPath.isEmpty) {
+    // Do not block Profile screen on Supabase or Storage.
+    Future<void>(() async {
       try {
-        final remote =
-            await Supabase.instance.client
-                .from('profiles')
-                .select('avatar_path')
-                .eq('id', user.id)
-                .maybeSingle();
+        var cloudPath = localCloudPath;
 
-        cloudPath =
-            remote?['avatar_path']?.toString() ?? '';
-      } catch (_) {}
-    }
+        if (cloudPath.isEmpty) {
+          final remote = await Supabase.instance.client
+              .from('profiles')
+              .select('avatar_path')
+              .eq('id', user.id)
+              .maybeSingle();
 
-    if (cloudPath.isEmpty) {
-      if (cachedLocalPath.isNotEmpty) {
-        final oldFile = File(cachedLocalPath);
-
-        if (await oldFile.exists()) {
-          try {
-            await oldFile.delete();
-          } catch (_) {}
+          cloudPath =
+              remote?['avatar_path']?.toString() ?? '';
         }
-      }
 
-      try {
-        await OfflineDatabase.instance
-            .permanentlyDeleteLocalOnlyRecord(
-          'profile_photos',
-          user.id,
-        );
-      } catch (_) {}
+        if (cloudPath.isEmpty) return;
 
-      return null;
-    }
-
-    if (cachedLocalPath.isNotEmpty &&
-        cachedCloudPath == cloudPath &&
-        await File(cachedLocalPath).exists()) {
-      return cachedLocalPath;
-    }
-
-    final bytes =
-        await Supabase.instance.client.storage
+        final bytes = await Supabase.instance.client.storage
             .from('ghata-media')
             .download(cloudPath);
 
-    final dir = await ghataProfilePhotoDirectory();
-    final cloudName = cloudPath.split('/').last;
-    final localPath =
-        '$dir/${user.id}_$cloudName';
+        final dir = await ghataProfilePhotoDirectory();
+        final cloudName = cloudPath.split('/').last;
+        final localPath =
+            '$dir/${user.id}_$cloudName';
 
-    if (cachedLocalPath.isNotEmpty &&
-        cachedLocalPath != localPath) {
-      final oldFile = File(cachedLocalPath);
+        await File(localPath).writeAsBytes(
+          bytes,
+          flush: true,
+        );
 
-      if (await oldFile.exists()) {
-        try {
-          await oldFile.delete();
-        } catch (_) {}
+        await OfflineDatabase.instance.saveRecord(
+          'profile_photos',
+          {
+            'id': user.id,
+            'photo_path': localPath,
+            'cloud_path': cloudPath,
+            'updated_at':
+                DateTime.now().toUtc().toIso8601String(),
+          },
+          synced: true,
+        );
+
+        onBackgroundLoaded?.call(localPath);
+      } catch (e) {
+        debugPrint(
+          'Profile photo background refresh failed: $e',
+        );
       }
-    }
+    });
 
-    await File(localPath).writeAsBytes(
-      bytes,
-      flush: true,
-    );
-
-    await OfflineDatabase.instance.saveRecord(
-      'profile_photos',
-      {
-        'id': user.id,
-        'photo_path': localPath,
-        'cloud_path': cloudPath,
-        'updated_at':
-            DateTime.now().toUtc().toIso8601String(),
-      },
-      synced: true,
-    );
-
-    return localPath;
+    return null;
   } catch (e) {
-    debugPrint('Profile photo load error: $e');
+    debugPrint('Profile photo local load error: $e');
     return null;
   }
 }
@@ -1753,7 +1706,7 @@ Future<void> _ghataWindowsUninstallCleanup() async {
   } catch (_) {}
 
   // Remove Ghata secure settings such as local account owner,
-  // biometric setting, language/theme secure values, etc.
+  // language/theme secure values and other local settings.
   try {
     const storage = FlutterSecureStorage();
     await storage.deleteAll();
@@ -2434,13 +2387,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'تبدیلیاں محفوظ کریں',
     'ar': 'حفظ التغييرات',
   },
-  'Use device biometrics to unlock Ghata.': {
-    'en': 'Use device biometrics to unlock Ghata.',
-    'ps': 'د ګهته د خلاصولو لپاره د وسیلې بایومیټریک وکاروئ.',
-    'fa': 'برای باز کردن گهته از بایومتریک دستگاه استفاده کنید.',
-    'ur': 'گھتہ کھولنے کے لیے ڈیوائس بایومیٹرک استعمال کریں۔',
-    'ar': 'استخدم القياسات الحيوية للجهاز لفتح غهته.',
-  },
   'Enter your 4 to 6 digit PIN.': {
     'en': 'Enter your 4 to 6 digit PIN.',
     'ps': 'خپل له ۴ تر ۶ عددي PIN داخل کړئ.',
@@ -2632,61 +2578,12 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ar': 'تعذر إفراغ سلة المحذوفات',
   },
 
-  'Test App Lock': {
-    'en': 'Test App Lock',
-    'ps': 'د اپ قلف وازمویئ',
-    'fa': 'آزمایش قفل برنامه',
-    'ur': 'ایپ لاک آزمائیں',
-    'ar': 'اختبار قفل التطبيق',
-  },
-  'App Lock': {
-    'en': 'App Lock',
-    'ps': 'د اپ قلف',
-    'fa': 'قفل برنامه',
-    'ur': 'ایپ لاک',
-    'ar': 'قفل التطبيق',
-  },
-  'Please enable a screen lock, fingerprint, Face ID or device passcode first.': {
-    'en': 'Please enable a screen lock, fingerprint, Face ID or device passcode first.',
-    'ps': 'لومړی په خپل موبایل کې د سکرین قلف، د ګوتې نښه، Face ID یا د وسیلې پاسکوډ فعال کړئ.',
-    'fa': 'ابتدا قفل صفحه، اثر انگشت، Face ID یا رمز دستگاه را فعال کنید.',
-    'ur': 'پہلے اپنے فون پر اسکرین لاک، فنگر پرنٹ، Face ID یا ڈیوائس پاس کوڈ فعال کریں۔',
-    'ar': 'فعّل أولاً قفل الشاشة أو بصمة الإصبع أو Face ID أو رمز مرور الجهاز.',
-  },
-  'Enable App Lock first.': {
-    'en': 'Enable App Lock first.',
-    'ps': 'لومړی د اپ قلف فعال کړئ.',
-    'fa': 'ابتدا قفل برنامه را فعال کنید.',
-    'ur': 'پہلے ایپ لاک فعال کریں۔',
-    'ar': 'فعّل قفل التطبيق أولاً.',
-  },
   'Device authentication was cancelled.': {
     'en': 'Device authentication was cancelled.',
     'ps': 'د وسیلې تصدیق لغوه شو.',
     'fa': 'تأیید هویت دستگاه لغو شد.',
     'ur': 'ڈیوائس کی تصدیق منسوخ کر دی گئی۔',
     'ar': 'تم إلغاء مصادقة الجهاز.',
-  },
-  'Use fingerprint, Face ID, or your phone screen lock to open Ghata.': {
-    'en': 'Use fingerprint, Face ID, or your phone screen lock to open Ghata.',
-    'ps': 'د ګهته د خلاصولو لپاره د ګوتې نښه، Face ID یا د موبایل د سکرین قلف وکاروئ.',
-    'fa': 'برای باز کردن گِهته از اثر انگشت، Face ID یا قفل صفحه تلفن استفاده کنید.',
-    'ur': 'گھتہ کھولنے کے لیے فنگر پرنٹ، Face ID یا فون اسکرین لاک استعمال کریں۔',
-    'ar': 'استخدم بصمة الإصبع أو Face ID أو قفل شاشة الهاتف لفتح غهته.',
-  },
-  'Set up a phone screen lock first.': {
-    'en': 'Set up a phone screen lock first.',
-    'ps': 'لومړی د موبایل د سکرین قلف فعال کړئ.',
-    'fa': 'ابتدا قفل صفحه تلفن را تنظیم کنید.',
-    'ur': 'پہلے فون کا اسکرین لاک فعال کریں۔',
-    'ar': 'قم بإعداد قفل شاشة الهاتف أولاً.',
-  },
-  'Fingerprint / Face ID / Screen Lock': {
-    'en': 'Fingerprint / Face ID / Screen Lock',
-    'ps': 'د ګوتې نښه / Face ID / د سکرین قلف',
-    'fa': 'اثر انگشت / Face ID / قفل صفحه',
-    'ur': 'فنگر پرنٹ / Face ID / اسکرین لاک',
-    'ar': 'البصمة / Face ID / قفل الشاشة',
   },
   'All currencies': {
     'en': 'All currencies',
@@ -2792,13 +2689,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'مالک تجارت می‌تواند دسترسی کارمندان را مدیریت کند. مجوزهای کارمندان تعیین می‌کند که آیا کارمند می‌تواند رکوردها را اضافه یا ویرایش کند و به گزارش‌ها دسترسی داشته باشد.',
     'ur': 'کاروبار کا مالک عملے کی رسائی منظم کر سکتا ہے۔ اجازتیں طے کرتی ہیں کہ عملے کا رکن ریکارڈ شامل یا ترمیم کر سکتا ہے اور اسے رپورٹس دستیاب ہوں گی یا نہیں۔',
     'ar': 'يمكن لمالك النشاط إدارة وصول الموظفين. وتحدد صلاحيات الموظف ما إذا كان يستطيع إضافة السجلات أو تعديلها وما إذا كانت التقارير متاحة له.',
-  },
-  'Use App Lock to protect Ghata with fingerprint, Face ID or your phone screen lock where supported. Ghata does not read or store your phone PIN, pattern or passcode. Keep your account password private.': {
-    'en': 'Use App Lock to protect Ghata with fingerprint, Face ID or your phone screen lock where supported. Ghata does not read or store your phone PIN, pattern or passcode. Keep your account password private.',
-    'ps': 'د App Lock په وسیله، په ملاتړ شوو وسیلو کې ګهته د ګوتې نښې، Face ID یا د موبایل د سکرین لاک په وسیله خوندي کړئ. ګهته ستاسو د موبایل PIN، Pattern یا Passcode نه لولي او نه یې ذخیره کوي. د خپل حساب پاسورډ خوندي وساتئ.',
-    'fa': 'با App Lock می‌توانید در دستگاه‌های پشتیبانی‌شده از اثر انگشت، Face ID یا قفل صفحه تلفن برای محافظت از گِهته استفاده کنید. گِهته PIN، الگو یا رمز عبور دستگاه شما را نمی‌خواند و ذخیره نمی‌کند. رمز حساب خود را محرمانه نگه دارید.',
-    'ur': 'App Lock کے ذریعے معاون ڈیوائسز پر فنگرپرنٹ، Face ID یا فون اسکرین لاک سے گھتہ محفوظ کریں۔ گھتہ آپ کے فون کا PIN، پیٹرن یا پاس کوڈ نہ پڑھتا ہے اور نہ محفوظ کرتا ہے۔ اپنے اکاؤنٹ کا پاس ورڈ نجی رکھیں۔',
-    'ar': 'استخدم App Lock لحماية غهته ببصمة الإصبع أو Face ID أو قفل شاشة الهاتف على الأجهزة المدعومة. لا يقرأ غهته رقم PIN أو النمط أو رمز مرور الهاتف ولا يخزنه. حافظ على خصوصية كلمة مرور حسابك.',
   },
   'Your Ghata account keeps supported business data synchronized when internet access is available. Signing in with the same account on another supported Android or iPhone device can restore synchronized account data. Exported backup files should be kept in a safe place.': {
     'en': 'Your Ghata account keeps supported business data synchronized when internet access is available. Signing in with the same account on another supported Android or iPhone device can restore synchronized account data. Exported backup files should be kept in a safe place.',
@@ -3499,13 +3389,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'هنوز معامله‌ای نیست.',
     'ur': 'ابھی کوئی لین دین نہیں۔',
     'ar': 'لا توجد معاملات بعد.',
-  },
-  'Fingerprint / Face ID': {
-    'en': 'Fingerprint / Face ID',
-    'ps': 'د ګوتې نښه / Face ID',
-    'fa': 'اثر انگشت / Face ID',
-    'ur': 'فنگر پرنٹ / Face ID',
-    'ar': 'البصمة / Face ID',
   },
   'General / No Customer': {
     'en': 'General / No Customer',
@@ -4647,6 +4530,329 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'ur': 'WhatsApp',
     'ar': 'WhatsApp',
   },
+
+
+  'Account and data protection': {
+      'en': 'Account and data protection',
+      'ps': 'د حساب او معلوماتو ساتنه',
+      'fa': 'محافظت از حساب و اطلاعات',
+      'ur': 'اکاؤنٹ اور ڈیٹا کا تحفظ',
+      'ar': 'حماية الحساب والبيانات',
+    },
+
+  'App Information': {
+      'en': 'App Information',
+      'ps': 'د اپلېکېشن معلومات',
+      'fa': 'اطلاعات برنامه',
+      'ur': 'ایپ کی معلومات',
+      'ar': 'معلومات التطبيق',
+    },
+
+  'Contact Us': {
+      'en': 'Contact Us',
+      'ps': 'اړیکه ونیسئ',
+      'fa': 'تماس با ما',
+      'ur': 'ہم سے رابطہ کریں',
+      'ar': 'اتصل بنا',
+    },
+
+  'Data Security': {
+      'en': 'Data Security',
+      'ps': 'د معلوماتو امنیت',
+      'fa': 'امنیت اطلاعات',
+      'ur': 'ڈیٹا سیکیورٹی',
+      'ar': 'أمان البيانات',
+    },
+
+  'Data Storage': {
+      'en': 'Data Storage',
+      'ps': 'د معلوماتو زېرمه',
+      'fa': 'ذخیره‌سازی اطلاعات',
+      'ur': 'ڈیٹا اسٹوریج',
+      'ar': 'تخزين البيانات',
+    },
+
+  'Email Support': {
+      'en': 'Email Support',
+      'ps': 'د ایمیل ملاتړ',
+      'fa': 'پشتیبانی ایمیل',
+      'ur': 'ای میل سپورٹ',
+      'ar': 'دعم البريد الإلكتروني',
+    },
+
+  'FAQ': {
+      'en': 'FAQ',
+      'ps': 'عامې پوښتنې',
+      'fa': 'پرسش‌های متداول',
+      'ur': 'عمومی سوالات',
+      'ar': 'الأسئلة الشائعة',
+    },
+
+  'Frequently asked questions': {
+      'en': 'Frequently asked questions',
+      'ps': 'ډېرې پوښتل کېدونکې پوښتنې',
+      'fa': 'پرسش‌های متداول',
+      'ur': 'اکثر پوچھے جانے والے سوالات',
+      'ar': 'الأسئلة المتكررة',
+    },
+
+  'How Ghata handles your information': {
+      'en': 'How Ghata handles your information',
+      'ps': 'ګهته ستاسو معلومات څنګه اداره کوي',
+      'fa': 'گَهته چگونه اطلاعات شما را مدیریت می‌کند',
+      'ur': 'گھتہ آپ کی معلومات کو کیسے سنبھالتا ہے',
+      'ar': 'كيفية تعامل غاتا مع معلوماتك',
+    },
+
+  'How to Use Ghata': {
+      'en': 'How to Use Ghata',
+      'ps': 'د ګهته د کارولو لارښود',
+      'fa': 'راهنمای استفاده از گَهته',
+      'ur': 'گھتہ استعمال کرنے کا طریقہ',
+      'ar': 'كيفية استخدام غاتا',
+    },
+
+  'Learn more about Ghata': {
+      'en': 'Learn more about Ghata',
+      'ps': 'د ګهته په اړه نور معلومات',
+      'fa': 'درباره گَهته بیشتر بدانید',
+      'ur': 'گھتہ کے بارے میں مزید جانیں',
+      'ar': 'تعرّف أكثر على غاتا',
+    },
+
+  'Learn the main Ghata features': {
+      'en': 'Learn the main Ghata features',
+      'ps': 'د ګهته اصلي ځانګړنې وپېژنئ',
+      'fa': 'با قابلیت‌های اصلی گَهته آشنا شوید',
+      'ur': 'گھتہ کی اہم خصوصیات جانیں',
+      'ar': 'تعرّف على ميزات غاتا الرئيسية',
+    },
+
+  'Privacy': {
+      'en': 'Privacy',
+      'ps': 'محرمیت',
+      'fa': 'حریم خصوصی',
+      'ur': 'رازداری',
+      'ar': 'الخصوصية',
+    },
+
+  'Privacy Policy': {
+      'en': 'Privacy Policy',
+      'ps': 'د محرمیت تګلاره',
+      'fa': 'سیاست حریم خصوصی',
+      'ur': 'رازداری کی پالیسی',
+      'ar': 'سياسة الخصوصية',
+    },
+
+  'Rules for using Ghata': {
+      'en': 'Rules for using Ghata',
+      'ps': 'د ګهته د کارولو اصول',
+      'fa': 'قوانین استفاده از گَهته',
+      'ur': 'گھتہ استعمال کرنے کے اصول',
+      'ar': 'قواعد استخدام غاتا',
+    },
+
+  'Simple Accounting for a Better Tomorrow': {
+      'en': 'Simple Accounting for a Better Tomorrow',
+      'ps': 'د غوره سبا لپاره ساده حسابداري',
+      'fa': 'حسابداری ساده برای فردایی بهتر',
+      'ur': 'بہتر کل کے لیے آسان اکاؤنٹنگ',
+      'ar': 'محاسبة بسيطة لغد أفضل',
+    },
+
+  'Terms of Use': {
+      'en': 'Terms of Use',
+      'ps': 'د کارولو شرایط',
+      'fa': 'شرایط استفاده',
+      'ur': 'استعمال کی شرائط',
+      'ar': 'شروط الاستخدام',
+    },
+
+  'Thank you for using Ghata!': {
+      'en': 'Thank you for using Ghata!',
+      'ps': 'د ګهته د کارولو مننه!',
+      'fa': 'از استفاده از گَهته سپاسگزاریم!',
+      'ur': 'گھتہ استعمال کرنے کا شکریہ!',
+      'ar': 'شكرًا لاستخدام غاتا!',
+    },
+
+  'Version': {
+      'en': 'Version',
+      'ps': 'نسخه',
+      'fa': 'نسخه',
+      'ur': 'ورژن',
+      'ar': 'الإصدار',
+    },
+
+  'WhatsApp Support': {
+      'en': 'WhatsApp Support',
+      'ps': 'د واټساپ ملاتړ',
+      'fa': 'پشتیبانی واتساپ',
+      'ur': 'واٹس ایپ سپورٹ',
+      'ar': 'دعم واتساب',
+    },
+
+  'Where Ghata data is stored': {
+      'en': 'Where Ghata data is stored',
+      'ps': 'د ګهته معلومات چېرته ساتل کېږي',
+      'fa': 'اطلاعات گَهته کجا ذخیره می‌شود',
+      'ur': 'گھتہ کا ڈیٹا کہاں محفوظ ہوتا ہے',
+      'ar': 'مكان تخزين بيانات غاتا',
+    },
+
+  'Apply': {'en':'Apply','ps':'تطبیق','fa':'اعمال','ur':'لاگو کریں','ar':'تطبيق'},
+
+  'Camera': {'en':'Camera','ps':'کمره','fa':'دوربین','ur':'کیمرہ','ar':'الكاميرا'},
+
+  'Clear': {'en':'Clear','ps':'پاکول','fa':'پاک کردن','ur':'صاف کریں','ar':'مسح'},
+
+  'Enter a valid amount greater than zero.': {'en':'Enter a valid amount greater than zero.','ps':'له صفر څخه لویه سمه اندازه ولیکئ.','fa':'مبلغ معتبر بزرگ‌تر از صفر وارد کنید.','ur':'صفر سے زیادہ درست رقم درج کریں۔','ar':'أدخل مبلغًا صالحًا أكبر من صفر.'},
+
+  'From Time': {'en':'From Time','ps':'له وخت','fa':'از زمان','ur':'وقت سے','ar':'من الوقت'},
+
+  'Gallery': {'en':'Gallery','ps':'ګالري','fa':'گالری','ur':'گیلری','ar':'المعرض'},
+
+  'Note': {'en':'Note','ps':'یادښت','fa':'یادداشت','ur':'نوٹ','ar':'ملاحظة'},
+
+  'Password must be at least 6 characters': {'en':'Password must be at least 6 characters','ps':'پاسورډ باید لږ تر لږه ۶ توري ولري','fa':'رمز عبور باید حداقل ۶ نویسه باشد','ur':'پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے','ar':'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل'},
+
+  'Password reset link sent to your email.': {'en':'Password reset link sent to your email.','ps':'د پاسورډ د بیا ټاکلو لینک مو ایمیل ته ولېږل شو.','fa':'لینک بازنشانی رمز عبور به ایمیل شما ارسال شد.','ur':'پاس ورڈ ری سیٹ لنک آپ کے ای میل پر بھیج دیا گیا ہے۔','ar':'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.'},
+
+  'Please enter a valid From amount.': {'en':'Please enter a valid From amount.','ps':'مهرباني وکړئ د ورکړې سمه اندازه ولیکئ.','fa':'لطفاً مبلغ مبدأ معتبر وارد کنید.','ur':'براہ کرم درست ابتدائی رقم درج کریں۔','ar':'يرجى إدخال مبلغ مصدر صالح.'},
+
+  'Please enter a valid To amount.': {'en':'Please enter a valid To amount.','ps':'مهرباني وکړئ د ترلاسه کېدو سمه اندازه ولیکئ.','fa':'لطفاً مبلغ مقصد معتبر وارد کنید.','ur':'براہ کرم درست منزل کی رقم درج کریں۔','ar':'يرجى إدخال مبلغ وجهة صالح.'},
+
+  'Please enter your email and password': {'en':'Please enter your email and password','ps':'مهرباني وکړئ ایمیل او پاسورډ ولیکئ','fa':'لطفاً ایمیل و رمز عبور خود را وارد کنید','ur':'براہ کرم اپنا ای میل اور پاس ورڈ درج کریں','ar':'يرجى إدخال البريد الإلكتروني وكلمة المرور'},
+
+  'Please select two different currencies.': {'en':'Please select two different currencies.','ps':'مهرباني وکړئ دوه بېلابېل اسعار وټاکئ.','fa':'لطفاً دو ارز متفاوت انتخاب کنید.','ur':'براہ کرم دو مختلف کرنسیاں منتخب کریں۔','ar':'يرجى اختيار عملتين مختلفتين.'},
+
+  'Profile photo removed': {
+    'en': 'Profile photo removed',
+    'ps': 'د پروفایل عکس لرې شو',
+    'fa': 'عکس پروفایل حذف شد',
+    'ur': 'پروفائل تصویر ہٹا دی گئی',
+    'ar': 'تمت إزالة صورة الملف الشخصي',
+  },
+
+  'Profile photo updated': {
+    'en': 'Profile photo updated',
+    'ps': 'د پروفایل عکس تازه شو',
+    'fa': 'عکس پروفایل به‌روزرسانی شد',
+    'ur': 'پروفائل تصویر اپ ڈیٹ ہو گئی',
+    'ar': 'تم تحديث صورة الملف الشخصي',
+  },
+
+  'Rate must be greater than zero.': {'en':'Rate must be greater than zero.','ps':'نرخ باید له صفر څخه لوی وي.','fa':'نرخ باید بزرگ‌تر از صفر باشد.','ur':'شرح صفر سے زیادہ ہونی چاہیے۔','ar':'يجب أن يكون السعر أكبر من صفر.'},
+
+  'Receipt': {'en':'Receipt','ps':'رسید','fa':'رسید','ur':'رسید','ar':'إيصال'},
+
+  'To Time': {'en':'To Time','ps':'تر وخت','fa':'تا زمان','ur':'وقت تک','ar':'إلى الوقت'},
+
+  'Unable to load reports': {
+    'en': 'Unable to load reports',
+    'ps': 'راپورونه نه شي پورته کېدای',
+    'fa': 'گزارش‌ها بارگذاری نمی‌شوند',
+    'ur': 'رپورٹس لوڈ نہیں ہوسکیں',
+    'ar': 'تعذر تحميل التقارير',
+  },
+
+  'Unable to save photo': {
+    'en': 'Unable to save photo',
+    'ps': 'عکس خوندي نه شو',
+    'fa': 'ذخیره عکس ممکن نشد',
+    'ur': 'تصویر محفوظ نہیں ہو سکی',
+    'ar': 'تعذر حفظ الصورة',
+  },
+
+  'Unable to send reset link. Please try again.': {'en':'Unable to send reset link. Please try again.','ps':'د بیا ټاکلو لینک ونه لېږل شو. بیا هڅه وکړئ.','fa':'لینک بازنشانی ارسال نشد. دوباره تلاش کنید.','ur':'ری سیٹ لنک نہیں بھیجا جا سکا۔ دوبارہ کوشش کریں۔','ar':'تعذر إرسال رابط إعادة التعيين. حاول مرة أخرى.'},
+
+  'We will send you a password reset link.': {'en':'We will send you a password reset link.','ps':'موږ به د پاسورډ د بیا ټاکلو لینک درولېږو.','fa':'لینک بازنشانی رمز عبور برای شما ارسال خواهد شد.','ur':'ہم آپ کو پاس ورڈ ری سیٹ لنک بھیجیں گے۔','ar':'سنرسل إليك رابطًا لإعادة تعيين كلمة المرور.'},
+
+  'darkMode': {'en':'Dark Mode','ps':'تیاره بڼه','fa':'حالت تاریک','ur':'ڈارک موڈ','ar':'الوضع الداكن'},
+
+  'language': {'en':'Language','ps':'ژبه','fa':'زبان','ur':'زبان','ar':'اللغة'},
+
+  'lightMode': {'en':'Light Mode','ps':'روښانه بڼه','fa':'حالت روشن','ur':'لائٹ موڈ','ar':'الوضع الفاتح'},
+
+  'Already have an account?': {
+    'en': 'Already have an account?',
+    'ps': 'له مخکې حساب لرئ؟',
+    'fa': 'از قبل حساب دارید؟',
+    'ur': 'کیا آپ کا پہلے سے اکاؤنٹ ہے؟',
+    'ar': 'هل لديك حساب بالفعل؟',
+  },
+
+  'Are you sure you want to delete this transaction?': {
+    'en': 'Are you sure you want to delete this transaction?',
+    'ps': 'ایا ډاډه یاست چې دا معامله حذف کړئ؟',
+    'fa': 'آیا مطمئن هستید که می‌خواهید این تراکنش را حذف کنید؟',
+    'ur': 'کیا آپ واقعی یہ لین دین حذف کرنا چاہتے ہیں؟',
+    'ar': 'هل أنت متأكد أنك تريد حذف هذه المعاملة؟',
+  },
+
+  'Continue with Google': {
+    'en': 'Continue with Google',
+    'ps': 'د Google له لارې دوام ورکړئ',
+    'fa': 'ادامه با Google',
+    'ur': 'Google کے ساتھ جاری رکھیں',
+    'ar': 'المتابعة باستخدام Google',
+  },
+
+  'Customer phone number is not available.': {
+    'en': 'Customer phone number is not available.',
+    'ps': 'د پېرودونکي د تلیفون شمېره نشته.',
+    'fa': 'شماره تلفن مشتری موجود نیست.',
+    'ur': 'گاہک کا فون نمبر دستیاب نہیں ہے۔',
+    'ar': 'رقم هاتف العميل غير متوفر.',
+  },
+
+  'Exchange moved to Recycle Bin.': {
+    'en': 'Exchange moved to Recycle Bin.',
+    'ps': 'تبادله حذف شوو معلوماتو ته انتقال شوه.',
+    'fa': 'تبادله به سطل بازیافت منتقل شد.',
+    'ur': 'ایکسچینج ری سائیکل بن میں منتقل کر دیا گیا۔',
+    'ar': 'تم نقل عملية الصرف إلى سلة المحذوفات.',
+  },
+
+  'OR': {
+    'en': 'OR',
+    'ps': 'یا',
+    'fa': 'یا',
+    'ur': 'یا',
+    'ar': 'أو',
+  },
+
+  'Open Exchange to edit this transaction.': {
+    'en': 'Open Exchange to edit this transaction.',
+    'ps': 'د دې معاملې د سمون لپاره تبادله پرانیزئ.',
+    'fa': 'برای ویرایش این تراکنش، بخش تبادله را باز کنید.',
+    'ur': 'اس لین دین میں ترمیم کے لیے ایکسچینج کھولیں۔',
+    'ar': 'افتح قسم الصرف لتعديل هذه المعاملة.',
+  },
+
+  'Pending changes will sync when the connection is available.': {
+    'en': 'Pending changes will sync when the connection is available.',
+    'ps': 'پاتې بدلونونه به د انټرنېټ له شتون سره همغږي شي.',
+    'fa': 'تغییرات در انتظار، هنگام در دسترس بودن اتصال همگام می‌شوند.',
+    'ur': 'زیر التوا تبدیلیاں کنکشن دستیاب ہونے پر ہم آہنگ ہو جائیں گی۔',
+    'ar': 'ستتم مزامنة التغييرات المعلقة عند توفر الاتصال.',
+  },
+
+  'Sync operations are pending': {
+    'en': 'Sync operations are pending',
+    'ps': 'د همغږۍ عملیات پاتې دي',
+    'fa': 'عملیات همگام‌سازی در انتظار است',
+    'ur': 'ہم آہنگی کی کارروائیاں زیر التوا ہیں',
+    'ar': 'عمليات المزامنة معلقة',
+  },
+
+  'There are no pending or failed sync operations.': {
+    'en': 'There are no pending or failed sync operations.',
+    'ps': 'د همغږۍ هېڅ پاتې یا ناکام عملیات نشته.',
+    'fa': 'هیچ عملیات همگام‌سازی در انتظار یا ناموفق وجود ندارد.',
+    'ur': 'کوئی زیر التوا یا ناکام ہم آہنگی کی کارروائی موجود نہیں ہے۔',
+    'ar': 'لا توجد عمليات مزامنة معلقة أو فاشلة.',
+  },
 };
 String ghataT(BuildContext context, String key) {
   final code = Localizations.localeOf(context).languageCode;
@@ -4788,6 +4994,55 @@ Future<void> ghataRegisterCurrentDevice() async {
     );
   }
 }
+
+Future<void> ghataReactivateDeviceAfterExplicitLogin() async {
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return;
+
+  try {
+    final deviceId = await GhataSecurity.deviceId();
+    final now = DateTime.now().toUtc().toIso8601String();
+
+    final existing = await Supabase.instance.client
+        .from('user_devices')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('device_id', deviceId)
+        .maybeSingle();
+
+    if (existing == null) {
+      await Supabase.instance.client
+          .from('user_devices')
+          .insert({
+        'user_id': user.id,
+        'device_id': deviceId,
+        'device_name': ghataDeviceDisplayName(),
+        'platform': ghataDevicePlatform(),
+        'last_seen': now,
+        'created_at': now,
+        'updated_at': now,
+        'revoked_at': null,
+      });
+    } else {
+      await Supabase.instance.client
+          .from('user_devices')
+          .update({
+        'device_name': ghataDeviceDisplayName(),
+        'platform': ghataDevicePlatform(),
+        'last_seen': now,
+        'updated_at': now,
+        'revoked_at': null,
+      })
+          .eq('user_id', user.id)
+          .eq('device_id', deviceId);
+    }
+  } catch (e) {
+    debugPrint(
+      'Explicit-login device reactivation failed: $e',
+    );
+  }
+}
+
 
 Future<bool> ghataCheckCurrentDeviceRevocation() async {
   final user = Supabase.instance.client.auth.currentUser;
@@ -4961,11 +5216,11 @@ class _GhataAppState extends State<GhataApp>
     );
 
     void handleRealtimeChange(PostgresChangePayload payload) {
-      // Multi-device sync: upload this device's pending work first,
-      // then pull the latest account data into the local cache.
+      // Multi-device sync: update the local cache first,
+      // then notify the currently open UI to reread SQLite.
       Future<void>(() async {
         await ghataTrySync();
-        await ghataRefreshOfflineCache();
+        ghataNotifyLocalDataChanged();
       });
     }
 
@@ -5190,6 +5445,13 @@ class _GhataAppState extends State<GhataApp>
   }
 }
 
+final ValueNotifier<int> ghataDataRevision =
+    ValueNotifier<int>(0);
+
+void ghataNotifyLocalDataChanged() {
+  ghataDataRevision.value++;
+}
+
 bool _ghataExplicitAuthInProgress = false;
 
 class LoginScreen extends StatefulWidget {
@@ -5240,70 +5502,15 @@ class _LoginScreenState extends State<LoginScreen> {
       // must not erase another account's local records.
       await GhataSecurity.setLocalAccountOwner(user.id);
 
-      // Device registration must never break a successful login.
-      try {
-        final deviceId = await GhataSecurity.deviceId();
-        final now =
-            DateTime.now().toUtc().toIso8601String();
-
-        final existingDevice =
-            await Supabase.instance.client
-                .from('user_devices')
-                .select('id')
-                .eq('user_id', user.id)
-                .eq('device_id', deviceId)
-                .maybeSingle();
-
-        if (existingDevice == null) {
-          await Supabase.instance.client
-              .from('user_devices')
-              .insert({
-            'user_id': user.id,
-            'device_id': deviceId,
-            'device_name': ghataDeviceDisplayName(),
-            'platform': ghataDevicePlatform(),
-            'last_seen': now,
-            'revoked_at': null,
-            'created_at': now,
-            'updated_at': now,
-          });
-        } else {
-          await Supabase.instance.client
-              .from('user_devices')
-              .update({
-            'device_name': ghataDeviceDisplayName(),
-            'platform': ghataDevicePlatform(),
-            'last_seen': now,
-            'revoked_at': null,
-            'updated_at': now,
-          })
-              .eq('user_id', user.id)
-              .eq('device_id', deviceId);
-        }
-      } catch (e, st) {
-        debugPrint(
-          'Ghata device registration after login failed: $e',
-        );
-        debugPrintStack(stackTrace: st);
-      }
-
-      try {
-        await OfflineSyncService.instance.syncPending();
-      } catch (e, st) {
-        debugPrint(
-          'Ghata pending sync after login failed: $e',
-        );
-        debugPrintStack(stackTrace: st);
-      }
-
-      try {
-        await ghataRefreshOfflineCache();
-      } catch (e, st) {
-        debugPrint(
-          'Ghata cache refresh after login failed: $e',
-        );
-        debugPrintStack(stackTrace: st);
-      }
+      // Offline-first after successful authentication.
+      // Home must not wait for device registration or cloud synchronization.
+      Future<void>(() async {
+        // A successful password login is a new explicit authorization
+        // for this physical device, so an old remote-logout marker may
+        // be cleared here. Normal startup never clears revoked_at.
+        await ghataReactivateDeviceAfterExplicitLogin();
+        await ghataTrySync();
+      });
 
       if (!mounted) return;
 
@@ -5354,114 +5561,291 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const green = Color(0xFF123D2B);
+    const cream = Color(0xFFFFFBF2);
+    const gold = Color(0xFFFFE8A3);
+
+    InputDecoration authDecoration(
+      String label,
+      IconData icon, {
+      Widget? suffixIcon,
+    }) {
+      return InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: green),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: .94),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: green.withValues(alpha: .14),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(
+            color: green,
+            width: 1.5,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    Icons.menu_book_rounded,
-                    size: 72,
-                    color: Colors.blue,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'ګهته',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 34,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Ghata – Business Ledger & Accounting',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  SizedBox(height: 36),
-                  TextField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: ghataT(context, 'Gmail / Email'),
-                      prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: hidePassword,
-                    decoration: InputDecoration(
-                      labelText: ghataT(context, 'Password'),
-                      prefixIcon: Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            hidePassword = !hidePassword;
-                          });
-                        },
-                        icon: Icon(
-                          hidePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ForgotPasswordScreen(),
-                          ),
-                        );
-                      },
-                      child: Text(ghataT(context, 'Forgot Password?')),
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  SizedBox(
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: isLoading ? null : login,
-                      child: Text(ghataT(context, 'Login')),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(ghataT(context, "Don't have an account?")),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SignupScreen(),
-                            ),
-                          );
-                        },
-                        child: Text(ghataT(context, 'Create Account')),
-                      ),
-                    ],
-                  ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/about_accounting.png',
+            fit: BoxFit.cover,
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  green.withValues(alpha: .90),
+                  const Color(0xFF1F5A43).withValues(alpha: .80),
+                  const Color(0xFF8A6B2D).withValues(alpha: .60),
                 ],
               ),
             ),
           ),
-        ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(30, 28, 30, 22),
+                    decoration: BoxDecoration(
+                      color: cream.withValues(alpha: .96),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: .18),
+                          blurRadius: 32,
+                          offset: const Offset(0, 14),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 72,
+                            height: 72,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            child: Image.asset(
+                              'assets/images/ghata_leaf.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'ګهته / Ghata',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: green,
+                            fontSize: 27,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          ghataT(context, 'Business Ledger & Accounting'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF5F6F65),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          ghataT(
+                            context,
+                            'Simple Accounting for a Better Tomorrow',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF7B6A3B),
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 26),
+                        TextField(
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: authDecoration(
+                            ghataT(context, 'Gmail / Email'),
+                            Icons.email_outlined,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: passwordController,
+                          obscureText: hidePassword,
+                          decoration: authDecoration(
+                            ghataT(context, 'Password'),
+                            Icons.lock_outline,
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  hidePassword = !hidePassword;
+                                });
+                              },
+                              icon: Icon(
+                                hidePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ForgotPasswordScreen(),
+                                      ),
+                                    );
+                                  },
+                            child: Text(
+                              ghataT(context, 'Forgot Password?'),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        SizedBox(
+                          height: 52,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: green,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: isLoading ? null : login,
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    ghataT(context, 'Login'),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                ghataT(context, 'OR'),
+                                style: const TextStyle(
+                                  color: Color(0xFF6E776F),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 50,
+                          child: OutlinedButton.icon(
+                            onPressed: null,
+                            icon: const Icon(Icons.g_mobiledata_rounded),
+                            label: Text(
+                              ghataT(context, 'Continue with Google'),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                ghataT(
+                                  context,
+                                  "Don't have an account?",
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => SignupScreen(),
+                                        ),
+                                      );
+                                    },
+                              child: Text(
+                                ghataT(context, 'Create Account'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Design by MRS',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: green,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -5557,14 +5941,11 @@ class _SignupScreenState extends State<SignupScreen> {
         // OfflineDatabase scopes reads and writes by current user_id.
         await GhataSecurity.setLocalAccountOwner(user.id);
 
-        try {
+        // Offline-first after successful signup:
+        // do not delay navigation while waiting for Supabase cache refresh.
+        Future<void>(() async {
           await ghataRefreshOfflineCache();
-        } catch (e, st) {
-          debugPrint(
-            'Ghata new-account cache refresh failed: $e',
-          );
-          debugPrintStack(stackTrace: st);
-        }
+        });
 
         if (!mounted) return;
 
@@ -5651,103 +6032,282 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(ghataT(context, 'Create Account')),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Icon(
-                Icons.person_add_alt_1_rounded,
-                size: 70,
-                color: Colors.blue,
-              ),
-              SizedBox(height: 24),
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: ghataT(context, 'Full Name'),
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: ghataT(context, 'Gmail / Email'),
-                  prefixIcon: Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: hidePassword,
-                decoration: InputDecoration(
-                  labelText: ghataT(context, 'Password'),
-                  prefixIcon: Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        hidePassword = !hidePassword;
-                      });
-                    },
-                    icon: Icon(
-                      hidePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: confirmPasswordController,
-                obscureText: hideConfirmPassword,
-                decoration: InputDecoration(
-                  labelText: ghataT(context, 'Confirm Password'),
-                  prefixIcon: Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      setState(() {
-                        hideConfirmPassword = !hideConfirmPassword;
-                      });
-                    },
-                    icon: Icon(
-                      hideConfirmPassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton(
-                  onPressed: isLoading ? null : createAccount,
-                  child: isLoading
-                      ? SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(ghataT(context, 'Create Account')),
-                ),
-              ),
-            ],
+    const green = Color(0xFF123D2B);
+    const cream = Color(0xFFFFFBF2);
+
+    InputDecoration authDecoration(
+      String label,
+      IconData icon, {
+      Widget? suffixIcon,
+    }) {
+      return InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: green),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: .94),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: green.withValues(alpha: .14),
           ),
         ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(
+            color: green,
+            width: 1.5,
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/about_accounting.png',
+            fit: BoxFit.cover,
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  green.withValues(alpha: .90),
+                  const Color(0xFF1F5A43).withValues(alpha: .80),
+                  const Color(0xFF8A6B2D).withValues(alpha: .60),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(30, 26, 30, 22),
+                    decoration: BoxDecoration(
+                      color: cream.withValues(alpha: .96),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: .18),
+                          blurRadius: 32,
+                          offset: const Offset(0, 14),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 66,
+                            height: 66,
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Image.asset(
+                              'assets/images/ghata_leaf.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'ګهته / Ghata',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: green,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          ghataT(context, 'Create Account'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF5F6F65),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        TextField(
+                          controller: nameController,
+                          decoration: authDecoration(
+                            ghataT(context, 'Full Name'),
+                            Icons.person_outline,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: authDecoration(
+                            ghataT(context, 'Gmail / Email'),
+                            Icons.email_outlined,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: passwordController,
+                          obscureText: hidePassword,
+                          decoration: authDecoration(
+                            ghataT(context, 'Password'),
+                            Icons.lock_outline,
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  hidePassword = !hidePassword;
+                                });
+                              },
+                              icon: Icon(
+                                hidePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: confirmPasswordController,
+                          obscureText: hideConfirmPassword,
+                          decoration: authDecoration(
+                            ghataT(context, 'Confirm Password'),
+                            Icons.lock_outline,
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  hideConfirmPassword =
+                                      !hideConfirmPassword;
+                                });
+                              },
+                              icon: Icon(
+                                hideConfirmPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          height: 52,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: green,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed:
+                                isLoading ? null : createAccount,
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    ghataT(context, 'Create Account'),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                ghataT(context, 'OR'),
+                                style: const TextStyle(
+                                  color: Color(0xFF6E776F),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 50,
+                          child: OutlinedButton.icon(
+                            onPressed: null,
+                            icon: const Icon(Icons.g_mobiledata_rounded),
+                            label: Text(
+                              ghataT(context, 'Continue with Google'),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                ghataT(
+                                  context,
+                                  'Already have an account?',
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: isLoading
+                                  ? null
+                                  : () => Navigator.pop(context),
+                              child: Text(
+                                ghataT(context, 'Login'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Design by MRS',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: green,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -5888,7 +6448,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
 class GhataSecurity {
   static const _storage = FlutterSecureStorage();
-  static const _biometricKey = 'ghata_biometric_enabled';
   static const _localAccountOwnerKey = 'ghata_local_account_owner';
   static const _deviceIdKey = 'ghata_device_id';
 
@@ -5920,40 +6479,6 @@ class GhataSecurity {
     );
   }
 
-  static Future<bool> biometricEnabled() async {
-    return (await _storage.read(key: _biometricKey)) == 'true';
-  }
-
-  static Future<void> setBiometricEnabled(bool enabled) async {
-    await _storage.write(
-      key: _biometricKey,
-      value: enabled ? 'true' : 'false',
-    );
-  }
-
-  static Future<bool> canUseBiometrics() async {
-    try {
-      final auth = LocalAuthentication();
-      return await auth.isDeviceSupported();
-    } catch (_) {
-      return false;
-    }
-  }
-
-  static Future<bool> authenticateBiometric(String localizedReason) async {
-    try {
-      final auth = LocalAuthentication();
-      return await auth.authenticate(
-        localizedReason: localizedReason,
-        options: AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-        ),
-      );
-    } catch (_) {
-      return false;
-    }
-  }
 }
 
 
@@ -5979,30 +6504,62 @@ class _StaffManagementScreenState
   }
 
   Future<void> loadStaff() async {
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) return;
+    final user = Supabase.instance.client.auth.currentUser;
 
-      final data = await Supabase.instance.client
-          .from('staff_members')
-          .select()
-          .eq('owner_id', user.id)
-          .order('created_at', ascending: false);
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          staff = [];
+          loading = false;
+        });
+      }
+      return;
+    }
 
-      if (!mounted) return;
+    // Offline-first: show the last cached staff list immediately.
+    final local =
+        await OfflineDatabase.instance.getRecords('staff_members');
 
+    local.sort((a, b) {
+      final ad = a['created_at']?.toString() ?? '';
+      final bd = b['created_at']?.toString() ?? '';
+      return bd.compareTo(ad);
+    });
+
+    if (mounted) {
       setState(() {
-        staff = List<Map<String, dynamic>>.from(data);
+        staff = local;
         loading = false;
       });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => loading = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${ghataT(context, 'Unable to load staff')}: $e")),
-      );
     }
+
+    // Refresh the read-only staff cache in the background.
+    // Staff add/disable operations remain protected Supabase RPC actions.
+    Future<void>(() async {
+      try {
+        final data = await Supabase.instance.client
+            .from('staff_members')
+            .select()
+            .eq('owner_id', user.id)
+            .order('created_at', ascending: false);
+
+        final rows = List<Map<String, dynamic>>.from(data);
+
+        await OfflineDatabase.instance.cacheServerRecords(
+          'staff_members',
+          rows,
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          staff = rows;
+        });
+      } catch (e) {
+        // Offline is valid. Keep showing the cached staff list.
+        debugPrint('Ghata staff background refresh failed: $e');
+      }
+    });
   }
 
   Future<void> addStaff() async {
@@ -6494,15 +7051,36 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
       validateOwnedRecords('customer', customers);
       validateOwnedRecords('transaction', transactions);
       validateOwnedRecords('exchange', exchanges);
+      validateOwnedRecords('exchange entry', exchangeEntries);
+
+      final customerIds = customers
+          .map((record) => record['id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet();
 
       final exchangeIds = exchanges
           .map((record) => record['id']?.toString() ?? '')
           .where((id) => id.isNotEmpty)
           .toSet();
 
+      for (final record in [...transactions, ...exchanges]) {
+        final customerId =
+            record['customer_id']?.toString().trim() ?? '';
+
+        if (customerId.isNotEmpty &&
+            !customerIds.contains(customerId)) {
+          throw Exception(
+            'Backup contains an invalid customer reference.',
+          );
+        }
+      }
+
       for (final entry in exchangeEntries) {
-        final exchangeId = entry['exchange_id']?.toString() ?? '';
-        if (exchangeId.isEmpty || !exchangeIds.contains(exchangeId)) {
+        final exchangeId =
+            entry['exchange_id']?.toString().trim() ?? '';
+
+        if (exchangeId.isEmpty ||
+            !exchangeIds.contains(exchangeId)) {
           throw Exception(
             'Backup contains an exchange entry without a valid owned exchange.',
           );
@@ -6750,53 +7328,68 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
   }
 
   Future<void> loadDevices() async {
-    if (mounted) {
-      setState(() => loading = true);
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          devices = [];
+          loading = false;
+        });
+      }
+      return;
     }
 
-    try {
-      final user = Supabase.instance.client.auth.currentUser;
+    // Device ID is local and does not require the network.
+    final id = await GhataSecurity.deviceId();
 
-      if (user == null) {
-        if (mounted) {
-          setState(() {
-            devices = [];
-            loading = false;
-          });
-        }
-        return;
-      }
+    // Offline-first: show the last cached device list immediately.
+    final local =
+        await OfflineDatabase.instance.getRecords('user_devices');
 
-      final id = await GhataSecurity.deviceId();
+    local.sort((a, b) {
+      final ad = a['last_seen']?.toString() ?? '';
+      final bd = b['last_seen']?.toString() ?? '';
+      return bd.compareTo(ad);
+    });
 
-      await ghataRegisterCurrentDevice();
-
-      final rows = await Supabase.instance.client
-          .from('user_devices')
-          .select()
-          .eq('user_id', user.id)
-          .order('last_seen', ascending: false);
-
-      if (!mounted) return;
-
+    if (mounted) {
       setState(() {
         currentDeviceId = id;
-        devices = List<Map<String, dynamic>>.from(rows);
+        devices = local;
         loading = false;
       });
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() => loading = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '''${ghataT(context, 'Unable to load active devices')}: $e''',
-          ),
-        ),
-      );
     }
+
+    // Registration and server refresh are best-effort background work.
+    Future<void>(() async {
+      try {
+        await ghataRegisterCurrentDevice();
+
+        final rows = await Supabase.instance.client
+            .from('user_devices')
+            .select()
+            .eq('user_id', user.id)
+            .order('last_seen', ascending: false);
+
+        final latest = List<Map<String, dynamic>>.from(rows);
+
+        await OfflineDatabase.instance.cacheServerRecords(
+          'user_devices',
+          latest,
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          currentDeviceId = id;
+          devices = latest;
+        });
+      } catch (e) {
+        // Offline is valid. Keep the cached device list visible.
+        debugPrint('Ghata devices background refresh failed: $e');
+      }
+    });
   }
 
   Future<void> revokeDevice(
@@ -6857,9 +7450,45 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
           .eq('user_id', user.id)
           .eq('device_id', deviceId);
 
-      await loadDevices();
+      // Cloud revoke succeeded. Update the local cache immediately
+      // so the offline-first device list cannot show stale state.
+      try {
+        await OfflineDatabase.instance.saveRecord(
+          'user_devices',
+          {
+            ...device,
+            'device_id': deviceId,
+            'revoked_at': now,
+            'updated_at': now,
+          },
+          synced: true,
+        );
+      } catch (e) {
+        debugPrint(
+          'Ghata revoked-device local cache update failed: $e',
+        );
+      }
 
       if (!mounted) return;
+
+      setState(() {
+        devices = devices.map((row) {
+          if (row['device_id']?.toString() != deviceId) {
+            return row;
+          }
+
+          return <String, dynamic>{
+            ...row,
+            'revoked_at': now,
+            'updated_at': now,
+          };
+        }).toList();
+      });
+
+      // Best-effort background reconciliation with the server.
+      Future<void>(() async {
+        await loadDevices();
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -6906,7 +7535,10 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
                         SizedBox(height: 140),
                         Center(
                           child: Text(
-                            'No active devices found.',
+                            ghataT(
+                              context,
+                              'No active devices found.',
+                            ),
                           ),
                         ),
                       ],
@@ -7242,50 +7874,6 @@ class SecurityScreen extends StatefulWidget {
 
 class _SecurityScreenState extends State<SecurityScreen> {
   bool loading = true;
-  bool deviceAuthAvailable = false;
-  bool appLockEnabled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    loadSecurityState();
-  }
-
-  Future<void> loadSecurityState() async {
-    final available = await GhataSecurity.canUseBiometrics();
-    final enabled = await GhataSecurity.biometricEnabled();
-
-    if (!mounted) return;
-
-    setState(() {
-      deviceAuthAvailable = available;
-      appLockEnabled = enabled && available;
-      loading = false;
-    });
-  }
-
-  Future<void> changeDeviceLock(bool enabled) async {
-    if (enabled) {
-      if (!deviceAuthAvailable) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ghataT(context, 'Please enable a screen lock, fingerprint, Face ID or device passcode first.'),
-            ),
-          ),
-        );
-        return;
-      }
-
-      final authenticated =
-          await GhataSecurity.authenticateBiometric(ghataT(context, 'Unlock Ghata'));
-
-      if (!authenticated) return;
-    }
-
-    await GhataSecurity.setBiometricEnabled(enabled);
-    await loadSecurityState();
-  }
 
   Future<void> logOutOtherDevices() async {
     final confirmed = await showDialog<bool>(
@@ -7369,59 +7957,15 @@ class _SecurityScreenState extends State<SecurityScreen> {
     }
   }
 
-  Future<void> testLock() async {
-    if (!appLockEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ghataT(context, 'Enable App Lock first.'))),
-      );
-      return;
-    }
-
-    final success = await GhataSecurity.authenticateBiometric(ghataT(context, 'Unlock Ghata'));
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? ghataT(context, 'Ghata unlocked successfully.')
-              : 'Device authentication was cancelled.',
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(ghataT(context, 'Security')),
       ),
-      body: loading
-          ? Center(child: CircularProgressIndicator())
-          : ListView(
+      body: ListView(
               padding: EdgeInsets.all(16),
               children: [
-                Card(
-                  child: SwitchListTile(
-                    secondary: Icon(Icons.fingerprint),
-                    title: Text(ghataT(context, 'App Lock')),
-                    subtitle: Text(
-                      deviceAuthAvailable
-                          ? (Platform.isWindows
-                              ? 'Use Windows Hello or your Windows device sign-in to open Ghata.'
-                              : ghataT(context, 'Use fingerprint, Face ID, or your phone screen lock to open Ghata.'))
-                          : (Platform.isWindows
-                              ? 'Set up Windows Hello or a supported Windows sign-in method first.'
-                              : ghataT(context, 'Set up a phone screen lock first.')),
-                    ),
-                    value: appLockEnabled,
-                    onChanged:
-                        deviceAuthAvailable ? changeDeviceLock : null,
-                  ),
-                ),
-                SizedBox(height: 12),
                 Card(
                   child: ListTile(
                     leading: Icon(Icons.devices_other_outlined),
@@ -7457,12 +8001,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     onTap: logOutOtherDevices,
                   ),
                 ),
-                SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: appLockEnabled ? testLock : null,
-                  icon: Icon(Icons.lock_outline),
-                  label: Text(ghataT(context, 'Test App Lock')),
-                ),
               ],
             ),
     );
@@ -7477,18 +8015,13 @@ class GhataStartupGate extends StatefulWidget {
 }
 
 class _GhataStartupGateState extends State<GhataStartupGate> {
-  bool loading = true;
-  bool unlocked = false;
-  bool appLockEnabled = false;
-  bool checkingAuthentication = false;
-
   @override
   void initState() {
     super.initState();
-    prepareLock();
+    prepareStartup();
   }
 
-  Future<void> prepareLock() async {
+  Future<void> prepareStartup() async {
     final user = Supabase.instance.client.auth.currentUser;
 
     if (user != null) {
@@ -7496,153 +8029,37 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
       final accountChanged =
           localOwner == null || localOwner != user.id;
 
-      // Do not clear local data when the account changes.
-      // Each account has its own user_id-scoped offline records.
+      // Keep each account's offline data isolated.
       await GhataSecurity.setLocalAccountOwner(user.id);
 
-        // Do not block Windows startup on Supabase/network work.
-        Future<void>(() async {
-          if (!accountChanged) {
-            await ghataTrySync();
-          }
+      // Never block Windows startup on network/Supabase work.
+      Future<void>(() async {
+        if (!accountChanged) {
+          await ghataTrySync();
+        } else {
           await ghataRefreshOfflineCache();
-        });
-    }
-
-    () async {
-      try {
-        await Supabase.instance.client.rpc('link_my_staff_account');
-      } catch (_) {}
-    }();
-
-    final enabled = await GhataSecurity.biometricEnabled();
-    final deviceAuthAvailable =
-        await GhataSecurity.canUseBiometrics();
-
-    if (!mounted) return;
-
-    if (!enabled || !deviceAuthAvailable) {
-      setState(() {
-        unlocked = true;
-        appLockEnabled = false;
-        loading = false;
+        }
       });
-      return;
+
+      Future<void>(() async {
+        try {
+          await Supabase.instance.client.rpc('link_my_staff_account');
+        } catch (_) {}
+      });
     }
 
-    setState(() {
-      appLockEnabled = true;
-      loading = false;
-    });
-
-    await unlockWithDeviceAuthentication();
-  }
-
-  Future<void> unlockWithDeviceAuthentication() async {
-    if (checkingAuthentication) return;
-
-    setState(() {
-      checkingAuthentication = true;
-    });
-
-    final success =
-        await GhataSecurity.authenticateBiometric(ghataT(context, 'Unlock Ghata'));
-
     if (!mounted) return;
 
-    setState(() {
-      checkingAuthentication = false;
-      if (success) {
-        unlocked = true;
-      }
-    });
-  }
-
-  Future<void> signOut() async {
-    await Supabase.instance.client.auth.signOut();
-
-    if (!mounted) return;
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => LoginScreen(),
-      ),
-      (_) => false,
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => HomeScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (loading) {
-      return Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (unlocked) {
-      return HomeScreen();
-    }
-
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 420),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.lock_outline,
-                    size: 72,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'ګهته – Ghata',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    ghataT(context, 'Unlock Ghata'),
-                    style: TextStyle(fontSize: 18),
-                  ),
-                  SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: checkingAuthentication
-                          ? null
-                          : unlockWithDeviceAuthentication,
-                      icon: checkingAuthentication
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Icon(Icons.fingerprint),
-                      label: Text(
-                        ghataT(context, 'Fingerprint / Face ID / Screen Lock'),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 18),
-                  TextButton(
-                    onPressed: signOut,
-                    child: Text(ghataT(context, 'Sign Out')),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
       ),
     );
   }
@@ -7745,6 +8162,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   late Future<Map<String, Map<String, double>>> dashboardFuture;
+  late Future<List<Map<String, dynamic>>> recentTransactionsFuture;
   String selectedDashboardCurrency = 'ALL';
   String selectedRecentTransactionFilter = 'ALL';
   String selectedRecentCurrency = 'ALL';
@@ -7754,26 +8172,40 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     refreshPermissions();
     dashboardFuture = loadDashboardSummary();
+    recentTransactionsFuture = loadRecentTransactions();
+    ghataDataRevision.addListener(_handleRealtimeDataRevision);
   }
 
-  Future<Map<String, Map<String, double>>> loadDashboardSummary() async {
-    var transactions =
+  void _handleRealtimeDataRevision() {
+    if (!mounted) return;
+
+    // Realtime sync already refreshed SQLite.
+    // Re-read local data only; do not start another cloud refresh.
+    setState(() {
+      dashboardFuture = loadDashboardSummary(refreshCloud: false);
+      recentTransactionsFuture =
+          loadRecentTransactions(refreshCloud: false);
+    });
+  }
+
+  @override
+  void dispose() {
+    ghataDataRevision.removeListener(_handleRealtimeDataRevision);
+    super.dispose();
+  }
+
+  Future<Map<String, Map<String, double>>> loadDashboardSummary({
+    bool refreshCloud = true,
+  }) async {
+    // Offline-first: show SQLite data immediately.
+    // Supabase refresh runs in the background and must not block Dashboard.
+    if (refreshCloud) ghataRefreshOfflineCache();
+
+    final transactions =
         await OfflineDatabase.instance.getRecords('transactions');
 
-    var exchangeEntries =
+    final exchangeEntries =
         await ghataLocalExchangeEntriesWithExchange();
-
-    if (transactions.isEmpty && exchangeEntries.isEmpty) {
-      await ghataRefreshOfflineCache();
-
-      transactions =
-          await OfflineDatabase.instance.getRecords('transactions');
-
-      exchangeEntries =
-          await ghataLocalExchangeEntriesWithExchange();
-    } else {
-      ghataRefreshOfflineCache();
-    }
 
     final result = <String, Map<String, double>>{};
 
@@ -7795,8 +8227,8 @@ class _HomeScreenState extends State<HomeScreen> {
     // Money In  = positive
     // Money Out = negative
     // Therefore:
-    // negative customer balance -> You Receive
-    // positive customer balance -> You Pay
+    // positive customer balance -> You Receive
+    // negative customer balance -> You Pay
     final customerBalances = <String, double>{};
 
     void changeCustomerBalance(
@@ -7864,18 +8296,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Cashbox accounting remains unchanged.
       switch (type) {
-          data['cashbox'] = data['cashbox']! - amount;
-          break;
-
-          data['cashbox'] = data['cashbox']! + amount;
-          break;
-
-          data['cashbox'] = data['cashbox']! + amount;
-          break;
-
-          data['cashbox'] = data['cashbox']! - amount;
-          break;
-
         case 'money_in':
         case 'adjustment_in':
           data['cashbox'] = data['cashbox']! + amount;
@@ -7962,22 +8382,16 @@ class _HomeScreenState extends State<HomeScreen> {
     return result;
   }
 
-  Future<List<Map<String, dynamic>>> loadRecentTransactions() async {
-  var local =
+  Future<List<Map<String, dynamic>>> loadRecentTransactions({
+    bool refreshCloud = true,
+  }) async {
+  final local =
       await OfflineDatabase.instance.getRecords(
     'transactions',
   );
 
-  if (local.isEmpty) {
-    await ghataRefreshTransactionsCache();
-
-    local =
-        await OfflineDatabase.instance.getRecords(
-      'transactions',
-    );
-  } else {
-    ghataRefreshTransactionsCache();
-  }
+  // Offline-first: refresh cloud cache without blocking this section.
+  if (refreshCloud) ghataRefreshTransactionsCache();
 
   local.sort((a, b) {
     final ad =
@@ -8514,6 +8928,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void refreshDashboard() {
     setState(() {
       dashboardFuture = loadDashboardSummary();
+      recentTransactionsFuture = loadRecentTransactions();
     });
   }
 
@@ -8560,26 +8975,59 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final homeScaffold = Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Ghata',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              ghataT(context, 'Business Ledger & Accounting'),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.normal,
+        backgroundColor: const Color(0xFF123D2B),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBF2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Image.asset(
+                  'assets/images/ghata_leaf.png',
+                  fit: BoxFit.contain,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'ګهته / Ghata',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    ghataT(context, 'Business Ledger & Accounting'),
+                    style: const TextStyle(
+                      color: Color(0xFFFFE8A3),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         actions: [
+        Directionality(
+          textDirection: TextDirection.ltr,
         Builder(
           builder: (context) {
             final appState =
@@ -8667,6 +9115,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             );
           },
+        ),
         ),
       ],
       ),
@@ -8882,7 +9331,7 @@ SizedBox(height: 22),
               SizedBox(height: 6),
 
               FutureBuilder<List<Map<String, dynamic>>>(
-                future: loadRecentTransactions(),
+                future: recentTransactionsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
@@ -9225,6 +9674,10 @@ SizedBox(height: 22),
         ),
       ),
     );
+    // Page content follows the selected language direction.
+    // Header/navigation direction is controlled locally.
+    return homeScaffold;
+
   }
 }
 
@@ -9413,14 +9866,17 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
             return nav;
           }
 
-          return Align(
-            alignment: Alignment.bottomCenter,
-            heightFactor: 1,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 900),
-              child: nav,
-            ),
-          );
+            return Directionality(
+              textDirection: TextDirection.ltr,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                heightFactor: 1,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 900),
+                  child: nav,
+                ),
+              ),
+            );
         },
       ),
     );
@@ -9429,49 +9885,328 @@ class _GhataAppBottomNavState extends State<_GhataAppBottomNav> {
 
 
 class AboutGhataScreen extends StatelessWidget {
-  AboutGhataScreen({super.key});
+  const AboutGhataScreen({super.key});
 
-  Widget guideSection(
+  static const _green = Color(0xFF1F5A43);
+  static const _softGreen = Color(0xFFE8F2EC);
+  static const _cream = Color(0xFFFFFBF2);
+
+  Future<void> _openUri(
     BuildContext context,
-    IconData icon,
-    String title,
-    String text,
-  ) {
+    Uri uri, {
+    required String errorText,
+  }) async {
+    try {
+      final opened = await launchUrl(uri);
+      if (!opened && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorText)),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorText)),
+        );
+      }
+    }
+  }
+
+  void _showTextDialog(
+    BuildContext context, {
+    required String title,
+    required String body,
+  }) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: SingleChildScrollView(
+            child: Text(
+              body,
+              style: const TextStyle(height: 1.5),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(ghataT(context, 'Close')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionLink({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
     return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              child: Icon(icon),
-            ),
-            SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    text,
-                    style: TextStyle(
-                      height: 1.45,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: _green.withValues(alpha: .10),
         ),
       ),
+      child: ListTile(
+        leading: Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: _softGreen,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: _green),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _sectionCard({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _cream,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _green.withValues(alpha: .12),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: _softGreen,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: _green),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: _green,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _appInformation(BuildContext context) {
+    return _sectionCard(
+      context: context,
+      icon: Icons.info_outline_rounded,
+      title: ghataT(context, 'App Information'),
+      children: [
+        _sectionLink(
+          context: context,
+          icon: Icons.account_balance_wallet_outlined,
+          title: ghataT(context, 'About Ghata'),
+          subtitle: ghataT(context, 'Learn more about Ghata'),
+          onTap: () => _showTextDialog(
+            context,
+            title: ghataT(context, 'About Ghata'),
+            body:
+                'Ghata is a business ledger and accounting system for '
+                'managing customers, daily transactions, currency exchange, '
+                'reports, backup and secure multi-device access.',
+          ),
+        ),
+        _sectionLink(
+          context: context,
+          icon: Icons.menu_book_outlined,
+          title: ghataT(context, 'How to Use Ghata'),
+          subtitle: ghataT(context, 'Learn the main Ghata features'),
+          onTap: () => _showTextDialog(
+            context,
+            title: ghataT(context, 'How to Use Ghata'),
+            body:
+                'Use Customers for customer ledgers, Daily Journal for '
+                'general business entries, Exchange for currency exchange, '
+                'Reports for summaries, and Backup & Restore to protect '
+                'your Ghata data.',
+          ),
+        ),
+        _sectionLink(
+          context: context,
+          icon: Icons.verified_outlined,
+          title: ghataT(context, 'Version'),
+          subtitle: '1.0.0',
+          onTap: () => _showTextDialog(
+            context,
+            title: ghataT(context, 'Version'),
+            body: 'Ghata Version 1.0.0',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _contactUs(BuildContext context) {
+    return _sectionCard(
+      context: context,
+      icon: Icons.support_agent_rounded,
+      title: ghataT(context, 'Contact Us'),
+      children: [
+        _sectionLink(
+          context: context,
+          icon: Icons.chat_rounded,
+          title: ghataT(context, 'WhatsApp Support'),
+          subtitle: '+93 771 770 927',
+          onTap: () => _openUri(
+            context,
+            Uri.parse('https://wa.me/93771770927'),
+            errorText: ghataT(context, 'Unable to open WhatsApp.'),
+          ),
+        ),
+        _sectionLink(
+          context: context,
+          icon: Icons.chat_outlined,
+          title: 'WhatsApp 2',
+          subtitle: '+93 774 832 595',
+          onTap: () => _openUri(
+            context,
+            Uri.parse('https://wa.me/93774832595'),
+            errorText: ghataT(context, 'Unable to open WhatsApp.'),
+          ),
+        ),
+        _sectionLink(
+          context: context,
+          icon: Icons.email_outlined,
+          title: ghataT(context, 'Email Support'),
+          subtitle: 'rahemsadafghata@gmail.com',
+          onTap: () => _openUri(
+            context,
+            Uri(
+              scheme: 'mailto',
+              path: 'rahemsadafghata@gmail.com',
+            ),
+            errorText: ghataT(
+              context,
+              'Something went wrong. Please try again.',
+            ),
+          ),
+        ),
+        _sectionLink(
+          context: context,
+          icon: Icons.help_outline_rounded,
+          title: ghataT(context, 'FAQ'),
+          subtitle: ghataT(context, 'Frequently asked questions'),
+          onTap: () => _showTextDialog(
+            context,
+            title: ghataT(context, 'FAQ'),
+            body:
+                'FAQ contains common guidance for customers, Daily Journal, '
+                'Exchange, reports, backup, restore, account security and '
+                'synchronization.',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _privacy(BuildContext context) {
+    return _sectionCard(
+      context: context,
+      icon: Icons.privacy_tip_outlined,
+      title: ghataT(context, 'Privacy'),
+      children: [
+        _sectionLink(
+          context: context,
+          icon: Icons.policy_outlined,
+          title: ghataT(context, 'Privacy Policy'),
+          subtitle: ghataT(context, 'How Ghata handles your information'),
+          onTap: () => _showTextDialog(
+            context,
+            title: ghataT(context, 'Privacy Policy'),
+            body:
+                'Ghata uses account and business data to provide its '
+                'accounting features. Access to account data is limited '
+                'to the authenticated account according to the permissions '
+                'implemented by Ghata.',
+          ),
+        ),
+        _sectionLink(
+          context: context,
+          icon: Icons.security_rounded,
+          title: ghataT(context, 'Data Security'),
+          subtitle: ghataT(context, 'Account and data protection'),
+          onTap: () => _showTextDialog(
+            context,
+            title: ghataT(context, 'Data Security'),
+            body:
+                'Ghata uses authenticated access, account-scoped data '
+                'operations and device/session controls to help protect '
+                'account information.',
+          ),
+        ),
+        _sectionLink(
+          context: context,
+          icon: Icons.storage_rounded,
+          title: ghataT(context, 'Data Storage'),
+          subtitle: ghataT(context, 'Where Ghata data is stored'),
+          onTap: () => _showTextDialog(
+            context,
+            title: ghataT(context, 'Data Storage'),
+            body:
+                'Ghata Windows supports local/offline accounting data and '
+                'synchronizes supported account data with the central Ghata '
+                'cloud services when synchronization is available.',
+          ),
+        ),
+        _sectionLink(
+          context: context,
+          icon: Icons.description_outlined,
+          title: ghataT(context, 'Terms of Use'),
+          subtitle: ghataT(context, 'Rules for using Ghata'),
+          onTap: () => _showTextDialog(
+            context,
+            title: ghataT(context, 'Terms of Use'),
+            body:
+                'Use Ghata only with accounts and business information you '
+                'are authorized to manage. Keep your sign-in credentials '
+                'secure and maintain appropriate backups of important '
+                'business information.',
+          ),
+        ),
+      ],
     );
   }
 
@@ -9482,422 +10217,224 @@ class AboutGhataScreen extends StatelessWidget {
         title: Text(ghataT(context, 'About Ghata')),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.all(16),
-          children: [
-            SizedBox(height: 8),
-
-            Center(
-              child: CircleAvatar(
-                radius: 42,
-                child: Icon(
-                  Icons.account_balance_wallet_rounded,
-                  size: 42,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 14),
-
-            Center(
-              child: Text(
-                'ګهته – Ghata',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 4),
-
-            Center(
-              child: Text(
-                ghataT(context, 'Business Ledger & Accounting'),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
-            SizedBox(height: 24),
-
-            Text(
-              ghataT(context, 'Complete Guide'),
-              style: TextStyle(
-                fontSize: 21,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            SizedBox(height: 12),
-
-            guideSection(
-              context,
-              Icons.home_outlined,
-              ghataT(context, 'Dashboard'),
-              ghataT(context, 'The Dashboard gives you a quick overview of your business. Cashbox, Money In, Money Out, You Receive and You Pay are shown separately for each currency. Ghata does not combine different currencies into a converted grand total.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.people_outline,
-              ghataT(context, 'Customers'),
-              ghataT(context, 'Use Customers to create and manage customer accounts. Each currency has its own independent running balance. Money In increases the customer balance, Money Out decreases it, and Exchange updates both related currencies. Open a customer to view the dated running ledger and current balances.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.add_circle_outline,
-              ghataT(context, 'Add Transaction'),
-              ghataT(context, 'Use the Add button to record Money In, Money Out and adjustments. Select the correct currency, date and time, and choose a customer when needed. Add a clear description so the reason for every transaction remains recorded.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.menu_book_outlined,
-              ghataT(context, 'Daily Journal'),
-              ghataT(context, 'The Daily Journal shows general business transactions and exchange movements. Use search and filters by type, currency, date and time. Amounts and running balances remain separate for each currency.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.handshake_outlined,
-              ghataT(context, 'Customer Balance'),
-              ghataT(context, 'Customer balances automatically show the financial position for each currency. A positive balance is shown in green, a negative balance in red, and zero is neutral. Backdated transactions are placed at their actual date and time and the running balance is recalculated.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.currency_exchange,
-              ghataT(context, 'Currency Exchange'),
-              ghataT(context, 'Use Exchange for currency buy and sell operations. Select the From and To currencies, enter the amounts and exchange rate, and optionally select a customer. Each currency remains independently recorded.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.account_balance_wallet_outlined,
-              ghataT(context, 'Cashbox'),
-              ghataT(context, 'Cashbox represents the recorded cash movement of the business. Balances are maintained separately by currency and include supported transaction and exchange movements.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.bar_chart_outlined,
-              ghataT(context, 'Reports'),
-              ghataT(context, 'Reports summarize Money In, Money Out, exchanges and adjustments. Reports can be filtered by date, currency and customer. Each currency is reported separately and is never automatically converted into another currency.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.receipt_long_outlined,
-              ghataT(context, 'Receipts, PDF & Balance Image'),
-              ghataT(context, 'Ghata can prepare transaction receipts, customer statements and customer balance images for sharing. Always review the information before sending a document to another person.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.groups_outlined,
-              ghataT(context, 'Staff & Roles'),
-              ghataT(context, 'A business owner can manage staff access. Staff permissions control whether a staff member can add or edit records and whether reports are available to them.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.security_outlined,
-              ghataT(context, 'Security'),
-              ghataT(context, 'Use App Lock to protect Ghata with fingerprint, Face ID or your phone screen lock where supported. Ghata does not read or store your phone PIN, pattern or passcode. Keep your account password private.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.cloud_outlined,
-              ghataT(context, 'Backup & Restore'),
-              ghataT(context, 'Your Ghata account keeps supported business data synchronized when internet access is available. Signing in with the same account on another supported Android or iPhone device can restore synchronized account data. Exported backup files should be kept in a safe place.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.delete_outline,
-              ghataT(context, 'Recycle Bin'),
-              ghataT(context, 'Deleted accounting records are moved to the Recycle Bin. Eligible records can be restored during the retention period. Ghata protects accounting history instead of silently destroying important financial records.'),
-            ),
-
-            guideSection(
-              context,
-              Icons.info_outline,
-              ghataT(context, 'Important'),
-              ghataT(context, 'Enter financial information carefully and review balances and reports regularly. Ghata is a record-keeping tool; the accuracy of reports depends on the information entered.'),
-            ),
-
-            SizedBox(height: 14),
-
-            Card(
-              child: Padding(
-                padding: EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ghataT(context, 'Contact Owner'),
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                      ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1180),
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(minHeight: 285),
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(26),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _green.withValues(alpha: .16),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 16),
-
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: () async {
-                          final uri = Uri(
-                            scheme: 'mailto',
-                            path: 'mrahemsadaf@gmail.com',
-                          );
-
-                          try {
-                            final opened = await launchUrl(
-                              uri,
-                              mode: LaunchMode.externalApplication,
-                            );
-
-                            if (!opened && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(ghataT(context, 'Unable to open email app.')),
-                                ),
-                              );
-                            }
-                          } catch (_) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(ghataT(context, 'Unable to open email app.')),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned.fill(
+                          child: Image.asset(
+                            'assets/images/about_accounting.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0xFF123D2B)
+                                      .withValues(alpha: .94),
+                                  const Color(0xFF1F5A43)
+                                      .withValues(alpha: .82),
+                                  const Color(0xFF9A7B32)
+                                      .withValues(alpha: .56),
+                                ],
                               ),
-                            );
-                          }
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(13),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.red.withValues(alpha: 0.15),
                             ),
                           ),
-                          child: Row(
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 28,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.email_rounded,
-                                color: Colors.red,
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Email',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              Container(
+                                width: 92,
+                                height: 92,
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFFBF2)
+                                      .withValues(alpha: .96),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black
+                                          .withValues(alpha: .16),
+                                      blurRadius: 18,
+                                      offset: const Offset(0, 6),
                                     ),
-                                    SizedBox(height: 3),
-                                    Text('mrahemsadaf@gmail.com'),
                                   ],
                                 ),
+                                child: Image.asset(
+                                  'assets/images/ghata_leaf.png',
+                                  fit: BoxFit.contain,
+                                ),
                               ),
-                              Icon(Icons.open_in_new_rounded, size: 18),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'ګهته',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const Text(
+                                'Ghata',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF1C7)
+                                      .withValues(alpha: .94),
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                child: Text(
+                                  '${ghataT(context, 'Version')} 1.0.0',
+                                  style: const TextStyle(
+                                    color: Color(0xFF123D2B),
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                ghataT(
+                                  context,
+                                  'Simple Accounting for a Better Tomorrow',
+                                ),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.35,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cards = <Widget>[
+                        _appInformation(context),
+                        _contactUs(context),
+                        _privacy(context),
+                      ];
 
-                    SizedBox(height: 12),
-
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: () async {
-                          final uri =
-                              Uri.parse('https://wa.me/93771770927');
-
-                          try {
-                            final opened = await launchUrl(
-                              uri,
-                              mode: LaunchMode.externalApplication,
-                            );
-
-                            if (!opened && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(ghataT(context, 'Unable to open WhatsApp.')),
-                                ),
-                              );
-                            }
-                          } catch (_) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(ghataT(context, 'Unable to open WhatsApp.')),
-                              ),
-                            );
-                          }
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(13),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.green.withValues(alpha: 0.16),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.chat_rounded,
-                                color: Colors.green,
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'WhatsApp 1',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 3),
-                                    Text('+93 771 770 927'),
-                                  ],
-                                ),
-                              ),
-                              Icon(Icons.open_in_new_rounded, size: 18),
+                      if (constraints.maxWidth < 900) {
+                        return Column(
+                          children: [
+                            for (var i = 0; i < cards.length; i++) ...[
+                              cards[i],
+                              if (i != cards.length - 1)
+                                const SizedBox(height: 16),
                             ],
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: cards[0]),
+                          const SizedBox(width: 16),
+                          Expanded(child: cards[1]),
+                          const SizedBox(width: 16),
+                          Expanded(child: cards[2]),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: _softGreen,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.favorite_rounded,
+                          color: _green,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          ghataT(context, 'Thank you for using Ghata!'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: _green,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                      ),
+                      ],
                     ),
-
-                    SizedBox(height: 12),
-
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: () async {
-                          final uri =
-                              Uri.parse('https://wa.me/93774832595');
-
-                          try {
-                            final opened = await launchUrl(
-                              uri,
-                              mode: LaunchMode.externalApplication,
-                            );
-
-                            if (!opened && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(ghataT(context, 'Unable to open WhatsApp.')),
-                                ),
-                              );
-                            }
-                          } catch (_) {
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(ghataT(context, 'Unable to open WhatsApp.')),
-                              ),
-                            );
-                          }
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(13),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.green.withValues(alpha: 0.16),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.chat_rounded,
-                                color: Colors.green,
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'WhatsApp 2',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 3),
-                                    Text('+93 774 832 595'),
-                                  ],
-                                ),
-                              ),
-                              Icon(Icons.open_in_new_rounded, size: 18),
-                            ],
-                          ),
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Design by MRS',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _green,
+                      fontWeight: FontWeight.w900,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Mohammad Rahem Sadaf',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            SizedBox(height: 24),
-
-            Builder(
-              builder: (context) {
-                final language =
-                    Localizations.localeOf(context).languageCode;
-
-                final designBy = switch (language) {
-                  'ps' => 'ډیزاین: MRS',
-                  'fa' => 'طراحی توسط MRS',
-                  'ur' => 'ڈیزائن: MRS',
-                  'ar' => 'تصميم بواسطة MRS',
-                  _ => 'Design by MRS',
-                };
-
-                return Column(
-                  children: [
-                    Text(
-                      designBy,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-
-            SizedBox(height: 30),
-          ],
+          ),
         ),
       ),
     );
@@ -10151,7 +10688,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final data = await ghataLoadBusinessProfile();
       final loadedProfilePhoto =
-          await ghataLoadProfilePhoto();
+          await ghataLoadProfilePhoto(
+        onBackgroundLoaded: (localPath) {
+          if (!mounted) return;
+          setState(() {
+            profilePhotoPath = localPath;
+          });
+        },
+      );
 
       if (!mounted) return;
 
@@ -10166,7 +10710,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       setState(() {
         email = user.email ?? '';
-        profilePhotoPath = loadedProfilePhoto;
+        if (loadedProfilePhoto != null &&
+            loadedProfilePhoto.isNotEmpty) {
+          profilePhotoPath = loadedProfilePhoto;
+        }
         isLoading = false;
       });
     } catch (_) {
@@ -10758,6 +11305,52 @@ class RecycleBinScreen extends StatefulWidget {
 }
 
 class _RecycleBinScreenState extends State<RecycleBinScreen> {
+
+  late Future<List<dynamic>> recycleBinFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    recycleBinFuture = _loadRecycleBin();
+    ghataDataRevision.addListener(_handleRealtimeDataRevision);
+  }
+
+  Future<List<dynamic>> _loadRecycleBin({
+    bool refreshCloud = true,
+  }) async {
+    if (refreshCloud) {
+      ghataRefreshOfflineCache();
+    }
+
+    return Future.wait([
+      loadDeletedCustomers(refreshCloud: false),
+      loadDeletedTransactions(refreshCloud: false),
+      loadDeletedExchanges(refreshCloud: false),
+    ]);
+  }
+
+  void _handleRealtimeDataRevision() {
+    if (!mounted) return;
+
+    setState(() {
+      recycleBinFuture = _loadRecycleBin(refreshCloud: false);
+    });
+  }
+
+  void _refreshRecycleBinLocal() {
+    if (!mounted) return;
+
+    setState(() {
+      recycleBinFuture = _loadRecycleBin(refreshCloud: false);
+    });
+  }
+
+  @override
+  void dispose() {
+    ghataDataRevision.removeListener(_handleRealtimeDataRevision);
+    super.dispose();
+  }
+
   bool _selectionMode = false;
   final Set<String> _selectedRecycleItems = <String>{};
 
@@ -10774,8 +11367,10 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
     });
   }
 
-  Future<List<Map<String, dynamic>>> loadDeletedCustomers() async {
-  ghataRefreshOfflineCache();
+  Future<List<Map<String, dynamic>>> loadDeletedCustomers({
+    bool refreshCloud = true,
+  }) async {
+  if (refreshCloud) ghataRefreshOfflineCache();
 
   final local = await OfflineDatabase.instance.getRecords(
     'customers',
@@ -10795,8 +11390,10 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
   return deleted;
 }
 
-  Future<List<Map<String, dynamic>>> loadDeletedTransactions() async {
-  ghataRefreshOfflineCache();
+  Future<List<Map<String, dynamic>>> loadDeletedTransactions({
+    bool refreshCloud = true,
+  }) async {
+  if (refreshCloud) ghataRefreshOfflineCache();
 
   final local = await OfflineDatabase.instance.getRecords(
     'transactions',
@@ -10834,7 +11431,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       ),
     );
 
-    setState(() {});
+    _refreshRecycleBinLocal();
   } catch (e) {
     if (!mounted) return;
 
@@ -10846,8 +11443,10 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
   }
 }
 
-  Future<List<Map<String, dynamic>>> loadDeletedExchanges() async {
-  ghataRefreshOfflineCache();
+  Future<List<Map<String, dynamic>>> loadDeletedExchanges({
+    bool refreshCloud = true,
+  }) async {
+  if (refreshCloud) ghataRefreshOfflineCache();
 
   final local = await OfflineDatabase.instance.getRecords(
     'exchanges',
@@ -10885,7 +11484,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       ),
     );
 
-    setState(() {});
+    _refreshRecycleBinLocal();
   } catch (e) {
     if (!mounted) return;
 
@@ -10960,7 +11559,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         SnackBar(content: Text(ghataT(context, 'Exchange removed from Recycle Bin.'))),
       );
 
-      setState(() {});
+      _refreshRecycleBinLocal();
     } catch (e) {
       if (!mounted) return;
 
@@ -11002,7 +11601,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
       ),
     );
 
-    setState(() {});
+    _refreshRecycleBinLocal();
   } catch (e) {
     if (!mounted) return;
 
@@ -11059,7 +11658,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         SnackBar(content: Text(ghataT(context, 'Customer removed from Recycle Bin.'))),
       );
 
-      setState(() {});
+      _refreshRecycleBinLocal();
     } catch (e) {
       if (!mounted) return;
 
@@ -11113,7 +11712,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
         ),
       );
 
-      setState(() {});
+      _refreshRecycleBinLocal();
     } catch (e) {
       if (!mounted) return;
 
@@ -11128,9 +11727,12 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
   Future<void> _deleteRecycleBatch({
     required bool selectedOnly,
   }) async {
-    final customers = await loadDeletedCustomers();
-    final transactions = await loadDeletedTransactions();
-    final exchanges = await loadDeletedExchanges();
+    final customers =
+        await loadDeletedCustomers(refreshCloud: false);
+    final transactions =
+        await loadDeletedTransactions(refreshCloud: false);
+    final exchanges =
+        await loadDeletedExchanges(refreshCloud: false);
 
     bool wanted(String table, Map<String, dynamic> row) {
       final id = row['id']?.toString() ?? '';
@@ -11297,11 +11899,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
           ],
         ),
         body: FutureBuilder<List<dynamic>>(
-          future: Future.wait([
-            loadDeletedCustomers(),
-            loadDeletedTransactions(),
-            loadDeletedExchanges(),
-          ]),
+          future: recycleBinFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
@@ -11850,6 +12448,9 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     return rows.reversed.toList();
   }
 
+  late Future<List<Map<String, dynamic>>>
+      journalTransactionsFuture;
+
   String selectedFilter = 'all';
 
   DateTime? journalFromDate;
@@ -11877,6 +12478,11 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
   void initState() {
     super.initState();
 
+    journalTransactionsFuture = loadTransactions();
+    ghataDataRevision.addListener(
+      _handleRealtimeDataRevision,
+    );
+
     selectedCustomerId = widget.initialCustomerId;
     selectedCustomerName = widget.initialCustomerName;
 
@@ -11893,6 +12499,17 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
         }
       });
     }
+  }
+
+  void _handleRealtimeDataRevision() {
+    if (!mounted) return;
+
+    // Realtime sync already refreshed SQLite.
+    // Re-read Daily Journal locally only.
+    setState(() {
+      journalTransactionsFuture =
+          loadTransactions(refreshCloud: false);
+    });
   }
 
   void updateCalculatorResult() {
@@ -11952,7 +12569,10 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
     ('adjustment_out', 'Adjustment Out'),
   ];
 
-  Future<List<Map<String, dynamic>>> loadTransactions() async {
+  Future<List<Map<String, dynamic>>>
+      loadTransactions({
+    bool refreshCloud = true,
+  }) async {
     final transactions =
         await OfflineDatabase.instance.getRecords('transactions');
 
@@ -12095,7 +12715,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
       return bd.compareTo(ad);
     });
 
-    ghataRefreshOfflineCache();
+    if (refreshCloud) ghataRefreshOfflineCache();
 
     return rows.take(200).toList();
   }
@@ -12483,6 +13103,9 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
 
   @override
   void dispose() {
+    ghataDataRevision.removeListener(
+      _handleRealtimeDataRevision,
+    );
     amountController.dispose();
     descriptionController.dispose();
     referenceController.dispose();
@@ -14147,6 +14770,9 @@ Future<void> shareTransactionReceiptPdf(
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF123D2B),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: Text(
           ghataT(context, 'Daily Journal'),
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -14293,7 +14919,7 @@ Future<void> shareTransactionReceiptPdf(
 
 
               FutureBuilder<List<Map<String, dynamic>>>(
-                future: loadTransactions(),
+                future: journalTransactionsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
@@ -15351,27 +15977,53 @@ class CustomersScreen extends StatefulWidget {
 }
 
 class _CustomersScreenState extends State<CustomersScreen> {
+  final Map<String, Future<String?>> customerPhotoFutures =
+      <String, Future<String?>>{};
+
+  Future<String?> customerPhotoFuture(String customerId) {
+    return customerPhotoFutures.putIfAbsent(
+      customerId,
+      () => ghataLoadCustomerPhoto(customerId),
+    );
+  }
+
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
   final addressController = TextEditingController();
   final notesController = TextEditingController();
   final searchController = TextEditingController();
 
+  late Future<List<Map<String, dynamic>>> customersFuture;
+
   bool isSaving = false;
   String selectedCustomerCountryCode = '+93';
   String? pendingCustomerPhotoPath;
 
-  Future<List<Map<String, dynamic>>> loadCustomers() async {
-    var local =
+  @override
+  void initState() {
+    super.initState();
+    customersFuture = loadCustomers();
+    ghataDataRevision.addListener(_handleRealtimeDataRevision);
+  }
+
+  void _handleRealtimeDataRevision() {
+    if (!mounted) return;
+
+    // Realtime sync already refreshed SQLite.
+    // Re-read customers locally without another cloud request.
+    setState(() {
+      customersFuture = loadCustomers(refreshCloud: false);
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> loadCustomers({
+    bool refreshCloud = true,
+  }) async {
+    final local =
         await OfflineDatabase.instance.getRecords('customers');
 
-    if (local.isEmpty) {
-      await ghataRefreshCustomersCache();
-      local =
-          await OfflineDatabase.instance.getRecords('customers');
-    } else {
-      ghataRefreshCustomersCache();
-    }
+    // Offline-first: never block this page waiting for Supabase.
+    if (refreshCloud) ghataRefreshCustomersCache();
 
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
@@ -15885,6 +16537,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
   @override
   void dispose() {
+    ghataDataRevision.removeListener(_handleRealtimeDataRevision);
     nameController.dispose();
     phoneController.dispose();
     addressController.dispose();
@@ -16087,8 +16740,11 @@ class _CustomersScreenState extends State<CustomersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF123D2B),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: Text(
-          'Customers',
+          ghataT(context, 'Customers'),
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -16133,7 +16789,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
               SizedBox(height: 16),
 
               FutureBuilder<List<Map<String, dynamic>>>(
-                future: loadCustomers(),
+                future: customersFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
@@ -16243,7 +16899,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                             child: Row(
                               children: [
                                 FutureBuilder<String?>(
-                                  future: ghataLoadCustomerPhoto(
+                                  future: customerPhotoFuture(
                                     customer['id'].toString(),
                                   ),
                                   builder: (context, photoSnapshot) {
@@ -16403,26 +17059,55 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   String? customerPhotoPath;
   String selectedLedgerCurrency = 'ALL';
 
+  late Future<List<Map<String, dynamic>>> customerTransactionsFuture;
+
   @override
   void initState() {
     super.initState();
+    customerTransactionsFuture = loadCustomerTransactions();
     refreshCustomerProfile();
+    ghataDataRevision.addListener(_handleRealtimeDataRevision);
   }
 
-  Future<void> refreshCustomerProfile() async {
-    final profile = await loadCustomerProfile();
-    final photo = await ghataLoadCustomerPhoto(customerId);
+  void _handleRealtimeDataRevision() {
+    if (!mounted) return;
+
+    // Realtime sync already refreshed SQLite.
+    // Re-read this customer's local data only.
+    setState(() {
+      customerTransactionsFuture =
+          loadCustomerTransactions(refreshCloud: false);
+    });
+
+    refreshCustomerProfile(refreshCloud: false);
+  }
+
+  Future<void> refreshCustomerProfile({bool refreshCloud = true}) async {
+    final profile = await loadCustomerProfile(refreshCloud: refreshCloud);
+    final photo = await ghataLoadCustomerPhoto(
+      customerId,
+      onBackgroundLoaded: (localPath) {
+        if (!mounted) return;
+        setState(() {
+          customerPhotoPath = localPath;
+        });
+      },
+    );
 
     if (!mounted) return;
 
     setState(() {
       customerProfile = profile;
-      customerPhotoPath = photo;
+      if (photo != null && photo.isNotEmpty) {
+        customerPhotoPath = photo;
+      }
     });
   }
 
-  Future<Map<String, dynamic>?> loadCustomerProfile() async {
-  ghataRefreshOfflineCache();
+  Future<Map<String, dynamic>?> loadCustomerProfile({
+    bool refreshCloud = true,
+  }) async {
+  if (refreshCloud) ghataRefreshOfflineCache();
 
   final customers = await OfflineDatabase.instance.getRecords(
     'customers',
@@ -16437,8 +17122,10 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   return null;
 }
 
-  Future<List<Map<String, dynamic>>> loadCustomerTransactions() async {
-    ghataRefreshOfflineCache();
+  Future<List<Map<String, dynamic>>> loadCustomerTransactions({
+    bool refreshCloud = true,
+  }) async {
+    if (refreshCloud) ghataRefreshOfflineCache();
 
     final local =
         await OfflineDatabase.instance.getRecords('transactions');
@@ -18852,6 +19539,12 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   }
 
   @override
+    @override
+    void dispose() {
+      ghataDataRevision.removeListener(_handleRealtimeDataRevision);
+      super.dispose();
+    }
+
     Widget build(BuildContext context) {
       final profileName =
           customerProfile?['full_name']?.toString().trim().isNotEmpty == true
@@ -19001,7 +19694,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         ),
       body: SafeArea(
         child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: loadCustomerTransactions(),
+          future: customerTransactionsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState ==
                 ConnectionState.waiting) {
@@ -19611,6 +20304,32 @@ class CashboxScreen extends StatefulWidget {
 
 class _CashboxScreenState extends State<CashboxScreen> {
 
+  late Future<List<Map<String, dynamic>>> cashboxTransactionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    cashboxTransactionsFuture = loadTransactions();
+    ghataDataRevision.addListener(_handleRealtimeDataRevision);
+  }
+
+  void _handleRealtimeDataRevision() {
+    if (!mounted) return;
+
+    // Realtime sync already updated SQLite.
+    // Cashbox only needs to reread local transactions.
+    setState(() {
+      cashboxTransactionsFuture = loadTransactions();
+    });
+  }
+
+  @override
+  void dispose() {
+    ghataDataRevision.removeListener(_handleRealtimeDataRevision);
+    super.dispose();
+  }
+
+
   Future<List<Map<String, dynamic>>> loadTransactions() async {
     final all = await ghataLocalFinancialRows();
 
@@ -19683,10 +20402,13 @@ class _CashboxScreenState extends State<CashboxScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF123D2B),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: Text(ghataT(context, 'Cashbox')),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: loadTransactions(),
+        future: cashboxTransactionsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState ==
               ConnectionState.waiting) {
@@ -19718,16 +20440,50 @@ class _CashboxScreenState extends State<CashboxScreen> {
           });
 
           final balanceCards = balances.entries.map((entry) {
-            return Card(
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).colorScheme.surface
+                    : const Color(0xFFFFFBF2),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).colorScheme.outlineVariant
+                      : const Color(0xFFE4D59B),
+                ),
+              ),
               child: ListTile(
-                leading: CircleAvatar(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+                leading: Container(
+                  width: 46,
+                  height: 46,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.12)
+                        : const Color(0xFFFFE8A3)
+                            .withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   child: ghataCurrencyFlagWidget(
                     entry.key,
-                    width: 26,
-                    height: 18,
+                    width: 28,
+                    height: 19,
                   ),
                 ),
-                title: Text(entry.key),
+                title: Text(
+                  entry.key,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 subtitle: Text(
                   entry.value > 0
                       ? ghataT(context, 'Available Balance')
@@ -19736,15 +20492,17 @@ class _CashboxScreenState extends State<CashboxScreen> {
                           : ghataT(context, 'Balance'),
                 ),
                 trailing: Text(
-                    '${entry.value > 0 ? '+' : ''}${entry.value.toStringAsFixed(2)} ${entry.key}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: entry.value > 0
-                          ? Colors.green
-                          : entry.value < 0
-                              ? Colors.red
-                              : Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  '${entry.value > 0 ? '+' : ''}${entry.value.toStringAsFixed(2)} ${entry.key}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: entry.value > 0
+                        ? Colors.green
+                        : entry.value < 0
+                            ? Colors.red
+                            : Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                  ),
                 ),
               ),
             );
@@ -19811,20 +20569,54 @@ class _CashboxScreenState extends State<CashboxScreen> {
               if (description.isNotEmpty) description,
             ];
 
-            return Card(
-              child: ListTile(
-                leading: Icon(
-                  isIn
-                      ? Icons.arrow_downward_outlined
-                      : Icons.arrow_upward_outlined,
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .outlineVariant
+                      .withValues(alpha: 0.65),
                 ),
-                title: Text(label),
-                subtitle: Text(details.join(' • ')),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: (isIn ? Colors.green : Colors.red)
+                        .withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isIn
+                        ? Icons.arrow_downward_rounded
+                        : Icons.arrow_upward_rounded,
+                    color: isIn ? Colors.green : Colors.red,
+                  ),
+                ),
+                title: Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  details.join(' • '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 trailing: Text(
                   '${isIn ? '+' : '-'}${amount.toStringAsFixed(2)} $currency',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                      color: isIn ? Colors.green : Colors.red,
+                    color: isIn ? Colors.green : Colors.red,
                   ),
                 ),
               ),
@@ -19894,6 +20686,9 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   TimeOfDay selectedExchangeTime = TimeOfDay.now();
   bool isSaving = false;
 
+  late Future<List<Map<String, dynamic>>> exchangeCustomersFuture;
+  late Future<List<Map<String, dynamic>>> exchangeHistoryFuture;
+
   double? fromCalculatorResult;
   double? toCalculatorResult;
   double? rateCalculatorResult;
@@ -19904,6 +20699,11 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   @override
   void initState() {
     super.initState();
+
+    exchangeCustomersFuture = loadCustomers();
+    exchangeHistoryFuture = loadExchangeHistory();
+    ghataDataRevision.addListener(_handleRealtimeDataRevision);
+
     selectedCustomerId = widget.initialCustomerId;
     selectedCustomerName = widget.initialCustomerName;
 
@@ -19912,7 +20712,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     if (initialExchangeId != null &&
         initialExchangeId.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final history = await loadExchangeHistory();
+        final history = await exchangeHistoryFuture;
 
         if (!mounted) return;
 
@@ -19934,6 +20734,18 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
         }
       });
     }
+  }
+
+  void _handleRealtimeDataRevision() {
+    if (!mounted) return;
+
+    // Realtime sync already refreshed SQLite.
+    // Re-read Exchange data locally only.
+    setState(() {
+      exchangeCustomersFuture = loadCustomers(refreshCloud: false);
+      exchangeHistoryFuture =
+          loadExchangeHistory(refreshCloud: false);
+    });
   }
 
   void updateExchangeCalculatorResults({String? changed}) {
@@ -20009,17 +20821,14 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
     return '💰';
   }
 
-  Future<List<Map<String, dynamic>>> loadCustomers() async {
-    var local =
+  Future<List<Map<String, dynamic>>> loadCustomers({
+    bool refreshCloud = true,
+  }) async {
+    final local =
         await OfflineDatabase.instance.getRecords('customers');
 
-    if (local.isEmpty) {
-      await ghataRefreshCustomersCache();
-      local =
-          await OfflineDatabase.instance.getRecords('customers');
-    } else {
-      ghataRefreshCustomersCache();
-    }
+    // Offline-first: never block this page waiting for Supabase.
+    if (refreshCloud) ghataRefreshCustomersCache();
 
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
@@ -20137,8 +20946,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   }
 
 
-  Future<List<Map<String, dynamic>>> loadExchangeHistory() async {
-  ghataRefreshOfflineCache();
+  Future<List<Map<String, dynamic>>> loadExchangeHistory({
+    bool refreshCloud = true,
+  }) async {
+  if (refreshCloud) ghataRefreshOfflineCache();
 
   final exchanges =
       await OfflineDatabase.instance.getRecords('exchanges');
@@ -20219,7 +21030,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Exchange moved to Recycle Bin. You can restore it within 30 days.',
+            ghataT(
+              context,
+              'Exchange moved to Recycle Bin. You can restore it within 30 days.',
+            ),
           ),
         ),
       );
@@ -20899,6 +21713,9 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF123D2B),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: Text(ghataT(context, 'Exchange')),
       ),
       body: ListView(
@@ -21055,7 +21872,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           SizedBox(height: 12),
 
           FutureBuilder<List<Map<String, dynamic>>>(
-            future: loadCustomers(),
+            future: exchangeCustomersFuture,
             builder: (context, snapshot) {
               final customers = snapshot.data ?? [];
 
@@ -21177,7 +21994,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           SizedBox(height: 28),
 
           FutureBuilder<List<Map<String, dynamic>>>(
-            future: loadExchangeHistory(),
+            future: exchangeHistoryFuture,
             builder: (context, snapshot) {
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
                 return SizedBox.shrink();
@@ -21222,25 +22039,60 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                         'Unmatched Sell: ${unmatchedSell.toStringAsFixed(2)} $asset',
                     ].join(' • ');
 
-                    return Card(
+                    final isPositive = profit >= 0;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness ==
+                                Brightness.dark
+                            ? Theme.of(context).colorScheme.surface
+                            : const Color(0xFFFFFBF2),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context).brightness ==
+                                  Brightness.dark
+                              ? Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant
+                              : const Color(0xFFE4D59B),
+                        ),
+                      ),
                       child: ListTile(
-                        leading: Icon(
-                          profit >= 0
-                              ? Icons.trending_up
-                              : Icons.trending_down,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: (isPositive
+                                    ? Colors.green
+                                    : Colors.red)
+                                .withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            isPositive
+                                ? Icons.trending_up_rounded
+                                : Icons.trending_down_rounded,
+                            color:
+                                isPositive ? Colors.green : Colors.red,
+                          ),
                         ),
                         title: Row(
                           children: [
                             ghataCurrencyFlagWidget(asset),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             Text('$asset /'),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             ghataCurrencyFlagWidget(settlement),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             Text(settlement),
                           ],
                         ),
-                        subtitle: Text(text),
+                        subtitle: text.isEmpty ? null : Text(text),
                         trailing: Text(
                           '${profit > 0 ? '+' : ''}${profit.toStringAsFixed(2)} $settlement',
                           style: TextStyle(
@@ -21282,7 +22134,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           SizedBox(height: 10),
 
           FutureBuilder<List<Map<String, dynamic>>>(
-            future: loadExchangeHistory(),
+            future: exchangeHistoryFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState ==
                   ConnectionState.waiting) {
@@ -21371,10 +22223,42 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                       notes,
                   ];
 
-                  return Card(
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness ==
+                              Brightness.dark
+                          ? Theme.of(context).colorScheme.surface
+                          : const Color(0xFFFFFBF2),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Theme.of(context).brightness ==
+                                Brightness.dark
+                            ? Theme.of(context)
+                                .colorScheme
+                                .outlineVariant
+                            : const Color(0xFFDDECC8),
+                      ),
+                    ),
                     child: ListTile(
-                      leading: Icon(
-                        Icons.currency_exchange_outlined,
+                      contentPadding: const EdgeInsets.fromLTRB(
+                        12,
+                        5,
+                        4,
+                        5,
+                      ),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFE8A3)
+                              .withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.currency_exchange_rounded,
+                          color: Color(0xFF123D2B),
+                        ),
                       ),
                       title: Row(
                         children: [
@@ -21384,10 +22268,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                               width: 24,
                               height: 16,
                             ),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                           ],
                           Text(outText),
-                          Padding(
+                          const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8),
                             child: Text('→'),
                           ),
@@ -21397,23 +22281,33 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
                               width: 24,
                               height: 16,
                             ),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                           ],
-                          Expanded(child: Text(inText)),
+                          Expanded(
+                            child: Text(
+                              inText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ),
-                      subtitle: Text(details.join(' • ')),
+                      subtitle: Text(
+                        details.join(' • '),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
                             tooltip: ghataT(context, 'Edit Exchange'),
-                            icon: Icon(Icons.edit_outlined),
+                            icon: const Icon(Icons.edit_outlined),
                             onPressed: () => editExchange(exchange),
                           ),
                           IconButton(
                             tooltip: ghataT(context, 'Delete Exchange'),
-                            icon: Icon(Icons.delete_outline),
+                            icon: const Icon(Icons.delete_outline),
                             onPressed: () => deleteExchange(exchange),
                           ),
                         ],
@@ -21434,6 +22328,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
   @override
   void dispose() {
+    ghataDataRevision.removeListener(_handleRealtimeDataRevision);
     fromAmountController.dispose();
     toAmountController.dispose();
     rateController.dispose();
@@ -21450,6 +22345,35 @@ class ReportsScreen extends StatefulWidget {
 }
 
 class _ReportsScreenState extends State<ReportsScreen> {
+
+  late Future<List<Map<String, dynamic>>> reportsCustomersFuture;
+  late Future<List<Map<String, dynamic>>> reportsTransactionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    reportsCustomersFuture = loadCustomers();
+    reportsTransactionsFuture = loadTransactions();
+    ghataDataRevision.addListener(_handleRealtimeDataRevision);
+  }
+
+  void _handleRealtimeDataRevision() {
+    if (!mounted) return;
+
+    // Realtime sync already updated SQLite.
+    // Reports only needs to reread local data.
+    setState(() {
+      reportsCustomersFuture = loadCustomers(refreshCloud: false);
+      reportsTransactionsFuture = loadTransactions();
+    });
+  }
+
+  @override
+  void dispose() {
+    ghataDataRevision.removeListener(_handleRealtimeDataRevision);
+    super.dispose();
+  }
+
   DateTime? fromDate;
   DateTime? toDate;
   String? selectedCurrency;
@@ -21475,12 +22399,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     'IRR',
   ];
 
-  Future<List<Map<String, dynamic>>> loadCustomers() async {
+  Future<List<Map<String, dynamic>>> loadCustomers({
+    bool refreshCloud = true,
+  }) async {
     var local =
         await OfflineDatabase.instance.getRecords('customers');
 
     // Offline-first: use SQLite immediately.
-    ghataRefreshCustomersCache();
+    if (refreshCloud) ghataRefreshCustomersCache();
 
     local.sort(
       (a, b) => (a['full_name']?.toString() ?? '')
@@ -21617,6 +22543,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF123D2B),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         title: Text(ghataT(context, 'Reports')),
       ),
       body: Column(
@@ -21750,7 +22679,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: loadCustomers(),
+              future: reportsCustomersFuture,
               builder: (context, snapshot) {
                 final customers = snapshot.data ?? [];
 
@@ -21805,7 +22734,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: loadTransactions(),
+              future: reportsTransactionsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState ==
               ConnectionState.waiting) {

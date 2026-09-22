@@ -98,9 +98,6 @@ class OfflineDatabase {
   }
 
   Future<void> _upgradeToV3(Database db) async {
-    final user = Supabase.instance.client.auth.currentUser;
-    final ownerId = user?.id ?? '';
-
     final recordColumns = await db.rawQuery(
       'PRAGMA table_info(offline_records)',
     );
@@ -147,10 +144,8 @@ class OfflineDatabase {
         userId = payload['user_id']?.toString().trim() ?? '';
       } catch (_) {}
 
-      if (userId.isEmpty) {
-        userId = ownerId;
-      }
-
+      // Do not assign unknown legacy data to whichever account
+      // happens to be signed in during migration.
       if (userId.isNotEmpty) {
         await db.update(
           'offline_records',
@@ -247,10 +242,8 @@ class OfflineDatabase {
         }
       }
 
-      if (userId.isEmpty) {
-        userId = ownerId;
-      }
-
+      // Unknown-owner legacy operations remain unassigned.
+      // This prevents cross-account queue ownership.
       if (userId.isNotEmpty) {
         await db.update(
           'offline_operations',
@@ -336,14 +329,20 @@ class OfflineDatabase {
       throw ArgumentError('Record must contain an id.');
     }
 
+    final ownedData = <String, dynamic>{
+      ...data,
+      'user_id': userId,
+    };
+
     await db.insert(
       'offline_records',
       {
+        'user_id': userId,
         'table_name': table,
         'record_id': id,
-        'payload': jsonEncode(data),
+        'payload': jsonEncode(ownedData),
         'sync_status': synced ? 1 : 0,
-        'deleted': data['deleted_at'] == null ? 0 : 1,
+        'deleted': ownedData['deleted_at'] == null ? 0 : 1,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
@@ -573,12 +572,18 @@ class OfflineDatabase {
     final db = await database;
     final userId = _requireUserId();
 
-    return db.query(
+    final rows = await db.query(
       'offline_operations',
       where: 'user_id = ?',
       whereArgs: [userId],
       orderBy: 'operation_id ASC',
     );
+
+    // sqflite query results can be read-only. The sync worker sorts this
+    // collection by dependency priority, so return a mutable copy.
+    return rows
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList(growable: true);
   }
 
   Future<void> completeOperation(int operationId) async {
@@ -607,6 +612,40 @@ class OfflineDatabase {
       WHERE user_id = ? AND operation_id = ?
       ''',
       [error.toString(), userId, operationId],
+    );
+  }
+
+  Future<void> completeRecordOperations({
+    required String table,
+    required String recordId,
+    Set<String>? operationTypes,
+  }) async {
+    final db = await database;
+    final userId = _requireUserId();
+
+    if (operationTypes == null || operationTypes.isEmpty) {
+      await db.delete(
+        'offline_operations',
+        where: 'user_id = ? AND table_name = ? AND record_id = ?',
+        whereArgs: [userId, table, recordId],
+      );
+      return;
+    }
+
+    final placeholders =
+        List.filled(operationTypes.length, '?').join(',');
+
+    await db.delete(
+      'offline_operations',
+      where:
+          'user_id = ? AND table_name = ? AND record_id = ? '
+          'AND operation_type IN ($placeholders)',
+      whereArgs: [
+        userId,
+        table,
+        recordId,
+        ...operationTypes,
+      ],
     );
   }
 

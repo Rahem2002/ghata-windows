@@ -50,7 +50,6 @@ dependencies:
   pdf: ^3.11.3
   printing: ^5.15.0
   share_plus: ^11.1.0
-  local_auth: ^2.3.0
   flutter_secure_storage: ^9.2.4
   file_selector: ^1.1.0
 
@@ -72,6 +71,8 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
+    - assets/images/ghata_leaf.png
+    - assets/images/about_accounting.png
     - assets/fonts/NotoNaskhArabic.ttf
 
 
