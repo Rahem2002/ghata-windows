@@ -7569,11 +7569,6 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
       appBar: AppBar(
         title: Text(ghataT(context, 'Active Devices')),
         actions: [
-          TextButton.icon(
-            onPressed: loading ? null : retryAllSync,
-            icon: const Icon(Icons.restart_alt_rounded),
-            label: Text(ghataT(context, 'Retry All')),
-          ),
           IconButton(
             tooltip: ghataT(context, 'Refresh'),
             onPressed: loading ? null : loadDevices,
