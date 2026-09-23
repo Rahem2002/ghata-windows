@@ -19669,7 +19669,123 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         };
       }
 
-      final pdf = pw.Document(
+      pw.Widget pdfCurrencyFlag(String code) {
+      final c = code.toUpperCase();
+      List<PdfColor> colors;
+      bool vertical = false;
+
+      switch (c) {
+        case 'AFN':
+          colors = [PdfColors.black, PdfColors.red, PdfColors.green];
+          vertical = true;
+          break;
+        case 'PKR':
+          colors = [PdfColors.white, PdfColor.fromHex('#01411C')];
+          vertical = true;
+          break;
+        case 'USD':
+          colors = [
+            PdfColors.red,
+            PdfColors.white,
+            PdfColors.red,
+            PdfColors.white,
+            PdfColors.red,
+          ];
+          break;
+        case 'EUR':
+          colors = [PdfColor.fromHex('#003399')];
+          break;
+        case 'GBP':
+          colors = [
+            PdfColor.fromHex('#012169'),
+            PdfColors.white,
+            PdfColor.fromHex('#C8102E'),
+          ];
+          break;
+        case 'AED':
+          colors = [
+            PdfColor.fromHex('#00732F'),
+            PdfColors.white,
+            PdfColors.black,
+          ];
+          break;
+        case 'SAR':
+          colors = [
+            PdfColor.fromHex('#006C35'),
+            PdfColors.white,
+            PdfColor.fromHex('#006C35'),
+          ];
+          break;
+        case 'KWD':
+          colors = [
+            PdfColor.fromHex('#007A3D'),
+            PdfColors.white,
+            PdfColor.fromHex('#CE1126'),
+          ];
+          break;
+        case 'QAR':
+          colors = [
+            PdfColors.white,
+            PdfColor.fromHex('#8A1538'),
+          ];
+          vertical = true;
+          break;
+        case 'OMR':
+          colors = [
+            PdfColors.white,
+            PdfColor.fromHex('#DB161B'),
+            PdfColor.fromHex('#008000'),
+          ];
+          break;
+        case 'TRY':
+          colors = [PdfColor.fromHex('#E30A17')];
+          break;
+        case 'CNY':
+          colors = [PdfColor.fromHex('#DE2910')];
+          break;
+        case 'INR':
+          colors = [
+            PdfColor.fromHex('#FF9933'),
+            PdfColors.white,
+            PdfColor.fromHex('#138808'),
+          ];
+          break;
+        case 'IRR':
+          colors = [
+            PdfColor.fromHex('#239F40'),
+            PdfColors.white,
+            PdfColor.fromHex('#DA0000'),
+          ];
+          break;
+        default:
+          colors = [PdfColor.fromHex('#E5E7EB')];
+      }
+
+      final bars = colors
+          .map(
+            (color) => pw.Expanded(
+              child: pw.Container(color: color),
+            ),
+          )
+          .toList();
+
+      return pw.Container(
+        width: 22,
+        height: 14,
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(
+            color: PdfColor.fromHex('#CBD5E1'),
+            width: .5,
+          ),
+          borderRadius: pw.BorderRadius.circular(2),
+        ),
+        child: vertical
+            ? pw.Row(children: bars)
+            : pw.Column(children: bars),
+      );
+    }
+
+    final pdf = pw.Document(
         theme: pw.ThemeData.withFont(
           base: ghataPdfFont,
           bold: ghataPdfFont,
