@@ -1721,6 +1721,43 @@ Future<void> _ghataWindowsUninstallCleanup() async {
 
 
 const Map<String, Map<String, String>> ghataTranslations = {
+'About Ghata description': {    'en': 'Ghata is a business ledger and accounting system for managing customers, daily transactions, currency exchange, reports, backup and secure multi-device access.',    'ps': 'ګهته د سوداګرۍ د حسابونو او محاسبې سیستم دی چې د مشتریانو، ورځنیو معاملو، د اسعارو تبادلې، راپورونو، بیک اپ او خوندي څو وسیله لاسرسي د مدیریت لپاره کارېږي.',    'fa': 'Ghata یک سیستم دفتر حساب و حسابداری تجاری برای مدیریت مشتریان، معاملات روزانه، تبادله ارز، گزارش‌ها، پشتیبان‌گیری و دسترسی امن چنددستگاهی است.',    'ur': 'Ghata ایک کاروباری لیجر اور اکاؤنٹنگ سسٹم ہے جو گاہکوں، روزانہ لین دین، کرنسی ایکسچینج، رپورٹس، بیک اپ اور محفوظ متعدد ڈیوائس رسائی کے انتظام کے لیے ہے۔',    'ar': 'Ghata هو نظام دفتر أعمال ومحاسبة لإدارة العملاء والمعاملات اليومية وصرف العملات والتقارير والنسخ الاحتياطي والوصول الآمن عبر أجهزة متعددة.',  },
+'How to Use Ghata description': { 'en': 'Use Customers for customer ledgers, Daily Journal for general business entries, Exchange for currency exchange, Reports for summaries, and Backup & Restore to protect your Ghata data.', 'ps': 'د مشتریانو حسابونو لپاره Customers، د عمومي سوداګریزو ثبتونو لپاره Daily Journal، د اسعارو د تبادلې لپاره Exchange، د لنډیزونو لپاره Reports، او د خپلو ګهته معلوماتو د خوندي ساتلو لپاره Backup & Restore وکاروئ.', 'fa': 'برای حساب‌های مشتریان از Customers، برای ثبت‌های عمومی کسب‌وکار از Daily Journal، برای تبادله ارز از Exchange، برای خلاصه‌ها از Reports و برای محافظت از معلومات Ghata از Backup & Restore استفاده کنید.', 'ur': 'گاہکوں کے کھاتوں کے لیے Customers، عمومی کاروباری اندراجات کے لیے Daily Journal، کرنسی کے تبادلے کے لیے Exchange، خلاصوں کے لیے Reports، اور اپنے Ghata ڈیٹا کی حفاظت کے لیے Backup & Restore استعمال کریں۔', 'ar': 'استخدم Customers لحسابات العملاء، وDaily Journal للقيود التجارية العامة، وExchange لصرف العملات، وReports للملخصات، وBackup & Restore لحماية بيانات Ghata الخاصة بك.' },
+'FAQ Q1': { 'en': 'What is Ghata used for?', 'ps': 'ګهته د څه لپاره کارېږي؟', 'fa': 'Ghata برای چه استفاده می‌شود؟', 'ur': 'Ghata کس لیے استعمال ہوتا ہے؟', 'ar': 'ما استخدام Ghata؟' },'FAQ A1': { 'en': 'Ghata helps manage customers, daily business transactions, currency exchange, cash balances, reports, backups and synchronized account data.', 'ps': 'ګهته د مشتریانو، ورځنیو سوداګریزو معاملو، د اسعارو تبادلې، نغدي بیلانسونو، راپورونو، بیک اپ او همغږي شوو حسابي معلوماتو په مدیریت کې مرسته کوي.', 'fa': 'Ghata به مدیریت مشتریان، معاملات روزانه تجاری، تبادله ارز، موجودی نقدی، گزارش‌ها، پشتیبان‌گیری و معلومات همگام‌شده حساب کمک می‌کند.', 'ur': 'Ghata گاہکوں، روزانہ کاروباری لین دین، کرنسی ایکسچینج، نقد بیلنس، رپورٹس، بیک اپ اور ہم آہنگ اکاؤنٹ ڈیٹا کے انتظام میں مدد کرتا ہے۔', 'ar': 'يساعد Ghata في إدارة العملاء والمعاملات التجارية اليومية وصرف العملات والأرصدة النقدية والتقارير والنسخ الاحتياطية وبيانات الحساب المتزامنة.' },
+'FAQ Q2': { 'en': 'How do I protect my data?', 'ps': 'خپل معلومات څنګه خوندي کړم؟', 'fa': 'چگونه از معلومات خود محافظت کنم؟', 'ur': 'اپنا ڈیٹا کیسے محفوظ رکھوں؟', 'ar': 'كيف أحمي بياناتي؟' },'FAQ A2': { 'en': 'Use Backup & Restore to create backups of important Ghata data and keep exported backup files in a safe place.', 'ps': 'د Backup & Restore له لارې د ګهته مهمو معلوماتو بیک اپ جوړ کړئ او صادر شوي بیک اپ فایلونه په خوندي ځای کې وساتئ.', 'fa': 'با Backup & Restore از معلومات مهم Ghata نسخه پشتیبان بسازید و فایل‌های پشتیبان صادرشده را در جای امن نگهداری کنید.', 'ur': 'Backup & Restore کے ذریعے اہم Ghata ڈیٹا کا بیک اپ بنائیں اور برآمد شدہ بیک اپ فائلوں کو محفوظ جگہ پر رکھیں۔', 'ar': 'استخدم Backup & Restore لإنشاء نسخ احتياطية من بيانات Ghata المهمة واحتفظ بملفات النسخ الاحتياطي المصدرة في مكان آمن.' },
+'FAQ Q3': { 'en': 'How does synchronization work?', 'ps': 'همغږي څنګه کار کوي؟', 'fa': 'همگام‌سازی چگونه کار می‌کند؟', 'ur': 'ہم آہنگی کیسے کام کرتی ہے؟', 'ar': 'كيف تعمل المزامنة؟' },'FAQ A3': { 'en': 'Ghata keeps supported account data synchronized when internet access is available. Pending changes remain in the sync queue and are sent when synchronization succeeds.', 'ps': 'کله چې انټرنېټ موجود وي، ګهته د حساب اړوند معلومات همغږي کوي. پاتې بدلونونه د همغږۍ په کتار کې ساتل کېږي او د بریالۍ همغږۍ پر مهال لېږل کېږي.', 'fa': 'وقتی اینترنت موجود باشد، Ghata معلومات پشتیبانی‌شده حساب را همگام می‌کند. تغییرات باقی‌مانده در صف همگام‌سازی نگهداری می‌شوند و پس از موفقیت همگام‌سازی ارسال می‌شوند.', 'ur': 'انٹرنیٹ دستیاب ہونے پر Ghata معاون اکاؤنٹ ڈیٹا کو ہم آہنگ کرتا ہے۔ زیر التوا تبدیلیاں سنک قطار میں رہتی ہیں اور کامیاب ہم آہنگی پر بھیجی جاتی ہیں۔', 'ar': 'عند توفر الإنترنت يقوم Ghata بمزامنة بيانات الحساب المدعومة. تبقى التغييرات المعلقة في قائمة انتظار المزامنة ويتم إرسالها عند نجاح المزامنة.' },
+'FAQ Q4': { 'en': 'How do customer accounts work?', 'ps': 'د مشتریانو حسابونه څنګه کار کوي؟', 'fa': 'حساب‌های مشتریان چگونه کار می‌کنند؟', 'ur': 'گاہکوں کے اکاؤنٹس کیسے کام کرتے ہیں؟', 'ar': 'كيف تعمل حسابات العملاء؟' },'FAQ A4': { 'en': 'Create a customer and record Money In or Money Out in the correct currency. Ghata keeps each currency balance separate and shows the customer ledger and current balances.', 'ps': 'مشتري جوړ کړئ او په سمه کرنسۍ کې Money In یا Money Out ثبت کړئ. ګهته د هرې کرنسۍ بیلانس جلا ساتي او د مشتري حساب او اوسني بیلانسونه ښيي.', 'fa': 'یک مشتری ایجاد کنید و Money In یا Money Out را با ارز درست ثبت کنید. Ghata موجودی هر ارز را جدا نگه می‌دارد و دفتر حساب و موجودی فعلی مشتری را نشان می‌دهد.', 'ur': 'گاہک بنائیں اور درست کرنسی میں Money In یا Money Out درج کریں۔ Ghata ہر کرنسی کا بیلنس الگ رکھتا ہے اور گاہک کا لیجر اور موجودہ بیلنس دکھاتا ہے۔', 'ar': 'أنشئ عميلاً وسجل Money In أو Money Out بالعملة الصحيحة. يحتفظ Ghata برصيد كل عملة بشكل منفصل ويعرض دفتر العميل والأرصدة الحالية.' },
+'FAQ Q5': { 'en': 'How does currency exchange work?', 'ps': 'د اسعارو تبادله څنګه کار کوي؟', 'fa': 'تبادله ارز چگونه کار می‌کند؟', 'ur': 'کرنسی ایکسچینج کیسے کام کرتا ہے؟', 'ar': 'كيف يعمل صرف العملات؟' },'FAQ A5': { 'en': 'In Exchange, select the From and To currencies, enter the amounts and exchange rate, and optionally select a customer. Ghata records both sides of the exchange while keeping each currency separate.', 'ps': 'په Exchange کې د From او To کرنسۍ وټاکئ، مقدارونه او د تبادلې نرخ ولیکئ، او که اړتیا وي مشتري وټاکئ. ګهته د تبادلې دواړه خواوې ثبتوي او هره کرنسي جلا ساتي.', 'fa': 'در Exchange ارزهای From و To را انتخاب کنید، مبلغ‌ها و نرخ تبادله را وارد کنید و در صورت نیاز مشتری را انتخاب کنید. Ghata هر دو طرف تبادله را ثبت کرده و هر ارز را جدا نگه می‌دارد.', 'ur': 'Exchange میں From اور To کرنسیاں منتخب کریں، رقوم اور شرح تبادلہ درج کریں، اور ضرورت ہو تو گاہک منتخب کریں۔ Ghata ایکسچینج کے دونوں رخ ریکارڈ کرتا ہے اور ہر کرنسی کو الگ رکھتا ہے۔', 'ar': 'في Exchange اختر عملتي From وTo وأدخل المبالغ وسعر الصرف، ويمكنك اختيار عميل عند الحاجة. يسجل Ghata طرفي عملية الصرف مع إبقاء كل عملة منفصلة.' },
+'FAQ Q6': { 'en': 'What is the Daily Journal?', 'ps': 'ورځنی ژورنال څه شی دی؟', 'fa': 'دفتر روزانه چیست؟', 'ur': 'ڈیلی جرنل کیا ہے؟', 'ar': 'ما هي اليومية؟' },'FAQ A6': { 'en': 'Daily Journal shows general business transactions and exchange movements. You can search and filter entries by type, currency, date and time.', 'ps': 'ورځنی ژورنال عمومي سوداګریزې معاملې او د اسعارو د تبادلې حرکتونه ښيي. ثبتونه د ډول، کرنسۍ، نېټې او وخت له مخې لټول او فلټر کولای شئ.', 'fa': 'دفتر روزانه معاملات عمومی کسب‌وکار و حرکات تبادله ارز را نشان می‌دهد. می‌توانید ثبت‌ها را بر اساس نوع، ارز، تاریخ و زمان جستجو و فیلتر کنید.', 'ur': 'ڈیلی جرنل عمومی کاروباری لین دین اور کرنسی ایکسچینج کی حرکات دکھاتا ہے۔ اندراجات کو قسم، کرنسی، تاریخ اور وقت کے لحاظ سے تلاش اور فلٹر کیا جا سکتا ہے۔', 'ar': 'تعرض اليومية المعاملات التجارية العامة وحركات صرف العملات. يمكنك البحث عن القيود وتصفيتها حسب النوع والعملة والتاريخ والوقت.' },
+'FAQ Q7': { 'en': 'How do Reports work?', 'ps': 'راپورونه څنګه کار کوي؟', 'fa': 'گزارش‌ها چگونه کار می‌کنند؟', 'ur': 'رپورٹس کیسے کام کرتی ہیں؟', 'ar': 'كيف تعمل التقارير؟' },'FAQ A7': { 'en': 'Reports summarize Money In, Money Out, exchanges and adjustments. Reports can be filtered by date, currency and customer, and each currency remains separate.', 'ps': 'راپورونه Money In، Money Out، تبادلې او تعدیلات لنډیز کوي. راپورونه د نېټې، کرنسۍ او مشتري له مخې فلټر کېدای شي او هره کرنسي جلا پاتې کېږي.', 'fa': 'گزارش‌ها Money In، Money Out، تبادلات و تعدیلات را خلاصه می‌کنند. گزارش‌ها بر اساس تاریخ، ارز و مشتری قابل فیلتر هستند و هر ارز جدا باقی می‌ماند.', 'ur': 'رپورٹس Money In، Money Out، ایکسچینج اور ایڈجسٹمنٹ کا خلاصہ دکھاتی ہیں۔ انہیں تاریخ، کرنسی اور گاہک کے لحاظ سے فلٹر کیا جا سکتا ہے اور ہر کرنسی الگ رہتی ہے۔', 'ar': 'تلخص التقارير Money In وMoney Out وعمليات الصرف والتعديلات، ويمكن تصفيتها حسب التاريخ والعملة والعميل مع بقاء كل عملة منفصلة.' },'FAQ Q8': { 'en': 'How is my account protected?', 'ps': 'زما حساب څنګه خوندي کېږي؟', 'fa': 'حساب من چگونه محافظت می‌شود؟', 'ur': 'میرا اکاؤنٹ کیسے محفوظ کیا جاتا ہے؟', 'ar': 'كيف تتم حماية حسابي؟' },'FAQ A8': { 'en': 'Ghata uses authenticated access, account-scoped data operations and device and session controls. Keep your sign-in credentials private and review active devices regularly.', 'ps': 'ګهته تایید شوی لاسرسی، حساب پورې محدود معلوماتي عملیات او د وسیلو او ناستو کنټرولونه کاروي. خپل د ننوتلو معلومات پټ وساتئ او فعال وسایل په منظم ډول وګورئ.', 'fa': 'Ghata از دسترسی تأییدشده، عملیات معلومات محدود به حساب و کنترل دستگاه و نشست استفاده می‌کند. معلومات ورود خود را محرمانه نگه دارید و دستگاه‌های فعال را منظم بررسی کنید.', 'ur': 'Ghata تصدیق شدہ رسائی، اکاؤنٹ تک محدود ڈیٹا آپریشنز اور ڈیوائس و سیشن کنٹرول استعمال کرتا ہے۔ اپنی سائن اِن معلومات محفوظ رکھیں اور فعال ڈیوائسز باقاعدگی سے چیک کریں۔', 'ar': 'يستخدم Ghata الوصول الموثق وعمليات البيانات المقيدة بالحساب وعناصر التحكم في الأجهزة والجلسات. حافظ على سرية بيانات تسجيل الدخول وراجع الأجهزة النشطة بانتظام.' },
+  'Privacy Policy description': {
+    'en': 'Ghata uses account and business data to provide its accounting features. Access to account data is limited to the authenticated account according to the permissions implemented by Ghata.',
+    'ps': 'ګهته د خپلو محاسبوي ځانګړنو د وړاندې کولو لپاره د حساب او سوداګرۍ معلومات کاروي. د حساب معلوماتو ته لاسرسی د ګهته د پلي شوو اجازو له مخې یوازې تایید شوي حساب ته محدود دی.',
+    'fa': 'Ghata برای ارائه قابلیت‌های حسابداری خود از معلومات حساب و کسب‌وکار استفاده می‌کند. دسترسی به معلومات حساب بر اساس مجوزهای پیاده‌شده در Ghata به حساب تأییدشده محدود است.',
+    'ur': 'Ghata اپنی اکاؤنٹنگ خصوصیات فراہم کرنے کے لیے اکاؤنٹ اور کاروباری ڈیٹا استعمال کرتا ہے۔ اکاؤنٹ ڈیٹا تک رسائی Ghata میں نافذ اجازتوں کے مطابق تصدیق شدہ اکاؤنٹ تک محدود ہے۔',
+    'ar': 'يستخدم Ghata بيانات الحساب والأعمال لتقديم ميزات المحاسبة. يقتصر الوصول إلى بيانات الحساب على الحساب الموثق وفق الصلاحيات المطبقة في Ghata.'
+  },
+  'Data Security description': {
+    'en': 'Ghata uses authenticated access, account-scoped data operations and device/session controls to help protect account information.',
+    'ps': 'ګهته د حساب د معلوماتو د ساتنې لپاره تایید شوی لاسرسی، حساب پورې محدود معلوماتي عملیات او د وسیلې او ناستې کنټرولونه کاروي.',
+    'fa': 'Ghata برای کمک به محافظت از معلومات حساب از دسترسی تأییدشده، عملیات معلومات محدود به حساب و کنترل دستگاه و نشست استفاده می‌کند.',
+    'ur': 'Ghata اکاؤنٹ کی معلومات کے تحفظ میں مدد کے لیے تصدیق شدہ رسائی، اکاؤنٹ تک محدود ڈیٹا آپریشنز اور ڈیوائس و سیشن کنٹرول استعمال کرتا ہے۔',
+    'ar': 'يستخدم Ghata الوصول الموثق وعمليات البيانات المقيدة بالحساب وعناصر التحكم في الجهاز والجلسة للمساعدة في حماية معلومات الحساب.'
+  },
+  'Data Storage description': {
+    'en': 'Ghata Windows supports local/offline accounting data and synchronizes supported account data with central Ghata cloud services when synchronization is available.',
+    'ps': 'ګهته وینډوز محلي او افلاین محاسبوي معلومات ساتي او کله چې همغږي موجوده وي، د حساب ملاتړ شوي معلومات د ګهته له مرکزي کلاوډ خدمتونو سره همغږي کوي.',
+    'fa': 'Ghata Windows از معلومات حسابداری محلی و آفلاین پشتیبانی می‌کند و هنگام موجود بودن همگام‌سازی، معلومات پشتیبانی‌شده حساب را با خدمات مرکزی ابری Ghata همگام می‌کند.',
+    'ur': 'Ghata Windows مقامی اور آف لائن اکاؤنٹنگ ڈیٹا کی معاونت کرتا ہے اور سنک دستیاب ہونے پر معاون اکاؤنٹ ڈیٹا کو مرکزی Ghata کلاؤڈ سروسز کے ساتھ ہم آہنگ کرتا ہے۔',
+    'ar': 'يدعم Ghata Windows بيانات المحاسبة المحلية وغير المتصلة، ويزامن بيانات الحساب المدعومة مع خدمات Ghata السحابية المركزية عند توفر المزامنة.'
+  },
+  'Terms of Use description': {
+    'en': 'Use Ghata only with accounts and business information you are authorized to manage. Keep your sign-in credentials secure and maintain appropriate backups of important business information.',
+    'ps': 'ګهته یوازې د هغو حسابونو او سوداګریزو معلوماتو لپاره وکاروئ چې د مدیریت اجازه یې لرئ. خپل د ننوتلو معلومات خوندي وساتئ او د مهمو سوداګریزو معلوماتو مناسب بیک اپونه وساتئ.',
+    'fa': 'Ghata را فقط برای حساب‌ها و معلومات تجاری استفاده کنید که اجازه مدیریت آن‌ها را دارید. معلومات ورود خود را امن نگه دارید و از معلومات مهم تجاری نسخه‌های پشتیبان مناسب حفظ کنید.',
+    'ur': 'Ghata صرف ان اکاؤنٹس اور کاروباری معلومات کے لیے استعمال کریں جنہیں منظم کرنے کی آپ کو اجازت ہے۔ اپنی سائن اِن معلومات محفوظ رکھیں اور اہم کاروباری معلومات کے مناسب بیک اپ برقرار رکھیں۔',
+    'ar': 'استخدم Ghata فقط مع الحسابات ومعلومات الأعمال المصرح لك بإدارتها. حافظ على أمان بيانات تسجيل الدخول واحتفظ بنسخ احتياطية مناسبة من معلومات الأعمال المهمة.'
+  },
   'Dashboard': {
     'en': 'Dashboard',
     'ps': 'کورپاڼه',
@@ -7552,7 +7589,7 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
               onRefresh: loadDevices,
               child: devices.isEmpty
                   ? ListView(
-                      children: const [
+                      children: [
                         SizedBox(height: 140),
                         Center(
                           child: Text(
@@ -9049,7 +9086,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
         Directionality(
           textDirection: TextDirection.ltr,
-        Builder(
+        child: Builder(
           builder: (context) {
             final appState =
                 context.findAncestorStateOfType<_GhataAppState>();
@@ -10081,10 +10118,7 @@ class AboutGhataScreen extends StatelessWidget {
           onTap: () => _showTextDialog(
             context,
             title: ghataT(context, 'About Ghata'),
-            body:
-                'Ghata is a business ledger and accounting system for '
-                'managing customers, daily transactions, currency exchange, '
-                'reports, backup and secure multi-device access.',
+            body: ghataT(context, 'About Ghata description'),
           ),
         ),
         _sectionLink(
@@ -10095,11 +10129,7 @@ class AboutGhataScreen extends StatelessWidget {
           onTap: () => _showTextDialog(
             context,
             title: ghataT(context, 'How to Use Ghata'),
-            body:
-                'Use Customers for customer ledgers, Daily Journal for '
-                'general business entries, Exchange for currency exchange, '
-                'Reports for summaries, and Backup & Restore to protect '
-                'your Ghata data.',
+            body: ghataT(context, 'How to Use Ghata description'),
           ),
         ),
         _sectionLink(
@@ -10170,10 +10200,10 @@ class AboutGhataScreen extends StatelessWidget {
           onTap: () => _showTextDialog(
             context,
             title: ghataT(context, 'FAQ'),
-            body:
-                'FAQ contains common guidance for customers, Daily Journal, '
-                'Exchange, reports, backup, restore, account security and '
-                'synchronization.',
+            body: [
+              for (var i = 1; i <= 8; i++)
+                '${ghataT(context, 'FAQ Q$i')}\n${ghataT(context, 'FAQ A$i')}',
+            ].join('\n\n'),
           ),
         ),
       ],
@@ -10194,11 +10224,7 @@ class AboutGhataScreen extends StatelessWidget {
           onTap: () => _showTextDialog(
             context,
             title: ghataT(context, 'Privacy Policy'),
-            body:
-                'Ghata uses account and business data to provide its '
-                'accounting features. Access to account data is limited '
-                'to the authenticated account according to the permissions '
-                'implemented by Ghata.',
+            body: ghataT(context, 'Privacy Policy description'),
           ),
         ),
         _sectionLink(
@@ -10209,10 +10235,7 @@ class AboutGhataScreen extends StatelessWidget {
           onTap: () => _showTextDialog(
             context,
             title: ghataT(context, 'Data Security'),
-            body:
-                'Ghata uses authenticated access, account-scoped data '
-                'operations and device/session controls to help protect '
-                'account information.',
+            body: ghataT(context, 'Data Security description'),
           ),
         ),
         _sectionLink(
@@ -10223,10 +10246,7 @@ class AboutGhataScreen extends StatelessWidget {
           onTap: () => _showTextDialog(
             context,
             title: ghataT(context, 'Data Storage'),
-            body:
-                'Ghata Windows supports local/offline accounting data and '
-                'synchronizes supported account data with the central Ghata '
-                'cloud services when synchronization is available.',
+            body: ghataT(context, 'Data Storage description'),
           ),
         ),
         _sectionLink(
@@ -10237,11 +10257,7 @@ class AboutGhataScreen extends StatelessWidget {
           onTap: () => _showTextDialog(
             context,
             title: ghataT(context, 'Terms of Use'),
-            body:
-                'Use Ghata only with accounts and business information you '
-                'are authorized to manage. Keep your sign-in credentials '
-                'secure and maintain appropriate backups of important '
-                'business information.',
+            body: ghataT(context, 'Terms of Use description'),
           ),
         ),
       ],
