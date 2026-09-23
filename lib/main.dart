@@ -8185,6 +8185,74 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
 
 // Windows desktop navigation shell. Keeps the left sidebar fixed regardless of
 // the selected app language (LTR/RTL) while leaving non-Windows layouts intact.
+Future<Map<String, String>> ghataWindowsHeaderIdentity() async {
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return {'name': 'Ghata', 'photo': ''};
+  final profile = await OfflineDatabase.instance.getRecord('profiles', user.id, includeDeleted: true);
+  final rawName = (profile?['full_name'] ?? profile?['username'] ?? profile?['business_name'] ?? user.email ?? 'Ghata').toString().trim();
+  final photo = await ghataLoadProfilePhoto();
+  return {'name': rawName.isEmpty ? 'Ghata' : rawName, 'photo': photo ?? ''};
+}
+
+PreferredSizeWidget ghataWindowsSharedHeader(BuildContext context) {
+  final appState = context.findAncestorStateOfType<_GhataAppState>();
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return AppBar(
+    automaticallyImplyLeading: false,
+    backgroundColor: const Color(0xFF123D2B),
+    foregroundColor: Colors.white,
+    surfaceTintColor: Colors.transparent,
+    title: Directionality(
+      textDirection: TextDirection.ltr,
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 42, height: 42, padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: const Color(0xFFFFFBF2), borderRadius: BorderRadius.circular(12)), child: Image.asset('assets/images/ghata_leaf.png', fit: BoxFit.contain)),
+        const SizedBox(width: 10),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          const Text('ګهته / Ghata', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900)),
+          Text(ghataT(context, 'Business Ledger & Accounting'), style: const TextStyle(color: Color(0xFFFFE8A3), fontSize: 11, fontWeight: FontWeight.w500)),
+        ]),
+      ]),
+    ),
+    actions: [
+      Directionality(textDirection: TextDirection.ltr, child: Row(mainAxisSize: MainAxisSize.min, children: [
+        PopupMenuButton<String>(
+          tooltip: ghataT(context, 'language'),
+          onSelected: appState?.changeLanguage,
+          itemBuilder: (_) => [
+            PopupMenuItem(value:'en', child: Row(children:[ghataLanguageFlagWidget('en'), const SizedBox(width:8), const Text('English')])),
+            PopupMenuItem(value:'ps', child: Row(children:[ghataLanguageFlagWidget('ps'), const SizedBox(width:8), const Text('پښتو')])),
+            PopupMenuItem(value:'fa', child: Row(children:[ghataLanguageFlagWidget('fa'), const SizedBox(width:8), const Text('دری')])),
+            PopupMenuItem(value:'ur', child: Row(children:[ghataLanguageFlagWidget('ur'), const SizedBox(width:8), const Text('اردو')])),
+            PopupMenuItem(value:'ar', child: Row(children:[ghataLanguageFlagWidget('ar'), const SizedBox(width:8), const Text('العربية')])),
+          ],
+          icon: const Icon(Icons.language_rounded),
+        ),
+        IconButton(tooltip: isDark ? ghataT(context,'lightMode') : ghataT(context,'darkMode'), onPressed: appState?.toggleTheme, icon: Icon(isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded)),
+        FutureBuilder<Map<String,String>>(
+          future: ghataWindowsHeaderIdentity(),
+          builder: (context, snap) {
+            final name = snap.data?['name'] ?? 'Ghata';
+            final photo = snap.data?['photo'] ?? '';
+            final initial = name.trim().isEmpty ? 'G' : name.trim().characters.first.toUpperCase();
+            return Padding(
+              padding: const EdgeInsets.only(left: 4, right: 12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen())),
+                child: Row(children:[
+                  CircleAvatar(radius: 17, backgroundColor: const Color(0xFFFFE8A3), backgroundImage: photo.isNotEmpty && File(photo).existsSync() ? FileImage(File(photo)) : null, child: photo.isEmpty || !File(photo).existsSync() ? Text(initial, style: const TextStyle(color: Color(0xFF123D2B), fontWeight: FontWeight.w900)) : null),
+                  const SizedBox(width: 7),
+                  ConstrainedBox(constraints: const BoxConstraints(maxWidth: 120), child: Text(name, maxLines:1, overflow:TextOverflow.ellipsis, style: const TextStyle(fontWeight:FontWeight.w700))),
+                ]),
+              ),
+            );
+          },
+        ),
+      ])),
+    ],
+  );
+}
+
 Widget ghataWindowsPage({
   required BuildContext context,
   required String selected,
@@ -9246,151 +9314,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final homeScaffold = Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: const Color(0xFF123D2B),
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: Directionality(
-          textDirection: TextDirection.ltr,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBF2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Image.asset(
-                  'assets/images/ghata_leaf.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'ګهته / Ghata',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    ghataT(context, 'Business Ledger & Accounting'),
-                    style: const TextStyle(
-                      color: Color(0xFFFFE8A3),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        actions: [
-        Directionality(
-          textDirection: TextDirection.ltr,
-        child: Builder(
-          builder: (context) {
-            final appState =
-                context.findAncestorStateOfType<_GhataAppState>();
-            final isDark =
-                Theme.of(context).brightness == Brightness.dark;
-
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                PopupMenuButton<String>(
-                  tooltip: ghataT(context, 'language'),
-                  onSelected: appState?.changeLanguage,
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      value: 'en',
-                      child: Row(
-                        children: [
-                          ghataLanguageFlagWidget('en'),
-                          SizedBox(width: 8),
-                          Text('English'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'ps',
-                      child: Row(
-                        children: [
-                          ghataLanguageFlagWidget('ps'),
-                          SizedBox(width: 8),
-                          Text('پښتو'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'fa',
-                      child: Row(
-                        children: [
-                          ghataLanguageFlagWidget('fa'),
-                          SizedBox(width: 8),
-                          Text('دری'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'ur',
-                      child: Row(
-                        children: [
-                          ghataLanguageFlagWidget('ur'),
-                          SizedBox(width: 8),
-                          Text('اردو'),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem(
-                      value: 'ar',
-                      child: Row(
-                        children: [
-                          ghataLanguageFlagWidget('ar'),
-                          SizedBox(width: 8),
-                          Text('العربية'),
-                        ],
-                      ),
-                    ),
-                  ],
-                  icon: Icon(Icons.language_rounded),
-                ),
-                IconButton(
-                  tooltip: isDark
-                      ? ghataT(context, 'lightMode')
-                      : ghataT(context, 'darkMode'),
-                  onPressed: appState?.toggleTheme,
-                  icon: Icon(
-                    isDark
-                        ? Icons.light_mode_rounded
-                        : Icons.dark_mode_rounded,
-                  ),
-                ),
-                IconButton(
-                  tooltip: Platform.isWindows ? ghataT(context, 'Profile & Business') : ghataT(context, 'Settings & Account'),
-                  onPressed: Platform.isWindows
-                      ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen()))
-                      : showHomeMenu,
-                  icon: Icon(Platform.isWindows ? Icons.account_circle_outlined : Icons.menu_rounded),
-                ),
-                SizedBox(width: 4),
-              ],
-            );
-          },
-        ),
-        ),
-      ],
-      ),
+      appBar: ghataWindowsSharedHeader(context),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -15309,16 +15233,7 @@ Future<void> shareTransactionReceiptPdf(
   @override
   Widget build(BuildContext context) {
     return ghataWindowsPage(context: context, selected: 'journal', child: Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF123D2B),
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          ghataT(context, 'Daily Journal'),
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-
-      ),
+      appBar: ghataWindowsSharedHeader(context),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -15827,18 +15742,7 @@ Future<void> shareTransactionReceiptPdf(
                                   : number.toStringAsFixed(2);
                             }
 
-                            return SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              physics: BouncingScrollPhysics(),
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(minWidth: 820),
-                                child: SizedBox(
-                                  width: Platform.isWindows
-                                      ? (MediaQuery.sizeOf(context).width - 32)
-                                          .clamp(820.0, 1180.0)
-                                          .toDouble()
-                                      : 820,
-                                  child: Column(
+                            return Column(
                                     children: [
                                       Container(
                                         padding: EdgeInsets.symmetric(
@@ -15855,7 +15759,7 @@ Future<void> shareTransactionReceiptPdf(
                                         child: Row(
                                           children: [
                                             SizedBox(
-                                              width: 100,
+                                              width: 82,
                                               child: Text(
                                                 ghataT(context, 'Date'),
                                                 style: TextStyle(
@@ -15865,7 +15769,7 @@ Future<void> shareTransactionReceiptPdf(
                                               ),
                                             ),
                                             Expanded(
-                                              flex: 3,
+                                              flex: 4,
                                               child: Text(
                                                 ghataT(context, 'Description'),
                                                 style: TextStyle(
@@ -15875,7 +15779,7 @@ Future<void> shareTransactionReceiptPdf(
                                               ),
                                             ),
                                             Expanded(
-                                              flex: 2,
+                                              flex: 1,
                                               child: Text(
                                                 ghataT(context, 'Money In'),
                                                 textAlign: TextAlign.end,
@@ -15887,7 +15791,7 @@ Future<void> shareTransactionReceiptPdf(
                                               ),
                                             ),
                                             Expanded(
-                                              flex: 2,
+                                              flex: 1,
                                               child: Text(
                                                 ghataT(context, 'Money Out'),
                                                 textAlign: TextAlign.end,
@@ -15899,7 +15803,7 @@ Future<void> shareTransactionReceiptPdf(
                                               ),
                                             ),
                                             SizedBox(
-                                              width: 90,
+                                              width: 78,
                                               child: Text(
                                                 ghataT(context, 'Currency'),
                                                 textAlign: TextAlign.end,
@@ -15920,6 +15824,7 @@ Future<void> shareTransactionReceiptPdf(
                                                 ),
                                               ),
                                             ),
+                                            const SizedBox(width: 42, child: Icon(Icons.more_horiz_rounded, size:18)),
                                           ],
                                         ),
                                       ),
@@ -16013,7 +15918,7 @@ Future<void> shareTransactionReceiptPdf(
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 SizedBox(
-                                                  width: 100,
+                                                  width: 82,
                                                   child: Text(
                                                     time.isEmpty
                                                         ? date
@@ -16024,7 +15929,7 @@ Future<void> shareTransactionReceiptPdf(
                                                   ),
                                                 ),
                                                 Expanded(
-                                                  flex: 3,
+                                                  flex: 4,
                                                   child: Text(
                                                     displayDescription,
                                                     maxLines: 2,
@@ -16038,7 +15943,7 @@ Future<void> shareTransactionReceiptPdf(
                                                   ),
                                                 ),
                                                 Expanded(
-                                                  flex: 2,
+                                                  flex: 1,
                                                   child: Text(
                                                     amountText(moneyIn),
                                                     textAlign: TextAlign.end,
@@ -16051,7 +15956,7 @@ Future<void> shareTransactionReceiptPdf(
                                                   ),
                                                 ),
                                                 Expanded(
-                                                  flex: 2,
+                                                  flex: 1,
                                                   child: Text(
                                                     amountText(moneyOut),
                                                     textAlign: TextAlign.end,
@@ -16064,7 +15969,7 @@ Future<void> shareTransactionReceiptPdf(
                                                   ),
                                                 ),
                                                   SizedBox(
-                                                    width: 90,
+                                                    width: 78,
                                                     child: Row(
                                                       mainAxisAlignment:
                                                           MainAxisAlignment.end,
@@ -16099,16 +16004,14 @@ Future<void> shareTransactionReceiptPdf(
                                                     ),
                                                   ),
                                                 ),
+                                                SizedBox(width: 42, child: PopupMenuButton<String>(padding: EdgeInsets.zero, icon: const Icon(Icons.more_vert_rounded, size:18), onSelected: (_) => showJournalRowActions(row), itemBuilder: (_) => [PopupMenuItem(value:'edit', child: Row(children:[const Icon(Icons.edit_outlined, size:18), const SizedBox(width:8), Text(ghataT(context,'Edit'))])), PopupMenuItem(value:'delete', child: Row(children:[const Icon(Icons.delete_outline, size:18, color:Colors.red), const SizedBox(width:8), Text(ghataT(context,'Delete'), style:const TextStyle(color:Colors.red))]))])),
                                               ],
                                             ),
                                           ),
                                         );
                                       }),
                                     ],
-                                  ),
-                                ),
-                              ),
-                            );
+                                  );
                           },
                         ),
 
@@ -17317,25 +17220,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
   @override
   Widget build(BuildContext context) {
     return ghataWindowsPage(context: context, selected: 'customers', child: Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF123D2B),
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          ghataT(context, 'Customers'),
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: FilledButton.icon(
-              onPressed: showAddCustomerDialog,
-              icon: Icon(Icons.add),
-              label: Text(ghataT(context, 'Add')),
-            ),
-          ),
-        ],
-      ),
+      appBar: ghataWindowsSharedHeader(context),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -20264,150 +20149,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
         context: context,
         selected: 'customers',
         child: Scaffold(
-        appBar: AppBar(
-          titleSpacing: 0,
-          title: Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundImage: customerPhotoPath != null
-                    ? FileImage(File(customerPhotoPath!))
-                    : null,
-                child: customerPhotoPath == null
-                    ? Text(
-                        profileInitial,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      )
-                    : null,
-              ),
-              SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      profileName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (profilePhone.isNotEmpty)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ghataPhoneFlagWidget(
-                            profilePhone,
-                            width: 22,
-                            height: 14,
-                          ),
-                          SizedBox(width: 5),
-                          Flexible(
-                            child: Text(
-                              profilePhone,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (profileAddress.isNotEmpty)
-                      Text(
-                        profileAddress,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.normal,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            if (Platform.isWindows)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: FilledButton.icon(
-                  onPressed: openCustomerWhatsApp,
-                  icon: const Icon(Icons.chat_rounded, size: 18),
-                  label: Text(ghataT(context, 'WhatsApp')),
-                  style: FilledButton.styleFrom(backgroundColor: Colors.green),
-                ),
-              ),
-            const SizedBox(width: 8),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'print') {
-                  shareCustomerStatementPdf(printDirect: true);
-                } else if (value == 'pdf') {
-                  shareCustomerStatementPdf();
-                } else if (value == 'share') {
-                  shareCustomerBalanceImage();
-                } else if (value == 'whatsapp') {
-                  openCustomerWhatsApp();
-                } else if (value == 'edit') {
-                  editProfileCustomer();
-                } else if (value == 'delete') {
-                  deleteProfileCustomer();
-                }
-              },
-              itemBuilder: (context) =>  [
-                if (Platform.isWindows)
-                  PopupMenuItem(
-                    value: 'print',
-                    child: Row(
-                      children: [
-                        Icon(Icons.print_outlined),
-                        SizedBox(width: 10),
-                        Text(ghataT(context, 'Print Statement')),
-                      ],
-                    ),
-                  ),
-                PopupMenuItem(
-                  value: 'pdf',
-                  child: Text(
-                    Platform.isWindows
-                        ? ghataT(context, 'Save Statement (PDF)')
-                        : ghataT(context, 'Full Statement (PDF)'),
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'share',
-                  child: Text(ghataT(context, 'Share Balance Image')),
-                ),
-                if (!Platform.isWindows)
-                  PopupMenuItem(
-                    value: 'whatsapp',
-                    child: Row(
-                      children: [
-                        Icon(Icons.chat_outlined, color: Colors.green),
-                        SizedBox(width: 10),
-                        Text(ghataT(context, 'WhatsApp')),
-                      ],
-                    ),
-                  ),
-                PopupMenuDivider(),
-                PopupMenuItem(
-                  value: 'edit',
-                  child: Text(ghataT(context, 'Edit Customer')),
-                ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Text(ghataT(context, 'Delete Customer')),
-                ),
-              ],
-            ),
-          ],
-        ),
+        appBar: ghataWindowsSharedHeader(context),
       body: SafeArea(
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: customerTransactionsFuture,
@@ -20530,73 +20272,18 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             return ListView(
               padding: EdgeInsets.all(16),
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () =>
-                            openCustomerMoneyEntry('money_in'),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.south_west, size: 18),
-                            SizedBox(height: 3),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                ghataT(context, 'Money In'),
-                                maxLines: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          minimumSize: Size.fromHeight(54),
-                          padding: EdgeInsets.symmetric(horizontal: 6),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 6),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            openCustomerMoneyEntry('money_out'),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.north_east, size: 18),
-                            SizedBox(height: 3),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                ghataT(context, 'Money Out'),
-                                maxLines: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: BorderSide(color: Colors.red),
-                          minimumSize: Size.fromHeight(54),
-                          padding: EdgeInsets.symmetric(horizontal: 6),
-                        ),
-                      ),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerLowest, borderRadius: BorderRadius.circular(16), border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
+                  child: Row(children: [
+                    Expanded(child: FilledButton.icon(onPressed: () => openCustomerMoneyEntry('money_in'), icon: const Icon(Icons.south_west_rounded, size:18), label: Text(ghataT(context,'Money In')), style: FilledButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)))),
+                    const SizedBox(width: 8),
+                    Expanded(child: FilledButton.icon(onPressed: () => openCustomerMoneyEntry('money_out'), icon: const Icon(Icons.north_east_rounded, size:18), label: Text(ghataT(context,'Money Out')), style: FilledButton.styleFrom(backgroundColor: Colors.red.shade600, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)))),
+                    const SizedBox(width: 8),
+                    Expanded(child: FilledButton.tonalIcon(onPressed: openCustomerExchange, icon: const Icon(Icons.currency_exchange_rounded, size:18), label: Text(ghataT(context,'Exchange')), style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)))),
+                  ]),
                 ),
-                SizedBox(height: 10),
-                if (Platform.isWindows)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: openCustomerExchange,
-                      icon: const Icon(Icons.currency_exchange_rounded),
-                      label: Text(ghataT(context, 'Exchange')),
-                    ),
-                  ),
+                const SizedBox(height: 10),
                 // WhatsApp is intentionally available only from the customer
                 // header actions on Windows, matching the shared Ghata layout.
                 SizedBox(height: 14),
@@ -20888,13 +20575,12 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                           border: Border.all(color: const Color(0xFFDDE8D8)),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          child: DataTable(
-                            headingRowColor: WidgetStateProperty.all(
-                              const Color(0xFFFFE8A3),
-                            ),
+                        child: DataTable(
+                            headingRowColor: WidgetStateProperty.all(const Color(0xFFFFE8A3)),
+                            columnSpacing: 12,
+                            horizontalMargin: 10,
+                            dataRowMinHeight: 52,
+                            dataRowMaxHeight: 68,
                             columns: [
                               ghataT(context, 'Date'),
                               ghataT(context, 'Type'),
@@ -20904,6 +20590,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                               ghataT(context, 'Money In'),
                               ghataT(context, 'Money Out'),
                               ghataT(context, 'Balance'),
+                              '',
                             ]
                                 .map(
                                   (label) => DataColumn(
@@ -20978,16 +20665,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                           .onSurfaceVariant;
 
                               return DataRow(
-                                onSelectChanged: (_) {
-                                  if (isExchange) {
-                                    showCustomerTransactionActions(transaction);
-                                  } else {
-                                    ghataShowTransactionReceipt(
-                                      context,
-                                      transaction,
-                                    );
-                                  }
-                                },
+                                onSelectChanged: (_) => showCustomerTransactionActions(transaction),
                                 cells: [
                                   DataCell(Text(time.isEmpty ? date : '$date\n$time')),
                                   DataCell(
@@ -21011,10 +20689,12 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                   ),
                                   DataCell(
                                     SizedBox(
-                                      width: 240,
+                                      width: 170,
                                       child: Text(
                                         description.isEmpty ? '—' : description,
+                                        maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
+                                        softWrap: true,
                                       ),
                                     ),
                                   ),
@@ -21059,11 +20739,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                       ),
                                     ),
                                   ),
+                                  DataCell(PopupMenuButton<String>(padding: EdgeInsets.zero, icon: const Icon(Icons.more_vert_rounded, size:19), onSelected: (_) => showCustomerTransactionActions(transaction), itemBuilder: (_) => [PopupMenuItem(value:'edit', child: Row(children:[const Icon(Icons.edit_outlined, size:18), const SizedBox(width:8), Text(ghataT(context,'Edit'))])), PopupMenuItem(value:'delete', child: Row(children:[const Icon(Icons.delete_outline, size:18, color:Colors.red), const SizedBox(width:8), Text(ghataT(context,'Delete'), style:const TextStyle(color:Colors.red))]))])),
                                 ],
                               );
                             }).toList(),
                           ),
-                        ),
                       );
                     },
                   )
@@ -21162,27 +20842,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
       selected: 'cashbox',
       child: Scaffold(
         backgroundColor: Theme.of(context).brightness == Brightness.dark ? null : const Color(0xFFF5F8F2),
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: const Color(0xFFF5F8F2),
-          foregroundColor: const Color(0xFF123D2B),
-          surfaceTintColor: Colors.transparent,
-          title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(ghataT(context, 'Cashbox'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 26)),
-            Text(ghataT(context, 'Track your daily income and expenses'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400)),
-          ]),
-          actions: [
-            SizedBox(width: 300, child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: TextField(
-                controller: cashboxSearchController,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: ghataT(context, 'Search transactions...'), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none)),
-              ),
-            )),
-            const SizedBox(width: 16),
-          ],
-        ),
+        appBar: ghataWindowsSharedHeader(context),
         body: FutureBuilder<List<Map<String, dynamic>>>(
           future: cashboxTransactionsFuture,
           builder: (context, snapshot) {
@@ -22320,12 +21980,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
   @override
   Widget build(BuildContext context) {
     return ghataWindowsPage(context: context, selected: 'exchange', child: Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF123D2B),
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: Text(ghataT(context, 'Exchange')),
-      ),
+      appBar: ghataWindowsSharedHeader(context),
       body: ListView(
         padding: EdgeInsets.all(16),
         children: [
@@ -23154,12 +22809,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     return ghataWindowsPage(context: context, selected: 'reports', child: Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF123D2B),
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: Text(ghataT(context, 'Reports')),
-      ),
+      appBar: ghataWindowsSharedHeader(context),
       body: Column(
         children: [
           Padding(
