@@ -599,19 +599,36 @@ class OfflineDatabase {
 
   Future<void> failOperation(
     int operationId,
-    Object error,
-  ) async {
+    Object error, {
+    bool incrementAttempts = true,
+  }) async {
     final db = await database;
     final userId = _requireUserId();
 
     await db.rawUpdate(
-      '''
+      incrementAttempts
+          ? '''
       UPDATE offline_operations
-      SET attempts = attempts + 1,
-          last_error = ?
+      SET attempts = attempts + 1, last_error = ?
+      WHERE user_id = ? AND operation_id = ?
+      '''
+          : '''
+      UPDATE offline_operations
+      SET last_error = ?
       WHERE user_id = ? AND operation_id = ?
       ''',
       [error.toString(), userId, operationId],
+    );
+  }
+
+  Future<void> resetOperationFailures() async {
+    final db = await database;
+    final userId = _requireUserId();
+    await db.update(
+      'offline_operations',
+      {'attempts': 0, 'last_error': null},
+      where: 'user_id = ?',
+      whereArgs: [userId],
     );
   }
 

@@ -12,6 +12,23 @@ class OfflineSyncService {
   Future<void>? _activeSync;
 
   static const Duration _networkTimeout = Duration(seconds: 20);
+  static const int _maxDataFailureAttempts = 5;
+
+  bool _isNetworkError(Object error) {
+    final text = error.toString().toLowerCase();
+    return text.contains('socketexception') ||
+        text.contains('failed host lookup') ||
+        text.contains('connection refused') ||
+        text.contains('connection reset') ||
+        text.contains('network is unreachable') ||
+        text.contains('timed out') ||
+        text.contains('timeout');
+  }
+
+  bool _storedErrorLooksNetwork(Object? error) {
+    if (error == null) return false;
+    return _isNetworkError(StateError(error.toString()));
+  }
 
   Future<void> syncPending() {
     final active = _activeSync;
@@ -79,8 +96,12 @@ class OfflineSyncService {
       final blockedRecords = <String>{};
       final completedExchangeParents = <String>{};
       bool rpcBlocked = false;
+      bool networkBlocked = false;
 
       for (final operation in operations) {
+        // Once connectivity is known to be unavailable, stop this pass.
+        // This prevents every queued item from accumulating fake failures.
+        if (networkBlocked) break;
         final operationId =
             int.tryParse(operation['operation_id']?.toString() ?? '');
 
@@ -95,6 +116,19 @@ class OfflineSyncService {
 
         final recordKey =
             type == 'rpc' ? '' : '$table::$recordId';
+
+        final previousAttempts = int.tryParse(
+              operation['attempts']?.toString() ?? '0',
+            ) ??
+            0;
+        final previousError = operation['last_error'];
+
+        // Do not hammer Supabase forever for a persistent data/schema error.
+        // Network failures are always eligible for a later retry.
+        if (previousAttempts >= _maxDataFailureAttempts &&
+            !_storedErrorLooksNetwork(previousError)) {
+          continue;
+        }
 
         if (table == 'exchanges' &&
             completedExchangeParents.contains(recordId) &&
@@ -127,19 +161,27 @@ class OfflineSyncService {
           await OfflineDatabase.instance
               .completeOperation(operationId);
         } catch (e) {
-          await OfflineDatabase.instance
-              .failOperation(operationId, e);
+          final networkError = _isNetworkError(e);
+
+          await OfflineDatabase.instance.failOperation(
+            operationId,
+            e,
+            // A DNS/offline event is not a bad accounting operation.
+            // Keep its diagnostic message but do not inflate Attempts.
+            incrementAttempts: !networkError,
+          );
+
+          if (networkError) {
+            networkBlocked = true;
+            break;
+          }
 
           if (type == 'rpc') {
-            // Keep RPC operations ordered relative to other RPCs.
             rpcBlocked = true;
           } else {
-            // Preserve ordering only for this failed record.
             blockedRecords.add(recordKey);
           }
 
-          // Continue with unrelated records instead of blocking
-          // the entire offline sync queue.
           continue;
         }
       }

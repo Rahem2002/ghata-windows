@@ -7569,6 +7569,11 @@ class _ActiveDevicesScreenState extends State<ActiveDevicesScreen> {
       appBar: AppBar(
         title: Text(ghataT(context, 'Active Devices')),
         actions: [
+          TextButton.icon(
+            onPressed: loading ? null : retryAllSync,
+            icon: const Icon(Icons.restart_alt_rounded),
+            label: Text(ghataT(context, 'Retry All')),
+          ),
           IconButton(
             tooltip: ghataT(context, 'Refresh'),
             onPressed: loading ? null : loadDevices,
@@ -7729,6 +7734,36 @@ class _SyncDiagnosticsScreenState extends State<SyncDiagnosticsScreen> {
     }
   }
 
+  String friendlySyncError(Object? raw) {
+    final text = raw?.toString() ?? '';
+    final lower = text.toLowerCase();
+    if (lower.contains('failed host lookup') ||
+        lower.contains('socketexception') ||
+        lower.contains('network is unreachable') ||
+        lower.contains('timed out') ||
+        lower.contains('timeout')) {
+      return ghataT(context, 'No internet / Cannot reach Supabase');
+    }
+    if (lower.contains('23503') || lower.contains('foreign key')) {
+      return ghataT(context, 'Related exchange must sync first');
+    }
+    return text.isEmpty ? ghataT(context, 'Unknown error') : text;
+  }
+
+  Future<void> retryAllSync() async {
+    setState(() => loading = true);
+    try {
+      await OfflineDatabase.instance.resetOperationFailures();
+      await OfflineSyncService.instance.syncPending();
+      final result = await OfflineDatabase.instance.syncDiagnostics();
+      if (!mounted) return;
+      setState(() { diagnostics = result; loading = false; loadError = null; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { loading = false; loadError = e.toString(); });
+    }
+  }
+
   Widget diagnosticRow(String label, Object? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 7),
@@ -7761,17 +7796,28 @@ class _SyncDiagnosticsScreenState extends State<SyncDiagnosticsScreen> {
 
     final pending = data?['pending'] ?? 0;
 
-    return Scaffold(
+    return ghataWindowsPage(
+      context: context,
+      selected: 'sync',
+      child: Scaffold(
       appBar: AppBar(
-        title: Text(ghataT(context, 'Sync Status')),
+        automaticallyImplyLeading: !Platform.isWindows,
+        backgroundColor: const Color(0xFF123D2B),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          ghataT(context, 'Sync Status'),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
         actions: [
           IconButton(
             tooltip: ghataT(context, 'Refresh'),
             onPressed: loading
                 ? null
                 : () => loadDiagnostics(syncFirst: true),
-            icon: const Icon(Icons.sync),
+            icon: const Icon(Icons.sync_rounded),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: loading
@@ -7885,13 +7931,22 @@ class _SyncDiagnosticsScreenState extends State<SyncDiagnosticsScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 6),
-                                  SelectableText(
-                                    problem['last_error']
-                                            ?.toString() ??
-                                        ghataT(
-                                          context,
-                                          'Unknown error',
+                                  Text(
+                                    friendlySyncError(problem['last_error']),
+                                    style: const TextStyle(fontWeight: FontWeight.w700),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  ExpansionTile(
+                                    tilePadding: EdgeInsets.zero,
+                                    title: Text(ghataT(context, 'Technical details')),
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: SelectableText(
+                                          problem['last_error']?.toString() ?? '',
                                         ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -7914,7 +7969,7 @@ class _SyncDiagnosticsScreenState extends State<SyncDiagnosticsScreen> {
                 ),
               ),
             ),
-    );
+    ));
   }
 }
 
@@ -15220,20 +15275,7 @@ Future<void> shareTransactionReceiptPdf(
           ghataT(context, 'Daily Journal'),
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          if (Platform.isWindows) ...[
-            IconButton(
-              tooltip: ghataT(context, 'Save Statement (PDF)'),
-              icon: Icon(Icons.picture_as_pdf_outlined),
-              onPressed: printFullDailyJournal,
-            ),
-            IconButton(
-              tooltip: ghataT(context, 'Print Full Journal'),
-              icon: Icon(Icons.print_outlined),
-              onPressed: printFullDailyJournal,
-            ),
-          ],
-        ],
+
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -15256,6 +15298,16 @@ Future<void> shareTransactionReceiptPdf(
               ),
 
               SizedBox(height: 12),
+              if (Platform.isWindows)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(onPressed: printFullDailyJournal, icon: const Icon(Icons.picture_as_pdf_outlined), label: Text(ghataT(context, 'Save Statement (PDF)'))),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(onPressed: printFullDailyJournal, icon: const Icon(Icons.print_outlined), label: Text(ghataT(context, 'Print Full Journal'))),
+                  ],
+                ),
+              if (Platform.isWindows) const SizedBox(height: 10),
 
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -15508,15 +15560,18 @@ Future<void> shareTransactionReceiptPdf(
                       () => {
                         'in': 0,
                         'out': 0,
+                        'balance': 0,
                       },
                     );
 
                     if (type == 'money_in' ||
                         type == 'adjustment_in') {
                       values['in'] = values['in']! + amount;
+                      values['balance'] = values['balance']! + amount;
                     } else if (type == 'money_out' ||
                         type == 'adjustment_out') {
                       values['out'] = values['out']! + amount;
+                      values['balance'] = values['balance']! - amount;
                     }
                   }
 
@@ -15599,7 +15654,7 @@ Future<void> shareTransactionReceiptPdf(
                         ),
                         SizedBox(height: 11),
                         SizedBox(
-                          height: 130,
+                          height: 158,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             physics: BouncingScrollPhysics(),
@@ -15610,6 +15665,7 @@ Future<void> shareTransactionReceiptPdf(
                               final e = visibleSummary[index];
                               final incoming = e.value['in'] ?? 0;
                               final outgoing = e.value['out'] ?? 0;
+                              final balance = e.value['balance'] ?? 0;
 
                               return Container(
                                 width: 155,
@@ -15667,6 +15723,16 @@ Future<void> shareTransactionReceiptPdf(
                                         color: Colors.red.shade600,
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      '${ghataT(context, 'Balance')}: ${balance.toStringAsFixed(balance % 1 == 0 ? 0 : 2)}',
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        color: balance < 0 ? Colors.red.shade700 : Colors.green.shade800,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w900,
                                       ),
                                     ),
                                   ],
@@ -17518,6 +17584,8 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   Map<String, dynamic>? customerProfile;
   String? customerPhotoPath;
   String selectedLedgerCurrency = 'ALL';
+  String customerLedgerTypeFilter = 'ALL';
+  final customerLedgerSearchController = TextEditingController();
 
   late Future<List<Map<String, dynamic>>> customerTransactionsFuture;
 
@@ -18583,7 +18651,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     noteController.dispose();
 
     if (saved == true && mounted) {
-      setState(() {});
+      setState(() {
+        customerTransactionsFuture =
+            loadCustomerTransactions(refreshCloud: false);
+      });
+      await refreshCustomerProfile(refreshCloud: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -18611,7 +18683,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     );
 
     if (!mounted) return;
-    setState(() {});
+    setState(() {
+      customerTransactionsFuture =
+          loadCustomerTransactions(refreshCloud: false);
+    });
+    await refreshCustomerProfile(refreshCloud: false);
   }
 
   Future<void> editProfileCustomer() async {
@@ -19999,11 +20075,11 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
   }
 
   @override
-    @override
-    void dispose() {
-      ghataDataRevision.removeListener(_handleRealtimeDataRevision);
-      super.dispose();
-    }
+  void dispose() {
+    customerLedgerSearchController.dispose();
+    ghataDataRevision.removeListener(_handleRealtimeDataRevision);
+    super.dispose();
+  }
 
     Widget build(BuildContext context) {
       final profileName =
@@ -20019,7 +20095,10 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
               ? '?'
               : profileName.trim().substring(0, 1).toUpperCase();
 
-      return Scaffold(
+      return ghataWindowsPage(
+        context: context,
+        selected: 'customers',
+        child: Scaffold(
         appBar: AppBar(
           titleSpacing: 0,
           title: Row(
@@ -20204,18 +20283,74 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     ? selectedLedgerCurrency
                     : 'ALL';
 
-            final filteredTransactions =
-                effectiveLedgerCurrency == 'ALL'
-                    ? transactions
-                    : transactions
-                        .where(
-                          (transaction) =>
-                              transaction['currency']
-                                  ?.toString()
-                                  .toUpperCase() ==
-                              effectiveLedgerCurrency,
-                        )
-                        .toList();
+            final customerSearch =
+                customerLedgerSearchController.text.trim().toLowerCase();
+
+            final filteredTransactions = transactions.where((transaction) {
+              final currency =
+                  transaction['currency']?.toString().toUpperCase() ?? '';
+              final type =
+                  transaction['transaction_type']?.toString() ?? '';
+              final isExchange =
+                  transaction['_is_exchange'] == true ||
+                  type.startsWith('exchange_');
+
+              final currencyOk =
+                  effectiveLedgerCurrency == 'ALL' ||
+                  currency == effectiveLedgerCurrency;
+
+              final typeOk = customerLedgerTypeFilter == 'ALL' ||
+                  (customerLedgerTypeFilter == 'exchange'
+                      ? isExchange
+                      : type == customerLedgerTypeFilter);
+
+              if (!currencyOk || !typeOk) return false;
+              if (customerSearch.isEmpty) return true;
+
+              final haystack = [
+                transaction['transaction_date'],
+                transaction['transaction_time'],
+                transaction['description'],
+                transaction['reference'],
+                transaction['receipt_no'],
+                transaction['amount'],
+                currency,
+                type,
+              ].map((e) => e?.toString().toLowerCase() ?? '').join(' ');
+
+              return haystack.contains(customerSearch);
+            }).toList();
+
+            // Per-currency customer totals. Never combine currencies.
+
+            final ledgerForSummary = buildCustomerRunningLedger(transactions);
+
+            final customerCurrencyStats = <String, Map<String, double>>{};
+
+            for (final row in ledgerForSummary) {
+
+              final code = row['currency']?.toString().toUpperCase() ?? '';
+
+              if (code.isEmpty) continue;
+
+              final stats = customerCurrencyStats.putIfAbsent(
+
+                code,
+
+                () => {'in': 0.0, 'out': 0.0},
+
+              );
+
+              stats['in'] = stats['in']! +
+
+                  (double.tryParse((row['_ledger_in'] ?? 0).toString()) ?? 0);
+
+              stats['out'] = stats['out']! +
+
+                  (double.tryParse((row['_ledger_out'] ?? 0).toString()) ?? 0);
+
+            }
+
 
             final allBalances = calculateBalances(transactions);
 
@@ -20287,6 +20422,16 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     ),
                   ],
                 ),
+                SizedBox(height: 10),
+                if (Platform.isWindows)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: openCustomerExchange,
+                      icon: const Icon(Icons.currency_exchange_rounded),
+                      label: Text(ghataT(context, 'Exchange')),
+                    ),
+                  ),
                 // WhatsApp is intentionally available only from the customer
                 // header actions on Windows, matching the shared Ghata layout.
                 SizedBox(height: 14),
@@ -20310,84 +20455,118 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                   )
                 else
                   SizedBox(
-                    height: 90,
+                    height: 168,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
-                      physics: BouncingScrollPhysics(),
+                      physics: const BouncingScrollPhysics(),
                       itemCount: balances.length,
-                      separatorBuilder: (_, __) => SizedBox(width: 8),
+                      separatorBuilder: (_, __) => const SizedBox(width: 10),
                       itemBuilder: (context, index) {
-                        final entry =
-                            balances.entries.elementAt(index);
+                        final entry = balances.entries.elementAt(index);
                         final amount = entry.value;
                         final code = entry.key;
-
+                        final stats = customerCurrencyStats[code] ??
+                            const {'in': 0.0, 'out': 0.0};
+                        final moneyIn = stats['in'] ?? 0.0;
+                        final moneyOut = stats['out'] ?? 0.0;
                         final balanceColor = amount > 0
-                            ? Colors.green
-                            : amount < 0
-                                ? Colors.red
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant;
-
+                            ? Colors.green.shade700
+                            : Colors.red.shade700;
                         final balanceSign = amount > 0 ? '+' : '';
 
                         return Container(
-                          width: 150,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
+                          width: 230,
+                          padding: const EdgeInsets.all(15),
                           decoration: BoxDecoration(
                             color: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(18),
                             border: Border.all(
                               color: Theme.of(context)
                                   .colorScheme
                                   .outlineVariant,
                             ),
+                            boxShadow: const [
+                              BoxShadow(
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                                color: Color(0x10000000),
+                              ),
+                            ],
                           ),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CircleAvatar(
-                                radius: 18,
-                                child: ghataCurrencyFlagWidget(
-                                  code,
-                                  width: 26,
-                                  height: 18,
+                              Row(
+                                children: [
+                                  ghataCurrencyFlagWidget(
+                                    code,
+                                    width: 32,
+                                    height: 22,
+                                  ),
+                                  const SizedBox(width: 9),
+                                  Text(
+                                    code,
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                ghataT(context, 'Balance'),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                               ),
-                              SizedBox(width: 9),
-                              Expanded(
-                                child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.center,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      code,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    SizedBox(height: 3),
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        '$balanceSign${amount.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: balanceColor,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  '$balanceSign${amount.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    color: balanceColor,
+                                  ),
                                 ),
+                              ),
+                              const Spacer(),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${ghataT(context, 'Money In')}: ${moneyIn.toStringAsFixed(2)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.green.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${ghataT(context, 'Money Out')}: ${moneyOut.toStringAsFixed(2)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.end,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.red.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -20399,6 +20578,65 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 SizedBox(height: 12),
                 Divider(height: 1),
                 SizedBox(height: 10),
+                if (Platform.isWindows) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          controller: customerLedgerSearchController,
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            hintText: ghataT(context, 'Search transactions...'),
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            isDense: true,
+                            filled: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 180,
+                        child: DropdownButtonFormField<String>(
+                          value: customerLedgerTypeFilter,
+                          decoration: InputDecoration(
+                            labelText: ghataT(context, 'Type'),
+                            isDense: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'ALL',
+                              child: Text(ghataT(context, 'All')),
+                            ),
+                            DropdownMenuItem(
+                              value: 'money_in',
+                              child: Text(ghataT(context, 'Money In')),
+                            ),
+                            DropdownMenuItem(
+                              value: 'money_out',
+                              child: Text(ghataT(context, 'Money Out')),
+                            ),
+                            DropdownMenuItem(
+                              value: 'exchange',
+                              child: Text(ghataT(context, 'Exchange')),
+                            ),
+                          ],
+                          onChanged: (value) => setState(
+                            () => customerLedgerTypeFilter = value ?? 'ALL',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -20752,7 +20990,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
           },
         ),
       ),
-    );
+    ));
   }
 }
 
