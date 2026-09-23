@@ -27,6 +27,19 @@ import 'package:share_plus/share_plus.dart';
 
 const _ghataUuid = Uuid();
 
+class GhataDesktopScrollBehavior extends MaterialScrollBehavior {
+  const GhataDesktopScrollBehavior();
+
+  @override
+  Set<ui.PointerDeviceKind> get dragDevices => {
+        ui.PointerDeviceKind.touch,
+        ui.PointerDeviceKind.mouse,
+        ui.PointerDeviceKind.trackpad,
+        ui.PointerDeviceKind.stylus,
+        ui.PointerDeviceKind.unknown,
+      };
+}
+
 
 Widget ghataCurrencyFlagWidget(
   String currency, {
@@ -5435,6 +5448,7 @@ class _GhataAppState extends State<GhataApp>
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scrollBehavior: const GhataDesktopScrollBehavior(),
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Ghata',
@@ -14177,6 +14191,39 @@ Future<void> shareTransactionReceiptPdf(
         );
       }
 
+      pw.Widget pdfCurrencyFlag(String code) {
+        final c = code.toUpperCase();
+        List<PdfColor> colors;
+        bool vertical = false;
+        switch (c) {
+          case 'AFN': colors = [PdfColors.black, PdfColors.red, PdfColors.green]; vertical = true; break;
+          case 'PKR': colors = [PdfColors.white, PdfColor.fromHex('#01411C')]; vertical = true; break;
+          case 'USD': colors = [PdfColors.red, PdfColors.white, PdfColors.red, PdfColors.white, PdfColors.red]; break;
+          case 'EUR': colors = [PdfColor.fromHex('#003399')]; break;
+          case 'GBP': colors = [PdfColor.fromHex('#012169'), PdfColors.white, PdfColor.fromHex('#C8102E')]; break;
+          case 'AED': colors = [PdfColor.fromHex('#00732F'), PdfColors.white, PdfColors.black]; break;
+          case 'SAR': colors = [PdfColor.fromHex('#006C35'), PdfColors.white, PdfColor.fromHex('#006C35')]; break;
+          case 'KWD': colors = [PdfColor.fromHex('#007A3D'), PdfColors.white, PdfColor.fromHex('#CE1126')]; break;
+          case 'QAR': colors = [PdfColors.white, PdfColor.fromHex('#8A1538')]; vertical = true; break;
+          case 'OMR': colors = [PdfColors.white, PdfColor.fromHex('#DB161B'), PdfColor.fromHex('#008000')]; break;
+          case 'TRY': colors = [PdfColor.fromHex('#E30A17')]; break;
+          case 'CNY': colors = [PdfColor.fromHex('#DE2910')]; break;
+          case 'INR': colors = [PdfColor.fromHex('#FF9933'), PdfColors.white, PdfColor.fromHex('#138808')]; break;
+          case 'IRR': colors = [PdfColor.fromHex('#239F40'), PdfColors.white, PdfColor.fromHex('#DA0000')]; break;
+          default: colors = [PdfColor.fromHex('#E5E7EB')];
+        }
+        final bars = colors.map((color) => pw.Expanded(child: pw.Container(color: color))).toList();
+        return pw.Container(
+          width: 22,
+          height: 14,
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: PdfColor.fromHex('#CBD5E1'), width: .5),
+            borderRadius: pw.BorderRadius.circular(2),
+          ),
+          child: vertical ? pw.Row(children: bars) : pw.Column(children: bars),
+        );
+      }
+
       final pdf = pw.Document(
         theme: pw.ThemeData.withFont(
           base: ghataPdfFont,
@@ -15297,6 +15344,16 @@ Future<void> shareTransactionReceiptPdf(
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    FilledButton.icon(
+                      onPressed: showAddTransactionDialog,
+                      icon: const Icon(Icons.add_rounded),
+                      label: Text(ghataT(context, 'Add Entry')),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF006B4F),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     OutlinedButton.icon(onPressed: printFullDailyJournal, icon: const Icon(Icons.picture_as_pdf_outlined), label: Text(ghataT(context, 'Save Statement (PDF)'))),
                     const SizedBox(width: 8),
                     OutlinedButton.icon(onPressed: printFullDailyJournal, icon: const Icon(Icons.print_outlined), label: Text(ghataT(context, 'Print Full Journal'))),
@@ -19606,8 +19663,8 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
 
       String typeLabel(String type) {
         return switch (type) {
-          'money_in' => 'Money In',
-          'money_out' => 'Money Out',
+          'money_in' => 'In',
+          'money_out' => 'Out',
                   _ => type.replaceAll('_', ' '),
         };
       }
@@ -19812,10 +19869,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     ),
                     child: pw.Row(
                       children: [
-                        pw.Text(
-                          flagForCurrency(code),
-                          style: const pw.TextStyle(fontSize: 17),
-                        ),
+                        pdfCurrencyFlag(code),
                         pw.SizedBox(width: 8),
                         pw.Expanded(
                           child: pw.Column(
@@ -19893,59 +19947,59 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                 textAlign: pw.TextAlign.center,
               )
             else
-              pw.Table.fromTextArray(
-                headers: [
-                  ghataT(context, 'Date'),
-                  ghataT(context, 'Type'),
-                  ghataT(context, 'Amount'),
-                  ghataT(context, 'Currency'),
-                  ghataT(context, 'Description'),
+              pw.Table(
+                border: pw.TableBorder.all(color: border, width: 0.6),
+                columnWidths: const {
+                  0: pw.FlexColumnWidth(1.55),
+                  1: pw.FlexColumnWidth(.85),
+                  2: pw.FlexColumnWidth(1.15),
+                  3: pw.FlexColumnWidth(1.05),
+                  4: pw.FlexColumnWidth(2.1),
+                },
+                children: [
+                  pw.TableRow(
+                    decoration: pw.BoxDecoration(color: blue),
+                    children: [
+                      ghataT(context, 'Date'),
+                      ghataT(context, 'Type'),
+                      ghataT(context, 'Amount'),
+                      ghataT(context, 'Currency'),
+                      ghataT(context, 'Description'),
+                    ].map((h) => pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(h, style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                    )).toList(),
+                  ),
+                  ...transactions.asMap().entries.map((entry) {
+                    final transaction = entry.value;
+                    final date = transaction['transaction_date']?.toString() ?? '';
+                    final rawTime = transaction['transaction_time']?.toString() ?? '';
+                    final time = rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
+                    final code = transaction['currency']?.toString().toUpperCase() ?? '';
+                    final rawType = transaction['transaction_type']?.toString() ?? '';
+                    final isExchange = transaction['_is_exchange'] == true;
+                    final isIn = rawType == 'money_in' || rawType == 'adjustment_in' || rawType == 'exchange_in';
+                    final isOut = rawType == 'money_out' || rawType == 'adjustment_out' || rawType == 'exchange_out';
+                    final typeText = isExchange ? ghataT(context, 'Exchange') : (isIn ? ghataT(context, 'In') : isOut ? ghataT(context, 'Out') : ghataT(context, typeLabel(rawType)));
+                    final amountColor = isIn ? green : isOut ? red : blue;
+                    final amount = double.tryParse(transaction['amount']?.toString() ?? '') ?? 0;
+                    pw.Widget cell(pw.Widget child) => pw.Padding(padding: const pw.EdgeInsets.all(5), child: child);
+                    return pw.TableRow(
+                      decoration: entry.key.isOdd ? pw.BoxDecoration(color: PdfColor.fromHex('#F9FAFB')) : null,
+                      children: [
+                        cell(pw.Text(time.isEmpty ? date : '$date\n$time', style: const pw.TextStyle(fontSize: 7.5))),
+                        cell(pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                          decoration: pw.BoxDecoration(color: isIn ? paleGreen : isOut ? paleRed : paleBlue, borderRadius: pw.BorderRadius.circular(8)),
+                          child: pw.Text(typeText, textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 7.2, color: amountColor, fontWeight: pw.FontWeight.bold)),
+                        )),
+                        cell(pw.Text(amount.toStringAsFixed(2), style: pw.TextStyle(fontSize: 7.5, color: amountColor, fontWeight: pw.FontWeight.bold))),
+                        cell(pw.Row(children: [pdfCurrencyFlag(code), pw.SizedBox(width: 4), pw.Text(code, style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold))])),
+                        cell(pw.Text(transaction['description']?.toString() ?? '', style: const pw.TextStyle(fontSize: 7.5))),
+                      ],
+                    );
+                  }),
                 ],
-                data: transactions.map((transaction) {
-                  final date =
-                      transaction['transaction_date']?.toString() ?? '';
-                  final rawTime =
-                      transaction['transaction_time']?.toString() ?? '';
-                  final time = rawTime.length >= 5
-                      ? rawTime.substring(0, 5)
-                      : rawTime;
-                  final code =
-                      transaction['currency']?.toString().toUpperCase() ??
-                          '';
-
-                  return [
-                    time.isEmpty ? date : '$date $time',
-                    transaction['_is_exchange'] == true
-                        ? ghataT(context, 'Exchange')
-                        : ghataT(
-                            context,
-                            typeLabel(
-                              transaction['transaction_type']?.toString() ?? '',
-                            ),
-                          ),
-                    transaction['amount']?.toString() ?? '0',
-                    '${flagForCurrency(code)} $code',
-                    transaction['description']?.toString() ?? '',
-                  ];
-                }).toList(),
-                headerDecoration: pw.BoxDecoration(
-                  color: blue,
-                ),
-                headerStyle: pw.TextStyle(
-                  color: PdfColors.white,
-                  fontSize: 8,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-                cellStyle: const pw.TextStyle(fontSize: 7.5),
-                cellAlignment: pw.Alignment.centerLeft,
-                cellPadding: const pw.EdgeInsets.all(5),
-                border: pw.TableBorder.all(
-                  color: border,
-                  width: 0.6,
-                ),
-                oddRowDecoration: pw.BoxDecoration(
-                  color: PdfColor.fromHex('#F9FAFB'),
-                ),
               ),
 
             if (receiptNote.isNotEmpty) ...[
@@ -20537,7 +20591,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      '${ghataT(context, 'Money In')}: ${moneyIn.toStringAsFixed(2)}',
+                                      'In: ${moneyIn.toStringAsFixed(2)}',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
@@ -20550,7 +20604,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      '${ghataT(context, 'Money Out')}: ${moneyOut.toStringAsFixed(2)}',
+                                      'Out: ${moneyOut.toStringAsFixed(2)}',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       textAlign: TextAlign.end,
@@ -20711,270 +20765,187 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                             : number.toStringAsFixed(2);
                       }
 
-                      return SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: BouncingScrollPhysics(),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minWidth: 760),
-                          child: SizedBox(
-                            width: Platform.isWindows
-                                ? (MediaQuery.sizeOf(context).width - 32)
-                                    .clamp(760.0, 1180.0)
-                                    .toDouble()
-                                : 760,
-                            child: Column(
-                              children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 12,
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFDDE8D8)),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: DataTable(
+                            headingRowColor: WidgetStateProperty.all(
+                              const Color(0xFFFFE8A3),
                             ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 100,
-                                  child: Text(
-                                    ghataT(context, 'Date'),
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 3,
-                                  child: Text(
-                                    ghataT(context, 'Description'),
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    ghataT(context, 'Money In'),
-                                    textAlign: TextAlign.end,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    ghataT(context, 'Money Out'),
-                                    textAlign: TextAlign.end,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    ghataT(context, 'Balance'),
-                                    textAlign: TextAlign.end,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          ...ledger.map((transaction) {
-                            final currency =
-                                transaction['currency']
-                                        ?.toString()
-                                        .toUpperCase() ??
-                                    '';
-
-                            final date =
-                                transaction['transaction_date']
-                                        ?.toString() ??
-                                    '';
-
-                            final rawTime =
-                                transaction['transaction_time']
-                                        ?.toString() ??
-                                    '';
-
-                            final time = rawTime.length >= 5
-                                ? rawTime.substring(0, 5)
-                                : rawTime;
-
-                            final description =
-                                transaction['description']
-                                        ?.toString()
-                                        .trim() ??
-                                    '';
-
-                            final moneyIn =
-                                transaction['_ledger_in'] ?? 0.0;
-                            final moneyOut =
-                                transaction['_ledger_out'] ?? 0.0;
-
-                            final balance = double.tryParse(
-                                  transaction['_ledger_balance']
-                                      .toString(),
-                                ) ??
-                                0;
-
-                            final balanceColor = balance > 0
-                                ? Colors.green
-                                : balance < 0
-                                    ? Colors.red
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant;
-
-                            return GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                if (transaction['_is_exchange'] == true) {
-                                  showCustomerTransactionActions(
-                                    transaction,
-                                  );
-                                } else {
-                                  ghataShowTransactionReceipt(
-                                    context,
-                                    transaction,
-                                  );
-                                }
-                              },
-                              onLongPress: () =>
-                                  showCustomerTransactionActions(
-                                transaction,
-                              ),
-                              child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 14,
-                              ),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Theme.of(context)
-                                        .dividerColor
-                                        .withValues(alpha: 0.45),
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 100,
-                                    child: Text(
-                                      time.isEmpty
-                                          ? date
-                                          : '$date\n$time',
-                                      style: TextStyle(
-                                        fontSize: 12,
+                            columns: [
+                              ghataT(context, 'Date'),
+                              ghataT(context, 'Type'),
+                              ghataT(context, 'Description'),
+                              ghataT(context, 'Receipt No.'),
+                              ghataT(context, 'Currency'),
+                              ghataT(context, 'Money In'),
+                              ghataT(context, 'Money Out'),
+                              ghataT(context, 'Balance'),
+                            ]
+                                .map(
+                                  (label) => DataColumn(
+                                    label: Text(
+                                      label,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                   ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                )
+                                .toList(),
+                            rows: ledger.take(100).map((transaction) {
+                              final currency = transaction['currency']
+                                      ?.toString()
+                                      .toUpperCase() ??
+                                  '';
+                              final type = transaction['transaction_type']
+                                      ?.toString() ??
+                                  '';
+                              final date = transaction['transaction_date']
+                                      ?.toString() ??
+                                  '';
+                              final rawTime = transaction['transaction_time']
+                                      ?.toString() ??
+                                  '';
+                              final time = rawTime.length >= 5
+                                  ? rawTime.substring(0, 5)
+                                  : rawTime;
+                              final description = transaction['description']
+                                      ?.toString()
+                                      .trim() ??
+                                  '';
+                              final receipt = (transaction['receipt_no'] ??
+                                      transaction['reference_no'] ??
+                                      transaction['reference'] ??
+                                      '')
+                                  .toString();
+                              final moneyIn = double.tryParse(
+                                    (transaction['_ledger_in'] ?? 0).toString(),
+                                  ) ??
+                                  0;
+                              final moneyOut = double.tryParse(
+                                    (transaction['_ledger_out'] ?? 0).toString(),
+                                  ) ??
+                                  0;
+                              final balance = double.tryParse(
+                                    (transaction['_ledger_balance'] ?? 0)
+                                        .toString(),
+                                  ) ??
+                                  0;
+                              final isExchange =
+                                  transaction['_is_exchange'] == true ||
+                                      type.contains('exchange');
+                              final incoming = moneyIn > 0;
+                              final typeColor = isExchange
+                                  ? Colors.blue
+                                  : incoming
+                                      ? Colors.green
+                                      : Colors.red;
+                              final typeLabel = isExchange
+                                  ? ghataT(context, 'Exchange')
+                                  : incoming
+                                      ? ghataT(context, 'Money In')
+                                      : ghataT(context, 'Money Out');
+                              final balanceColor = balance > 0
+                                  ? Colors.green
+                                  : balance < 0
+                                      ? Colors.red
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant;
+
+                              return DataRow(
+                                onSelectChanged: (_) {
+                                  if (isExchange) {
+                                    showCustomerTransactionActions(transaction);
+                                  } else {
+                                    ghataShowTransactionReceipt(
+                                      context,
+                                      transaction,
+                                    );
+                                  }
+                                },
+                                cells: [
+                                  DataCell(Text(time.isEmpty ? date : '$date\n$time')),
+                                  DataCell(
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 9,
+                                        vertical: 5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: typeColor.withValues(alpha: .10),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        typeLabel,
+                                        style: TextStyle(
+                                          color: typeColor,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  DataCell(
+                                    SizedBox(
+                                      width: 240,
+                                      child: Text(
+                                        description.isEmpty ? '—' : description,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                  DataCell(Text(receipt)),
+                                  DataCell(
+                                    Row(
                                       children: [
-                                        Text(
-                                          description.isEmpty
-                                              ? '—'
-                                              : description,
-                                          maxLines: 2,
-                                          overflow:
-                                              TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight:
-                                                FontWeight.w500,
-                                          ),
+                                        ghataCurrencyFlagWidget(
+                                          currency,
+                                          width: 25,
+                                          height: 17,
                                         ),
-                                        SizedBox(height: 2),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            ghataCurrencyFlagWidget(currency),
-                                            SizedBox(width: 6),
-                                            Text(currency),
-                                          ],
-                                        ),
+                                        const SizedBox(width: 7),
+                                        Text(currency),
                                       ],
                                     ),
                                   ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
+                                  DataCell(
+                                    Text(
                                       amountText(moneyIn),
-                                      textAlign: TextAlign.end,
                                       style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: (double.tryParse(
-                                                      moneyIn.toString(),
-                                                    ) ??
-                                                    0) >
-                                                0
-                                            ? Colors.green
-                                            : null,
+                                        color: moneyIn > 0 ? Colors.green : null,
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                   ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
+                                  DataCell(
+                                    Text(
                                       amountText(moneyOut),
-                                      textAlign: TextAlign.end,
                                       style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: (double.tryParse(
-                                                      moneyOut.toString(),
-                                                    ) ??
-                                                    0) >
-                                                0
-                                            ? Colors.red
-                                            : null,
+                                        color: moneyOut > 0 ? Colors.red : null,
+                                        fontWeight: FontWeight.w800,
                                       ),
                                     ),
                                   ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
+                                  DataCell(
+                                    Text(
                                       amountText(balance),
-                                      textAlign: TextAlign.end,
                                       style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
                                         color: balanceColor,
+                                        fontWeight: FontWeight.w900,
                                       ),
                                     ),
                                   ),
                                 ],
-                              ),
-                              ),
-                            );
-                          }),
-                              ],
-                            ),
+                              );
+                            }).toList(),
                           ),
                         ),
                       );
