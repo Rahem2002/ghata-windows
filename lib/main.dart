@@ -8155,6 +8155,7 @@ class _GhataWindowsSidebar extends StatelessWidget {
       case 'security': screen = SecurityScreen(); break;
       case 'staff': screen = StaffManagementScreen(); break;
       case 'backup': screen = BackupRestoreScreen(); break;
+      case 'sync': screen = SyncDiagnosticsScreen(); break;
       case 'recycle': screen = RecycleBinScreen(); break;
       case 'about': screen = const AboutGhataScreen(); break;
       default: screen = HomeScreen();
@@ -8226,25 +8227,13 @@ class _GhataWindowsSidebar extends StatelessWidget {
                     _item(context, 'exchange', Icons.currency_exchange_rounded, ghataT(context, 'Exchange')),
                     _item(context, 'reports', Icons.bar_chart_rounded, ghataT(context, 'Reports')),
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Divider(color: Color(0x33FFFFFF))),
+                    _item(context, 'profile', Icons.person_outline, ghataT(context, 'Profile & Business')),
+                    _item(context, 'security', Icons.security_outlined, ghataT(context, 'Security')),
+                    _item(context, 'staff', Icons.groups_outlined, ghataT(context, 'Staff & Roles')),
+                    _item(context, 'recycle', Icons.delete_outline, ghataT(context, 'Recycle Bin')),
+                    _item(context, 'about', Icons.info_outline_rounded, ghataT(context, 'About Ghata')),
+                    _item(context, 'sync', Icons.cloud_done_outlined, ghataT(context, 'Sync Status')),
                     _item(context, 'backup', Icons.cloud_sync_outlined, ghataT(context, 'Backup & Sync')),
-                    Theme(
-                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        initiallyExpanded: const {'profile','security','staff','recycle','about'}.contains(selected),
-                        leading: const Icon(Icons.settings_outlined, color: Colors.white70, size: 21),
-                        iconColor: const Color(0xFFFFE8A3),
-                        collapsedIconColor: Colors.white70,
-                        title: Text(ghataT(context, 'Settings'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                        childrenPadding: const EdgeInsets.only(left: 18),
-                        children: [
-                          _item(context, 'profile', Icons.person_outline, ghataT(context, 'Profile & Business')),
-                          _item(context, 'security', Icons.security_outlined, ghataT(context, 'Security')),
-                          _item(context, 'staff', Icons.groups_outlined, ghataT(context, 'Staff & Roles')),
-                          _item(context, 'recycle', Icons.delete_outline, ghataT(context, 'Recycle Bin')),
-                          _item(context, 'about', Icons.info_outline_rounded, ghataT(context, 'About Ghata')),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -20100,6 +20089,17 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
             ],
           ),
           actions: [
+            if (Platform.isWindows)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: FilledButton.icon(
+                  onPressed: openCustomerWhatsApp,
+                  icon: const Icon(Icons.chat_rounded, size: 18),
+                  label: Text(ghataT(context, 'WhatsApp')),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.green),
+                ),
+              ),
+            const SizedBox(width: 8),
             PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'print') {
@@ -20140,16 +20140,17 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                   value: 'share',
                   child: Text(ghataT(context, 'Share Balance Image')),
                 ),
-                PopupMenuItem(
-                  value: 'whatsapp',
-                  child: Row(
-                    children: [
-                      Icon(Icons.chat_outlined, color: Colors.green),
-                      SizedBox(width: 10),
-                      Text(ghataT(context, 'WhatsApp')),
-                    ],
+                if (!Platform.isWindows)
+                  PopupMenuItem(
+                    value: 'whatsapp',
+                    child: Row(
+                      children: [
+                        Icon(Icons.chat_outlined, color: Colors.green),
+                        SizedBox(width: 10),
+                        Text(ghataT(context, 'WhatsApp')),
+                      ],
+                    ),
                   ),
-                ),
                 PopupMenuDivider(),
                 PopupMenuItem(
                   value: 'edit',
@@ -20763,8 +20764,10 @@ class CashboxScreen extends StatefulWidget {
 }
 
 class _CashboxScreenState extends State<CashboxScreen> {
-
   late Future<List<Map<String, dynamic>>> cashboxTransactionsFuture;
+  final cashboxSearchController = TextEditingController();
+  String cashboxTypeFilter = 'all';
+  String? cashboxCurrencyFilter;
 
   @override
   void initState() {
@@ -20775,344 +20778,169 @@ class _CashboxScreenState extends State<CashboxScreen> {
 
   void _handleRealtimeDataRevision() {
     if (!mounted) return;
-
-    // Realtime sync already updated SQLite.
-    // Cashbox only needs to reread local transactions.
-    setState(() {
-      cashboxTransactionsFuture = loadTransactions();
-    });
+    setState(() => cashboxTransactionsFuture = loadTransactions());
   }
 
   @override
   void dispose() {
+    cashboxSearchController.dispose();
     ghataDataRevision.removeListener(_handleRealtimeDataRevision);
     super.dispose();
   }
 
+  Future<List<Map<String, dynamic>>> loadTransactions() => ghataLocalFinancialRows();
 
-  Future<List<Map<String, dynamic>>> loadTransactions() async {
-    final all = await ghataLocalFinancialRows();
+  bool _isIn(String type) => const {'money_in','adjustment_in','exchange_in'}.contains(type);
+  bool _isOut(String type) => const {'money_out','adjustment_out','exchange_out'}.contains(type);
 
-    return all;
-  }
+  String _typeLabel(BuildContext context, String type) => switch (type) {
+    'money_in' => ghataT(context, 'Money In'),
+    'money_out' => ghataT(context, 'Money Out'),
+    'adjustment_in' => ghataT(context, 'Adjustment In'),
+    'adjustment_out' => ghataT(context, 'Adjustment Out'),
+    'exchange_in' => ghataT(context, 'Exchange In'),
+    'exchange_out' => ghataT(context, 'Exchange Out'),
+    _ => type.replaceAll('_', ' '),
+  };
 
-  Map<String, double> calculateCashbox(
-    List<Map<String, dynamic>> transactions,
-  ) {
-    final balances = <String, double>{};
-
-    for (final transaction in transactions) {
-      final currency =
-          transaction['currency']?.toString() ?? '';
-      final type =
-          transaction['transaction_type']?.toString() ?? '';
-      final amount = double.tryParse(
-            transaction['amount']?.toString() ?? '0',
-          ) ??
-          0;
-
-      if (currency.isEmpty) continue;
-
-      balances.putIfAbsent(currency, () => 0);
-
-      if (type == 'money_in') {
-        balances[currency] = balances[currency]! + amount;
-      } else if (type == 'money_out') {
-        balances[currency] = balances[currency]! - amount;
-      } else if (type == 'adjustment_in') {
-        balances[currency] = balances[currency]! + amount;
-      } else if (type == 'adjustment_out') {
-        balances[currency] = balances[currency]! - amount;
-      } else if (type == 'exchange_in') {
-        balances[currency] = balances[currency]! + amount;
-      } else if (type == 'exchange_out') {
-        balances[currency] = balances[currency]! - amount;
-      }
+  Map<String, Map<String, double>> _currencySummary(List<Map<String, dynamic>> rows) {
+    final result = <String, Map<String, double>>{};
+    for (final row in rows) {
+      final code = (row['currency'] ?? '').toString().toUpperCase();
+      final type = (row['transaction_type'] ?? '').toString();
+      final amount = double.tryParse((row['amount'] ?? '0').toString()) ?? 0;
+      if (code.isEmpty || amount <= 0) continue;
+      final item = result.putIfAbsent(code, () => {'in':0, 'out':0, 'balance':0});
+      if (_isIn(type)) { item['in'] = item['in']! + amount; item['balance'] = item['balance']! + amount; }
+      if (_isOut(type)) { item['out'] = item['out']! + amount; item['balance'] = item['balance']! - amount; }
     }
-
-    balances.removeWhere(
-      (_, balance) => balance.abs() <= 0.000001,
-    );
-
-    return balances;
+    return result;
   }
 
-  String flagForCurrency(String code) {
-    const flags = {
-      'AFN': '🇦🇫',
-      'PKR': '🇵🇰',
-      'USD': '🇺🇸',
-      'EUR': '🇪🇺',
-      'GBP': '🇬🇧',
-      'AED': '🇦🇪',
-      'SAR': '🇸🇦',
-      'KWD': '🇰🇼',
-      'QAR': '🇶🇦',
-      'OMR': '🇴🇲',
-      'TRY': '🇹🇷',
-      'CNY': '🇨🇳',
-      'INR': '🇮🇳',
-      'IRR': '🇮🇷',
-    };
-
-    return flags[code] ?? '💰';
+  List<Map<String, dynamic>> _filtered(List<Map<String, dynamic>> rows) {
+    final q = cashboxSearchController.text.trim().toLowerCase();
+    final out = rows.where((row) {
+      final type = (row['transaction_type'] ?? '').toString();
+      final currency = (row['currency'] ?? '').toString().toUpperCase();
+      if (cashboxTypeFilter == 'in' && !_isIn(type)) return false;
+      if (cashboxTypeFilter == 'out' && !_isOut(type)) return false;
+      if (cashboxCurrencyFilter != null && currency != cashboxCurrencyFilter) return false;
+      if (q.isEmpty) return true;
+      return [row['description'], row['reference_no'], row['customer_name'], currency, type]
+          .any((v) => (v ?? '').toString().toLowerCase().contains(q));
+    }).map((e) => Map<String,dynamic>.from(e)).toList();
+    out.sort((a,b) => '${b['transaction_date'] ?? ''} ${b['transaction_time'] ?? ''}'.compareTo('${a['transaction_date'] ?? ''} ${a['transaction_time'] ?? ''}'));
+    return out;
   }
+
+  void _addEntry() => Navigator.push(context, MaterialPageRoute(builder: (_) => DailyJournalScreen(openAddForm: true)));
 
   @override
   Widget build(BuildContext context) {
-    return ghataWindowsPage(context: context, selected: 'cashbox', child: Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF123D2B),
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: Text(ghataT(context, 'Cashbox')),
+    return ghataWindowsPage(
+      context: context,
+      selected: 'cashbox',
+      child: Scaffold(
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? null : const Color(0xFFF5F8F2),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: const Color(0xFFF5F8F2),
+          foregroundColor: const Color(0xFF123D2B),
+          surfaceTintColor: Colors.transparent,
+          title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(ghataT(context, 'Cashbox'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 26)),
+            Text(ghataT(context, 'Track your daily income and expenses'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400)),
+          ]),
+          actions: [
+            SizedBox(width: 300, child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: TextField(
+                controller: cashboxSearchController,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: ghataT(context, 'Search transactions...'), filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none)),
+              ),
+            )),
+            const SizedBox(width: 16),
+          ],
+        ),
+        body: FutureBuilder<List<Map<String, dynamic>>>(
+          future: cashboxTransactionsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+            if (snapshot.hasError) return Center(child: Text("${ghataT(context, 'Unable to load cashbox')}: ${snapshot.error}"));
+            final all = snapshot.data ?? [];
+            final summary = _currencySummary(all);
+            final rows = _filtered(all);
+            final currencies = summary.keys.toList()..sort();
+
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+              children: [
+                SizedBox(
+                  height: 166,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: currencies.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 12),
+                    itemBuilder: (context, i) {
+                      final code = currencies[i]; final d = summary[code]!;
+                      return Container(
+                        width: 220, padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFDDE8D8)), boxShadow: const [BoxShadow(blurRadius: 10, color: Color(0x10000000), offset: Offset(0,3))]),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [ghataCurrencyFlagWidget(code, width: 34, height: 23), const SizedBox(width: 10), Text(code, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))]),
+                          const SizedBox(height: 14),
+                          _cashLine(ghataT(context, 'Money In'), d['in']!, Colors.green),
+                          const SizedBox(height: 8),
+                          _cashLine(ghataT(context, 'Money Out'), d['out']!, Colors.red),
+                          const Divider(height: 20),
+                          _cashLine(ghataT(context, 'Balance'), d['balance']!, const Color(0xFF123D2B), bold: true),
+                        ]),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(children: [
+                  _filterDropdown<String>(value: cashboxTypeFilter, width: 180, items: [DropdownMenuItem(value:'all',child:Text(ghataT(context,'All'))), DropdownMenuItem(value:'in',child:Text(ghataT(context,'Money In'))), DropdownMenuItem(value:'out',child:Text(ghataT(context,'Money Out')))], onChanged:(v)=>setState(()=>cashboxTypeFilter=v ?? 'all')),
+                  const SizedBox(width: 10),
+                  _filterDropdown<String?>(value: cashboxCurrencyFilter, width: 190, items: [DropdownMenuItem<String?>(value:null,child:Text(ghataT(context,'All Currencies'))), ...currencies.map((c)=>DropdownMenuItem<String?>(value:c,child:Row(children:[ghataCurrencyFlagWidget(c,width:24,height:16),const SizedBox(width:8),Text(c)])))], onChanged:(v)=>setState(()=>cashboxCurrencyFilter=v)),
+                  const Spacer(),
+                  FilledButton.icon(onPressed: _addEntry, icon: const Icon(Icons.add), label: Text(ghataT(context, 'Add Entry')), style: FilledButton.styleFrom(backgroundColor: const Color(0xFF006B4F), padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18))),
+                ]),
+                const SizedBox(height: 14),
+                Container(
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFDDE8D8))),
+                  clipBehavior: Clip.antiAlias,
+                  child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: DataTable(
+                    headingRowColor: WidgetStateProperty.all(const Color(0xFFFFE8A3)),
+                    columns: [ghataT(context,'Date'),ghataT(context,'Type'),ghataT(context,'Description'),ghataT(context,'Receipt No.'),ghataT(context,'Currency'),ghataT(context,'Amount')].map((x)=>DataColumn(label:Text(x,style:const TextStyle(fontWeight:FontWeight.w800)))).toList(),
+                    rows: rows.take(100).map((row) {
+                      final type=(row['transaction_type']??'').toString(); final incoming=_isIn(type); final code=(row['currency']??'').toString().toUpperCase(); final amount=double.tryParse((row['amount']??'0').toString())??0;
+                      final rawTime=(row['transaction_time']??'').toString(); final time=rawTime.length>=5?rawTime.substring(0,5):rawTime;
+                      return DataRow(cells:[
+                        DataCell(Text('${row['transaction_date']??''}\n$time')),
+                        DataCell(Container(padding:const EdgeInsets.symmetric(horizontal:9,vertical:5),decoration:BoxDecoration(color:(incoming?Colors.green:Colors.red).withValues(alpha:.10),borderRadius:BorderRadius.circular(10)),child:Text(_typeLabel(context,type),style:TextStyle(color:incoming?Colors.green.shade800:Colors.red.shade800,fontWeight:FontWeight.w700)))),
+                        DataCell(SizedBox(width:240,child:Text((row['description']??row['customer_name']??'').toString(),overflow:TextOverflow.ellipsis))),
+                        DataCell(Text((row['reference_no']??'').toString())),
+                        DataCell(Row(children:[ghataCurrencyFlagWidget(code,width:25,height:17),const SizedBox(width:7),Text(code)])),
+                        DataCell(Text('${incoming?'+':'-'}${amount.toStringAsFixed(2)}',style:TextStyle(color:incoming?Colors.green:Colors.red,fontWeight:FontWeight.w900))),
+                      ]);
+                    }).toList(),
+                  )),
+                ),
+
+              ],
+            );
+          },
+        ),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: cashboxTransactionsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                "${ghataT(context, 'Unable to load cashbox')}: ${snapshot.error}",
-              ),
-            );
-          }
-
-          final balances =
-              calculateCashbox(snapshot.data ?? []);
-
-          final transactions =
-              List<Map<String, dynamic>>.from(snapshot.data ?? []);
-
-          transactions.sort((a, b) {
-            final aDate =
-                '${a['transaction_date'] ?? ''} ${a['transaction_time'] ?? ''}';
-            final bDate =
-                '${b['transaction_date'] ?? ''} ${b['transaction_time'] ?? ''}';
-            return bDate.compareTo(aDate);
-          });
-
-          final balanceCards = balances.entries.map((entry) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Theme.of(context).colorScheme.surface
-                    : const Color(0xFFFFFBF2),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Theme.of(context).colorScheme.outlineVariant
-                      : const Color(0xFFE4D59B),
-                ),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                leading: Container(
-                  width: 46,
-                  height: 46,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withValues(alpha: 0.12)
-                        : const Color(0xFFFFE8A3)
-                            .withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: ghataCurrencyFlagWidget(
-                    entry.key,
-                    width: 28,
-                    height: 19,
-                  ),
-                ),
-                title: Text(
-                  entry.key,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                subtitle: Text(
-                  entry.value > 0
-                      ? ghataT(context, 'Available Balance')
-                      : entry.value < 0
-                          ? ghataT(context, 'Negative Balance')
-                          : ghataT(context, 'Balance'),
-                ),
-                trailing: Text(
-                  '${entry.value > 0 ? '+' : ''}${entry.value.toStringAsFixed(2)} ${entry.key}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: entry.value > 0
-                        ? Colors.green
-                        : entry.value < 0
-                            ? Colors.red
-                            : Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
-                  ),
-                ),
-              ),
-            );
-          }).toList();
-
-          final historyCards = transactions.map((transaction) {
-            final type =
-                transaction['transaction_type']?.toString() ?? '';
-            final currency = transaction['currency']?.toString() ?? '';
-            final amount =
-                double.tryParse(transaction['amount']?.toString() ?? '0') ??
-                    0;
-
-            final date =
-                transaction['transaction_date']?.toString() ?? '';
-            final rawTime =
-                transaction['transaction_time']?.toString() ?? '';
-            final time = rawTime.length >= 5
-                ? rawTime.substring(0, 5)
-                : rawTime;
-
-            final customer =
-                transaction['customer_name']?.toString() ?? '';
-            final description =
-                transaction['description']?.toString() ?? '';
-
-            String label;
-            bool isIn;
-
-            switch (type) {
-              case 'money_in':
-                label = ghataT(context, 'Money In');
-                isIn = true;
-                break;
-              case 'money_out':
-                label = ghataT(context, 'Money Out');
-                isIn = false;
-                break;
-              case 'adjustment_in':
-                label = ghataT(context, 'Adjustment In');
-                isIn = true;
-                break;
-              case 'adjustment_out':
-                label = ghataT(context, 'Adjustment Out');
-                isIn = false;
-                break;
-              case 'exchange_in':
-                label = 'Exchange In';
-                isIn = true;
-                break;
-              case 'exchange_out':
-                label = 'Exchange Out';
-                isIn = false;
-                break;
-              default:
-                label = type.replaceAll('_', ' ');
-                isIn = false;
-            }
-
-            final details = <String>[
-              if (date.isNotEmpty) date,
-              if (time.isNotEmpty) time,
-              if (customer.isNotEmpty) customer,
-              if (description.isNotEmpty) description,
-            ];
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(alpha: 0.65),
-                ),
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: (isIn ? Colors.green : Colors.red)
-                        .withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    isIn
-                        ? Icons.arrow_downward_rounded
-                        : Icons.arrow_upward_rounded,
-                    color: isIn ? Colors.green : Colors.red,
-                  ),
-                ),
-                title: Text(
-                  label,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                subtitle: Text(
-                  details.join(' • '),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Text(
-                  '${isIn ? '+' : '-'}${amount.toStringAsFixed(2)} $currency',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isIn ? Colors.green : Colors.red,
-                  ),
-                ),
-              ),
-            );
-          }).toList();
-
-          return ListView(
-            padding: EdgeInsets.all(16),
-            children: [
-              if (balanceCards.isEmpty)
-                Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: Text(ghataT(context, 'Cashbox balance is zero.')),
-                )
-              else
-                ...balanceCards,
-              SizedBox(height: 12),
-              Text(
-                ghataT(context, 'History'),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 8),
-              if (historyCards.isEmpty)
-                Text(ghataT(context, 'No cashbox history yet.'))
-              else
-                ...historyCards,
-            ],
-          );
-        },
-      ),
-    ));
+    );
   }
 
+  Widget _cashLine(String label, double value, Color color, {bool bold=false}) => Row(children:[Expanded(child:Text(label)),Text(value.toStringAsFixed(2),style:TextStyle(color:color,fontWeight:bold?FontWeight.w900:FontWeight.w700,fontSize:bold?16:14))]);
+
+Widget _filterDropdown<T>({required T value,required double width,required List<DropdownMenuItem<T>> items,required ValueChanged<T?> onChanged})=>SizedBox(width:width,child:DropdownButtonFormField<T>(value:value,items:items,onChanged:onChanged,decoration:InputDecoration(filled:true,fillColor:Colors.white,isDense:true,border:OutlineInputBorder(borderRadius:BorderRadius.circular(13),borderSide:const BorderSide(color:Color(0xFFDDE8D8))))));
 }
 
 class ExchangeScreen extends StatefulWidget {
