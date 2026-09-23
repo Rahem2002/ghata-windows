@@ -6777,7 +6777,7 @@ class _StaffManagementScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'staff', child: Scaffold(
       appBar: AppBar(
         title: Text(ghataT(context, 'Staff Management')),
       ),
@@ -6847,7 +6847,7 @@ class _StaffManagementScreenState
                     },
                   ),
                 ),
-    );
+    ));
   }
 }
 
@@ -7243,7 +7243,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'backup', child: Scaffold(
       appBar: AppBar(
         title: Text(ghataT(context, 'Backup & Restore')),
       ),
@@ -7308,7 +7308,7 @@ class _BackupRestoreScreenState extends State<BackupRestoreScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -8012,7 +8012,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'security', child: Scaffold(
       appBar: AppBar(
         title: Text(ghataT(context, 'Security')),
       ),
@@ -8056,7 +8056,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 ),
               ],
             ),
-    );
+    ));
   }
 }
 
@@ -8113,6 +8113,151 @@ class _GhataStartupGateState extends State<GhataStartupGate> {
     return const Scaffold(
       body: Center(
         child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+
+// Windows desktop navigation shell. Keeps the left sidebar fixed regardless of
+// the selected app language (LTR/RTL) while leaving non-Windows layouts intact.
+Widget ghataWindowsPage({
+  required BuildContext context,
+  required String selected,
+  required Widget child,
+}) {
+  if (!Platform.isWindows) return child;
+  return Directionality(
+    textDirection: TextDirection.ltr,
+    child: Row(
+      children: [
+        _GhataWindowsSidebar(selected: selected),
+        Expanded(child: child),
+      ],
+    ),
+  );
+}
+
+class _GhataWindowsSidebar extends StatelessWidget {
+  final String selected;
+  const _GhataWindowsSidebar({required this.selected});
+
+  void _open(BuildContext context, String key) {
+    Widget screen;
+    switch (key) {
+      case 'home': screen = HomeScreen(); break;
+      case 'customers': screen = CustomersScreen(); break;
+      case 'journal': screen = DailyJournalScreen(); break;
+      case 'cashbox': screen = CashboxScreen(); break;
+      case 'exchange': screen = ExchangeScreen(); break;
+      case 'reports': screen = ReportsScreen(); break;
+      case 'profile': screen = ProfileScreen(); break;
+      case 'security': screen = SecurityScreen(); break;
+      case 'staff': screen = StaffManagementScreen(); break;
+      case 'backup': screen = BackupRestoreScreen(); break;
+      case 'recycle': screen = RecycleBinScreen(); break;
+      case 'about': screen = const AboutGhataScreen(); break;
+      default: screen = HomeScreen();
+    }
+    if (key == selected) return;
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  Widget _item(BuildContext context, String key, IconData icon, String label) {
+    final active = selected == key;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      child: Material(
+        color: active ? const Color(0x33FFE8A3) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: ListTile(
+          dense: true,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          leading: Icon(icon, color: active ? const Color(0xFFFFE8A3) : Colors.white70, size: 21),
+          title: Text(label, style: TextStyle(color: active ? const Color(0xFFFFE8A3) : Colors.white, fontWeight: active ? FontWeight.w800 : FontWeight.w500)),
+          onTap: () => _open(context, key),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text(ghataT(context, 'Sign Out')),
+        content: Text(ghataT(context, 'Are you sure you want to sign out?')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d, false), child: Text(ghataT(context, 'Cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(d, true), child: Text(ghataT(context, 'Sign Out'))),
+        ],
+      ),
+    );
+    if (ok == true) await Supabase.instance.client.auth.signOut();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 248,
+      child: Material(
+        color: const Color(0xFF123D2B),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                child: Row(children: [
+                  Container(width: 42, height: 42, padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: const Color(0xFFFFFBF2), borderRadius: BorderRadius.circular(12)), child: Image.asset('assets/images/ghata_leaf.png', fit: BoxFit.contain)),
+                  const SizedBox(width: 10),
+                  const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('ګهته / Ghata', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)), Text('Business Ledger', style: TextStyle(color: Color(0xFFFFE8A3), fontSize: 11))])),
+                ]),
+              ),
+              const Divider(height: 1, color: Color(0x33FFFFFF)),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    _item(context, 'home', Icons.home_rounded, ghataT(context, 'Home')),
+                    _item(context, 'customers', Icons.people_outline, ghataT(context, 'Customers')),
+                    _item(context, 'journal', Icons.menu_book_outlined, ghataT(context, 'Daily Journal')),
+                    _item(context, 'cashbox', Icons.account_balance_wallet_outlined, ghataT(context, 'Cashbox')),
+                    _item(context, 'exchange', Icons.currency_exchange_rounded, ghataT(context, 'Exchange')),
+                    _item(context, 'reports', Icons.bar_chart_rounded, ghataT(context, 'Reports')),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Divider(color: Color(0x33FFFFFF))),
+                    _item(context, 'backup', Icons.cloud_sync_outlined, ghataT(context, 'Backup & Sync')),
+                    Theme(
+                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        initiallyExpanded: const {'profile','security','staff','recycle','about'}.contains(selected),
+                        leading: const Icon(Icons.settings_outlined, color: Colors.white70, size: 21),
+                        iconColor: const Color(0xFFFFE8A3),
+                        collapsedIconColor: Colors.white70,
+                        title: Text(ghataT(context, 'Settings'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                        childrenPadding: const EdgeInsets.only(left: 18),
+                        children: [
+                          _item(context, 'profile', Icons.person_outline, ghataT(context, 'Profile & Business')),
+                          _item(context, 'security', Icons.security_outlined, ghataT(context, 'Security')),
+                          _item(context, 'staff', Icons.groups_outlined, ghataT(context, 'Staff & Roles')),
+                          _item(context, 'recycle', Icons.delete_outline, ghataT(context, 'Recycle Bin')),
+                          _item(context, 'about', Icons.info_outline_rounded, ghataT(context, 'About Ghata')),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: Color(0x33FFFFFF)),
+              ListTile(
+                leading: const Icon(Icons.logout_rounded, color: Color(0xFFFFE8A3)),
+                title: Text(ghataT(context, 'Sign Out'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                onTap: () => _logout(context),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -8484,6 +8629,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   return filtered.take(5).toList();
 }
+
+  void _applyRecentFilters({String? transactionFilter, String? currency}) {
+    if (transactionFilter != null) {
+      selectedRecentTransactionFilter = transactionFilter;
+    }
+    if (currency != null) {
+      selectedRecentCurrency = currency;
+    }
+
+    // Keep the current rows visible while the local SQLite filter is applied.
+    // This avoids the loading spinner and makes both filters react immediately.
+    setState(() {});
+    loadRecentTransactions(refreshCloud: false).then((rows) {
+      if (!mounted) return;
+      setState(() {
+        recentTransactionsFuture = Future.value(rows);
+      });
+    });
+  }
 
   String homeTransactionLabel(String type) {
     switch (type) {
@@ -9160,9 +9324,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 IconButton(
-                  tooltip: ghataT(context, 'Settings & Account'),
-                  onPressed: showHomeMenu,
-                  icon: Icon(Icons.menu_rounded),
+                  tooltip: Platform.isWindows ? ghataT(context, 'Profile & Business') : ghataT(context, 'Settings & Account'),
+                  onPressed: Platform.isWindows
+                      ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen()))
+                      : showHomeMenu,
+                  icon: Icon(Platform.isWindows ? Icons.account_circle_outlined : Icons.menu_rounded),
                 ),
                 SizedBox(width: 4),
               ],
@@ -9293,9 +9459,7 @@ SizedBox(height: 22),
                           : Icons.filter_alt_rounded,
                     ),
                     onSelected: (value) {
-                      setState(() {
-                        selectedRecentTransactionFilter = value;
-                      });
+                      _applyRecentFilters(transactionFilter: value);
                     },
                     itemBuilder: (context) => [
                       PopupMenuItem(
@@ -9324,9 +9488,7 @@ SizedBox(height: 22),
                             : Icons.payments_rounded,
                       ),
                       onSelected: (value) {
-                        setState(() {
-                          selectedRecentCurrency = value;
-                        });
+                        _applyRecentFilters(currency: value);
                       },
                       itemBuilder: (context) => [
                         PopupMenuItem<String>(
@@ -9606,7 +9768,30 @@ SizedBox(height: 22),
         ),
       ),
 
-      bottomNavigationBar: SafeArea(
+      floatingActionButton: Platform.isWindows
+          ? FutureBuilder<bool>(
+              future: canEditFuture,
+              builder: (context, snapshot) {
+                final allowed = snapshot.data == true;
+                return FloatingActionButton.extended(
+                  onPressed: !allowed
+                      ? null
+                      : () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DailyJournalScreen(openAddForm: true),
+                            ),
+                          );
+                          refreshDashboard();
+                        },
+                  icon: const Icon(Icons.add_rounded),
+                  label: Text(ghataT(context, 'Add')),
+                );
+              },
+            )
+          : null,
+      bottomNavigationBar: Platform.isWindows ? null : SafeArea(
         top: false,
         child: Container(
           decoration: BoxDecoration(
@@ -9746,7 +9931,7 @@ SizedBox(height: 22),
     );
     // Page content follows the selected language direction.
     // Header/navigation direction is controlled locally.
-    return homeScaffold;
+    return ghataWindowsPage(context: context, selected: 'home', child: homeScaffold);
 
   }
 }
@@ -10261,7 +10446,7 @@ class AboutGhataScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'about', child: Scaffold(
       appBar: AppBar(
         title: Text(ghataT(context, 'About Ghata')),
       ),
@@ -10486,7 +10671,7 @@ class AboutGhataScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }
 
@@ -11012,7 +11197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'profile', child: Scaffold(
       appBar: AppBar(
         title: Text(ghataT(context, 'Profile')),
       ),
@@ -11240,7 +11425,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-    );
+    ));
   }
 }
 
@@ -11919,7 +12104,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
 
   @override
   Widget build(BuildContext context) {
-      return Scaffold(
+      return ghataWindowsPage(context: context, selected: 'recycle', child: Scaffold(
         appBar: AppBar(
           title: Text(ghataT(context, 'Recycle Bin')),
           actions: [
@@ -12348,7 +12533,7 @@ class _RecycleBinScreenState extends State<RecycleBinScreen> {
                     ),
                   )
                 : null,
-      );
+      ));
     }
 }
 
@@ -13107,7 +13292,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                             (item) =>
                                 DropdownMenuItem<String>(
                               value: item.$1,
-                              child: Text(item.$2),
+                              child: Text(ghataT(context, item.$2)),
                             ),
                           )
                           .toList(),
@@ -13595,7 +13780,7 @@ class _DailyJournalScreenState extends State<DailyJournalScreen> {
                       .map(
                         (item) => DropdownMenuItem<String>(
                           value: item.$1,
-                          child: Text(item.$2),
+                          child: Text(ghataT(context, item.$2)),
                         ),
                       )
                       .toList(),
@@ -15037,7 +15222,7 @@ Future<void> shareTransactionReceiptPdf(
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'journal', child: Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF123D2B),
         foregroundColor: Colors.white,
@@ -15047,12 +15232,18 @@ Future<void> shareTransactionReceiptPdf(
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
-          if (Platform.isWindows)
+          if (Platform.isWindows) ...[
+            IconButton(
+              tooltip: ghataT(context, 'Save Statement (PDF)'),
+              icon: Icon(Icons.picture_as_pdf_outlined),
+              onPressed: printFullDailyJournal,
+            ),
             IconButton(
               tooltip: ghataT(context, 'Print Full Journal'),
               icon: Icon(Icons.print_outlined),
               onPressed: printFullDailyJournal,
             ),
+          ],
         ],
       ),
       body: SafeArea(
@@ -15380,18 +15571,29 @@ Future<void> shareTransactionReceiptPdf(
                                   items: [
                                     DropdownMenuItem<String?>(
                                       value: null,
-                                      child: Text(
-                                        ghataT(context, 'All Currencies'),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.public_rounded, size: 20),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              ghataT(context, 'All Currencies'),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                     ...currencies.map(
                                       (item) => DropdownMenuItem<String?>(
                                         value: item.$1,
-                                        child: Text(
-                                          '${item.$2} ${item.$1}',
-                                          maxLines: 1,
+                                        child: Row(
+                                          children: [
+                                            ghataCurrencyFlagWidget(item.$1),
+                                            const SizedBox(width: 8),
+                                            Text(item.$1),
+                                          ],
                                         ),
                                       ),
                                     ),
@@ -15813,11 +16015,11 @@ Future<void> shareTransactionReceiptPdf(
         ),
       ),
 
-      bottomNavigationBar: _GhataAppBottomNav(
+      bottomNavigationBar: Platform.isWindows ? null : _GhataAppBottomNav(
         selectedIndex: 3,
         onAddHere: showAddTransactionDialog,
       ),
-    );
+    ));
   }
 
 }
@@ -17007,7 +17209,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'customers', child: Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF123D2B),
         foregroundColor: Colors.white,
@@ -17298,10 +17500,10 @@ class _CustomersScreenState extends State<CustomersScreen> {
         ),
       ),
 
-      bottomNavigationBar: const _GhataAppBottomNav(
+      bottomNavigationBar: Platform.isWindows ? null : const _GhataAppBottomNav(
         selectedIndex: 1,
       ),
-);
+));
   }
 
 }
@@ -20084,31 +20286,8 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: openCustomerWhatsApp,
-                    icon: Icon(
-                      Icons.chat_outlined,
-                      color: Colors.green,
-                    ),
-                    label: Text(
-                      ghataT(context, 'WhatsApp'),
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.green),
-                      minimumSize: Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-                ),
+                // WhatsApp is intentionally available only from the customer
+                // header actions on Windows, matching the shared Ghata layout.
                 SizedBox(height: 14),
                 Text(
                   ghataT(context, 'Balances'),
@@ -20681,7 +20860,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'cashbox', child: Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF123D2B),
         foregroundColor: Colors.white,
@@ -20931,7 +21110,7 @@ class _CashboxScreenState extends State<CashboxScreen> {
           );
         },
       ),
-    );
+    ));
   }
 
 }
@@ -21992,7 +22171,7 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'exchange', child: Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF123D2B),
         foregroundColor: Colors.white,
@@ -22601,10 +22780,10 @@ class _ExchangeScreenState extends State<ExchangeScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: const _GhataAppBottomNav(
+      bottomNavigationBar: Platform.isWindows ? null : const _GhataAppBottomNav(
         selectedIndex: 4,
       ),
-    );
+    ));
   }
 
   @override
@@ -22800,6 +22979,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return report;
   }
 
+  void refreshReportData() {
+    reportsTransactionsFuture = loadTransactions();
+  }
+
   String flagForCurrency(String code) {
     const flags = {
       'AFN': '🇦🇫',
@@ -22822,7 +23005,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ghataWindowsPage(context: context, selected: 'reports', child: Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF123D2B),
         foregroundColor: Colors.white,
@@ -22851,7 +23034,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         lastDate: toDate ?? DateTime(2100),
                       );
                       if (picked != null) {
-                        setState(() => fromDate = picked);
+                        setState(() {
+                          fromDate = picked;
+                          refreshReportData();
+                        });
                       }
                     },
                   ),
@@ -22877,7 +23063,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         lastDate: DateTime(2100),
                       );
                       if (picked != null) {
-                        setState(() => toDate = picked);
+                        setState(() {
+                          toDate = picked;
+                          refreshReportData();
+                        });
                       }
                     },
                   ),
@@ -22890,6 +23079,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       setState(() {
                         fromDate = null;
                         toDate = null;
+                        refreshReportData();
                       });
                     },
                   ),
@@ -22924,7 +23114,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ],
               onChanged: (value) {
-                setState(() => selectedCurrency = value);
+                setState(() {
+                  selectedCurrency = value;
+                  refreshReportData();
+                });
               },
             ),
           ),
@@ -22949,9 +23142,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                   setState(() {
                     reportScope = selection.first;
-                    if (reportScope == 'journal') {
-                      selectedCustomerId = null;
-                    }
+                    selectedCustomerId = null;
+                    refreshReportData();
                   });
                 },
               ),
@@ -22985,7 +23177,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
                   ],
                   onChanged: (value) {
-                    setState(() => selectedCustomerId = value);
+                    setState(() {
+                    selectedCustomerId = value;
+                    refreshReportData();
+                  });
                   },
                 );
               },
@@ -23008,6 +23203,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       toDate = null;
                       selectedCurrency = null;
                       selectedCustomerId = null;
+                      refreshReportData();
                     });
                   },
                 ),
@@ -23237,7 +23433,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                                                 SizedBox(
                                                                     height: 9),
                                                                 Text(
-                                                                  'Net: ${net.toStringAsFixed(2)}',
+                                                                  "${ghataT(context, 'Net Cash Flow')}: ${net.toStringAsFixed(2)}",
                                                                   style:
                                                                       TextStyle(
                                                                     fontSize: 16,
@@ -23322,14 +23518,21 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
                     childrenPadding:
                         EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    children: [
-                      row(ghataT(context, 'Money In'), 'money_in'),
-                      row(ghataT(context, 'Money Out'), 'money_out'),
-                      row(ghataT(context, 'Exchange In'), 'exchange_in'),
-                      row(ghataT(context, 'Exchange Out'), 'exchange_out'),
-                      row(ghataT(context, 'Adjustment In'), 'adjustment_in'),
-                      row(ghataT(context, 'Adjustment Out'), 'adjustment_out'),
-                    ],
+                    children: reportScope == 'customers'
+                        ? [
+                            row(ghataT(context, 'Money In'), 'money_in'),
+                            row(ghataT(context, 'Money Out'), 'money_out'),
+                            row(ghataT(context, 'Exchange In'), 'exchange_in'),
+                            row(ghataT(context, 'Exchange Out'), 'exchange_out'),
+                          ]
+                        : [
+                            row(ghataT(context, 'Money In'), 'money_in'),
+                            row(ghataT(context, 'Money Out'), 'money_out'),
+                            row(ghataT(context, 'Exchange In'), 'exchange_in'),
+                            row(ghataT(context, 'Exchange Out'), 'exchange_out'),
+                            row(ghataT(context, 'Adjustment In'), 'adjustment_in'),
+                            row(ghataT(context, 'Adjustment Out'), 'adjustment_out'),
+                          ],
                   ),
                 );
               }),
@@ -23343,9 +23546,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ],
       ),
 
-      bottomNavigationBar: const _GhataAppBottomNav(
+      bottomNavigationBar: Platform.isWindows ? null : const _GhataAppBottomNav(
         selectedIndex: 5,
       ),
-);
+));
   }
 }
