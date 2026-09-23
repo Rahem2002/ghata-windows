@@ -4073,11 +4073,6 @@ const Map<String, Map<String, String>> ghataTranslations = {
     'fa': 'دفتر حساب بارگذاری نمی‌شود',
     'ur': 'لیجر لوڈ نہیں ہوسکا',
     'ar': 'تعذر تحميل دفتر الحساب',
-    'en': 'Unable to load reports',
-    'ps': 'راپورونه نه شي پورته کېدای',
-    'fa': 'گزارش‌ها بارگذاری نمی‌شوند',
-    'ur': 'رپورٹس لوڈ نہیں ہوسکیں',
-    'ar': 'تعذر تحميل التقارير',
   },  'Unable to load staff': {
     'en': 'Unable to load staff',
     'ps': 'کارکوونکي نه شي پورته کېدای',
