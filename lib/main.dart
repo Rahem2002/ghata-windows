@@ -17781,9 +17781,192 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
     return balances;
   }
 
+  void showCustomerTransactionReceipt(Map<String, dynamic> transaction) {
+    final id = transaction['id']?.toString() ?? '';
+    final reference = transaction['reference_no']?.toString() ?? '';
+    final customer = transaction['customer_name']?.toString() ?? '';
+    final type = transaction['transaction_type']?.toString() ?? '';
+    final amount = transaction['amount']?.toString() ?? '0';
+    final currency = transaction['currency']?.toString().toUpperCase() ?? '';
+    final date = transaction['transaction_date']?.toString() ?? '';
+    final rawTime = transaction['transaction_time']?.toString() ?? '';
+    final time = rawTime.length >= 5 ? rawTime.substring(0, 5) : rawTime;
+    final description = transaction['description']?.toString() ?? '';
+
+    final typeKey = switch (type) {
+      'money_in' => 'Money In',
+      'money_out' => 'Money Out',
+      'adjustment_in' => 'Adjustment In',
+      'adjustment_out' => 'Adjustment Out',
+      _ => type.replaceAll('_', ' '),
+    };
+    final typeLabel = ghataT(context, typeKey);
+    final receiptNo = reference.isNotEmpty
+        ? reference
+        : (id.length > 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase());
+    final isPositive = type == 'money_in' || type == 'adjustment_in';
+    final accent = isPositive ? Colors.green : Colors.red;
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3157D5),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'ګهته • Ghata',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ghataT(context, 'Transaction Receipt'),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    _customerReceiptPreviewRow(ghataT(context, 'Reference'), receiptNo),
+                    if (customer.isNotEmpty)
+                      _customerReceiptPreviewRow(ghataT(context, 'Customer'), customer),
+                    _customerReceiptPreviewRow(ghataT(context, 'Type'), typeLabel),
+                    _customerReceiptPreviewRow(
+                      ghataT(context, 'Date'),
+                      time.isEmpty ? date : '$date  $time',
+                    ),
+                    if (description.isNotEmpty)
+                      _customerReceiptPreviewRow(
+                        ghataT(context, 'Description'),
+                        description,
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: accent.withValues(alpha: 0.35)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      ghataT(context, 'Amount'),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ghataCurrencyFlagWidget(currency),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '$amount $currency',
+                              maxLines: 1,
+                              softWrap: false,
+                              style: TextStyle(
+                                color: accent,
+                                fontSize: 25,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        typeLabel,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _customerReceiptPreviewRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 105,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> showCustomerTransactionActions(
-    Map<String, dynamic> transaction,
-  ) async {
+    Map<String, dynamic> transaction, {
+    String? requestedAction,
+  }) async {
     if (transaction['_is_exchange'] == true) {
       await showDialog<void>(
         context: context,
@@ -17813,7 +17996,8 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
       return;
     }
 
-    final action = await showModalBottomSheet<String>(
+    var action = requestedAction;
+    action ??= await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
@@ -20665,7 +20849,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                           .onSurfaceVariant;
 
                               return DataRow(
-                                onSelectChanged: (_) => showCustomerTransactionActions(transaction),
+                                onSelectChanged: (_) => showCustomerTransactionReceipt(transaction),
                                 cells: [
                                   DataCell(Text(time.isEmpty ? date : '$date\n$time')),
                                   DataCell(
@@ -20739,7 +20923,7 @@ class _CustomerLedgerScreenState extends State<CustomerLedgerScreen> {
                                       ),
                                     ),
                                   ),
-                                  DataCell(PopupMenuButton<String>(padding: EdgeInsets.zero, icon: const Icon(Icons.more_vert_rounded, size:19), onSelected: (_) => showCustomerTransactionActions(transaction), itemBuilder: (_) => [PopupMenuItem(value:'edit', child: Row(children:[const Icon(Icons.edit_outlined, size:18), const SizedBox(width:8), Text(ghataT(context,'Edit'))])), PopupMenuItem(value:'delete', child: Row(children:[const Icon(Icons.delete_outline, size:18, color:Colors.red), const SizedBox(width:8), Text(ghataT(context,'Delete'), style:const TextStyle(color:Colors.red))]))])),
+                                  DataCell(PopupMenuButton<String>(padding: EdgeInsets.zero, icon: const Icon(Icons.more_vert_rounded, size:19), onSelected: (action) => showCustomerTransactionActions(transaction, requestedAction: action), itemBuilder: (_) => [PopupMenuItem(value:'edit', child: Row(children:[const Icon(Icons.edit_outlined, size:18), const SizedBox(width:8), Text(ghataT(context,'Edit'))])), PopupMenuItem(value:'delete', child: Row(children:[const Icon(Icons.delete_outline, size:18, color:Colors.red), const SizedBox(width:8), Text(ghataT(context,'Delete'), style:const TextStyle(color:Colors.red))]))])),
                                 ],
                               );
                             }).toList(),
@@ -23077,7 +23261,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                                     ];
 
                                                     return SizedBox(
-                                                      height: 165,
+                                                      height: 170,
                                                       child: ListView.separated(
                                                         scrollDirection:
                                                             Axis.horizontal,
@@ -23111,7 +23295,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                                                   .toDouble();
 
                                                           return Container(
-                                                            width: 190,
+                                                            width: 280,
                                                             padding:
                                                                 EdgeInsets.all(14),
                                                             decoration:
@@ -23179,16 +23363,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                                                         width:
                                                                             5),
                                                                     Expanded(
-                                                                      child:
-                                                                          Text(
-                                                                        '${ghataT(context, 'Money In')}: ${moneyIn.toStringAsFixed(2)}',
-                                                                        style:
-                                                                            TextStyle(
-                                                                          color: Colors
-                                                                              .green
-                                                                              .shade700,
-                                                                          fontWeight:
-                                                                              FontWeight.w600,
+                                                                      child: FittedBox(
+                                                                        fit: BoxFit.scaleDown,
+                                                                        alignment: Alignment.centerLeft,
+                                                                        child: Text(
+                                                                          '${ghataT(context, 'Money In')}: ${moneyIn.toStringAsFixed(2)}',
+                                                                          maxLines: 1,
+                                                                          softWrap: false,
+                                                                          style: TextStyle(
+                                                                            color: Colors.green.shade700,
+                                                                            fontWeight: FontWeight.w600,
+                                                                          ),
                                                                         ),
                                                                       ),
                                                                     ),
@@ -23210,16 +23395,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                                                         width:
                                                                             5),
                                                                     Expanded(
-                                                                      child:
-                                                                          Text(
-                                                                        '${ghataT(context, 'Money Out')}: ${moneyOut.toStringAsFixed(2)}',
-                                                                        style:
-                                                                            TextStyle(
-                                                                          color: Colors
-                                                                              .red
-                                                                              .shade700,
-                                                                          fontWeight:
-                                                                              FontWeight.w600,
+                                                                      child: FittedBox(
+                                                                        fit: BoxFit.scaleDown,
+                                                                        alignment: Alignment.centerLeft,
+                                                                        child: Text(
+                                                                          '${ghataT(context, 'Money Out')}: ${moneyOut.toStringAsFixed(2)}',
+                                                                          maxLines: 1,
+                                                                          softWrap: false,
+                                                                          style: TextStyle(
+                                                                            color: Colors.red.shade700,
+                                                                            fontWeight: FontWeight.w600,
+                                                                          ),
                                                                         ),
                                                                       ),
                                                                     ),
@@ -23230,27 +23416,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                                                 Divider(height: 1),
                                                                 SizedBox(
                                                                     height: 9),
-                                                                Text(
-                                                                  "${ghataT(context, 'Net Cash Flow')}: ${net.toStringAsFixed(2)}",
-                                                                  style:
-                                                                      TextStyle(
-                                                                    fontSize: 16,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    color: net >
-                                                                            0
-                                                                        ? Colors
-                                                                            .green
-                                                                            .shade800
-                                                                        : net <
-                                                                                0
-                                                                            ? Colors
-                                                                                .red
-                                                                                .shade800
-                                                                            : Theme.of(context)
-                                                                                .colorScheme
-                                                                                .onSurfaceVariant,
+                                                                FittedBox(
+                                                                  fit: BoxFit.scaleDown,
+                                                                  alignment: Alignment.centerLeft,
+                                                                  child: Text(
+                                                                    'Net: ${net.toStringAsFixed(2)}',
+                                                                    maxLines: 1,
+                                                                    softWrap: false,
+                                                                    style: TextStyle(
+                                                                      fontSize: 16,
+                                                                      fontWeight: FontWeight.bold,
+                                                                      color: net > 0
+                                                                          ? Colors.green.shade800
+                                                                          : net < 0
+                                                                              ? Colors.red.shade800
+                                                                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                                                                    ),
                                                                   ),
                                                                 ),
                                                               ],
